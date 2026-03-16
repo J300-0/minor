@@ -2,18 +2,20 @@
 stages/document_parser.py
 Stage 2 — raw text blocks → structured Document model
 
-Handles the real PyMuPDF extraction format where:
-  - Section headings arrive as "1\nIntroduction" (number + name in one block)
-  - Author block is multi-line: name / dept / org / city / email
-  - Abstract label may be a standalone block followed by text in the next block
-  - References arrive as one large block with [1] [2] markers inline
+Key insight from real PyMuPDF extraction:
+  - Every LINE is its own double-newline-separated block
+  - Paragraphs must be re-joined by detecting sentence continuations
+  - Section numbers arrive as lone blocks: "1", "2.1" etc
+  - Table data is a cluster of number-only blocks
+  - Abstract follows a standalone "Abstract" label block
+  - References each span multiple continuation blocks
 """
 
 import re
 from core.models import Document, Section, Author
 
 
-# ── Known section names (lowercased, numbering stripped) ─────────────────────
+# ── Known IEEE section names ──────────────────────────────────────────────────
 IEEE_SECTION_NAMES = {
     "abstract", "introduction", "related work", "background",
     "methodology", "methods", "approach", "system design",
@@ -23,19 +25,19 @@ IEEE_SECTION_NAMES = {
     "acknowledgment", "acknowledgements", "references", "bibliography",
 }
 
-# Matches leading section numbers like "1", "2.1", "I.", "II." etc.
-_LEADING_NUM = re.compile(r"^(\d+(\.\d+)*|[ivxlcdmIVXLCDM]+)\.?\s*")
+_LEADING_NUM = re.compile(r"^(\d+(\.\d+)*|[IVXLCDM]{2,})\.?\s+")
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Public entry point
+# ─────────────────────────────────────────────────────────────────────────────
 
 def parse(extracted_path: str) -> Document:
     with open(extracted_path, encoding="utf-8") as f:
         raw = f.read()
 
-    # Split on blank lines to get blocks
-    blocks = [b.strip() for b in raw.split("\n\n") if b.strip()]
-    # Also pre-join any lone number block with the next block
-    # e.g. ["1", "Introduction", ...] → ["1\nIntroduction", ...]
-    blocks = _merge_orphan_numbers(blocks)
+    # Step 1: raw lines → logical blocks
+    blocks = _build_blocks(raw)
 
     doc = Document()
     doc.title   = _find_title(blocks)
@@ -44,108 +46,251 @@ def parse(extracted_path: str) -> Document:
     return doc
 
 
-# ── Pre-processing ────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Block builder  (the key pre-processing step)
+# ─────────────────────────────────────────────────────────────────────────────
 
-def _merge_orphan_numbers(blocks: list[str]) -> list[str]:
+def _build_blocks(raw: str) -> list[str]:
     """
-    PyMuPDF sometimes emits a lone section number as its own block.
-    e.g.  blocks = ["1", "Introduction", ...]
-    Merge them so heading detection sees "1\nIntroduction".
+    Convert raw extracted text into logical blocks.
     """
+    chunks = [c.strip() for c in raw.split("\n\n") if c.strip()]
+    chunks = _merge_orphan_numbers(chunks)
+
+    # First pass: cluster table data into single blocks
+    chunks = _cluster_tables(chunks)
+
+    blocks: list[str] = []
+    for chunk in chunks:
+        if not blocks:
+            blocks.append(chunk)
+            continue
+
+        prev = blocks[-1]
+
+        if _detect_heading(prev) or _detect_heading(chunk):
+            blocks.append(chunk)
+            continue
+        if prev.lower() in ("abstract", "references", "bibliography"):
+            blocks.append(chunk)
+            continue
+        if chunk.lower() in ("abstract", "references", "bibliography"):
+            blocks.append(chunk)
+            continue
+
+        # Never merge already-clustered table blocks
+        if prev.startswith("__TABLE__") or chunk.startswith("__TABLE__"):
+            blocks.append(chunk)
+            continue
+
+        if _is_metadata_line(chunk) or _is_metadata_line(prev):
+            blocks.append(chunk)
+            continue
+
+        if _is_continuation(prev, chunk):
+            blocks[-1] = prev + " " + chunk
+        else:
+            blocks.append(chunk)
+
+    # Strip the __TABLE__ sentinel
+    return [b[9:] if b.startswith("__TABLE__") else b for b in blocks]
+
+
+def _cluster_tables(chunks: list[str]) -> list[str]:
+    """
+    Find table data clusters and collapse them into a single __TABLE__ block.
+    The cluster is defined as all chunks from the first table-data chunk
+    up to and including the caption line.
+    """
+    result = []
+    i = 0
+    while i < len(chunks):
+        # Look for a "Table N:" caption within next 5 chunks
+        caption_offset = None
+        for j in range(i, min(i + 5, len(chunks))):
+            if re.match(r"^Table\s+\d+", chunks[j], re.IGNORECASE):
+                caption_offset = j
+                break
+
+        if caption_offset is not None and caption_offset > i:
+            span = chunks[i:caption_offset + 1]
+            all_text = "\n".join(span)
+            num_count = len(re.findall(r"\b\d+\.?\d*\b", all_text))
+            if num_count >= 5:
+                # Check if the FIRST chunk in span is body text (long sentence)
+                # If so, keep it separate and only cluster from the second chunk
+                first = span[0]
+                if len(first.split()) > 6 and re.search(r"[.!?]", first):
+                    result.append(first)
+                    merged = "\n".join(span[1:])
+                else:
+                    merged = "\n".join(span)
+                result.append("__TABLE__" + merged)
+                i = caption_offset + 1
+                continue
+
+        result.append(chunks[i])
+        i += 1
+    return result
+
+
+def _is_metadata_line(line: str) -> bool:
+    """Single-line blocks that are author metadata — never merge these."""
+    line = line.strip()
+    if "\n" in line:
+        return False
+    # Email
+    if "@" in line:
+        return True
+    # Phone
+    if re.match(r"^\(?\d[\d\s\-().]{5,}$", line):
+        return True
+    # City/State like "Boone, NC 28608"
+    if re.match(r"^[A-Za-z\s]+,\s*[A-Z]{2}\s*\d{0,5}$", line):
+        return True
+    # Dept / org (short, no sentence punctuation)
+    if len(line) < 60 and not re.search(r"[.!?]$", line) and re.match(r"^[A-Z]", line):
+        # Could be metadata or a heading — let heading detection handle it,
+        # but flag very short title-case lines that aren't sentences
+        words = line.split()
+        if len(words) <= 6 and all(w[0].isupper() for w in words if w):
+            return True
+    return False
+
+
+def _merge_orphan_numbers(chunks: list[str]) -> list[str]:
+    """Merge a lone number block ("1", "2.1") with the chunk that follows it."""
     merged = []
     i = 0
-    while i < len(blocks):
-        b = blocks[i]
-        # A block that is ONLY a number (possibly with a dot)
-        if re.match(r"^\d+(\.\d+)?\.?$", b) and i + 1 < len(blocks):
-            merged.append(b + "\n" + blocks[i + 1])
+    while i < len(chunks):
+        c = chunks[i]
+        if re.match(r"^\d+(\.\d+)?\.?$", c) and i + 1 < len(chunks):
+            merged.append(c + "\n" + chunks[i + 1])
             i += 2
         else:
-            merged.append(b)
+            merged.append(c)
             i += 1
     return merged
 
 
-# ── Field extractors ──────────────────────────────────────────────────────────
+def _is_continuation(prev: str, curr: str) -> bool:
+    """
+    Return True if curr looks like a continuation of prev (same paragraph).
+    Rules:
+      - prev must NOT end with sentence-terminal punctuation (. ! ? : ")
+        Exception: abbreviations like "Fig.", "et al.", "e.g.", "i.e." are not terminals
+      - curr must NOT start like a new paragraph (capital after blank line,
+        bullet, section number)
+      - Neither should be a heading or standalone label
+    """
+    prev_last = prev.rstrip()[-1] if prev.rstrip() else ""
+
+    # If prev ends with a real sentence terminator → new paragraph
+    if prev_last in (".", "!", "?", '"', "'"):
+        # But allow abbreviation endings: short word + period
+        last_word = prev.rstrip().rsplit(None, 1)[-1]
+        is_abbrev = (
+            len(last_word) <= 5 and last_word.endswith(".")  # e.g. "Fig.", "al."
+            or last_word in ("e.g.", "i.e.", "etc.", "vs.", "cf.")
+        )
+        if not is_abbrev:
+            return False
+
+    # If curr starts with a bullet or section-like number → new block
+    if re.match(r"^[•\-\*]|^\d+\.|^[A-Z]{2,}\s", curr):
+        return False
+
+    return True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Field extractors
+# ─────────────────────────────────────────────────────────────────────────────
 
 def _find_title(blocks: list[str]) -> str:
     for b in blocks:
         if b.strip():
-            # Take only the first line of the first block (title is never multi-line)
             return b.strip().split("\n")[0].strip()
     return "Untitled"
 
 
 def _find_authors(blocks: list[str], title: str) -> list[Author]:
     """
-    The author block typically appears right after the title and contains
-    the author name on line 1, then dept / org / city / email on subsequent lines.
-
-    Example block:
-        Cindy Norris
-        Department of Computer Science
-        Appalachian State University
-        Boone, NC 28608
-        (828)262-2359
-        can@cs.appstate.edu
+    Author info is spread across consecutive single-line blocks right after title:
+      "Cindy Norris"
+      "Department of Computer Science"
+      "Appalachian State University"
+      "Boone, NC 28608"
+      "(828)262-2359"
+      "can@cs.appstate.edu"
+    Collect them all until we hit the Abstract label or a section heading.
     """
-    for block in blocks[1:6]:
-        lines = [l.strip() for l in block.split("\n") if l.strip()]
-        if not lines or block == title:
+    author = Author()
+    found_name = False
+
+    for block in blocks[1:12]:
+        if block.lower() == "abstract" or _detect_heading(block):
+            break
+        if block == title:
             continue
 
-        first = lines[0]
-        # Must look like a person's name: two+ capitalised words, short
-        if not re.match(r"^[A-Z][a-z]+([\s\-][A-Z][a-z]+)+$", first):
+        line = block.strip()
+
+        # First block that looks like a name
+        if not found_name:
+            if re.match(r"^[A-Z][a-z]+([\s\-][A-Z][a-z]+)+$", line):
+                author.name = line
+                found_name = True
             continue
 
-        author = Author(name=first)
+        # Subsequent blocks — classify by content
+        low = line.lower()
+        if "@" in line:
+            author.email = line
+        elif re.match(r"^\(?\d[\d\s\-().]+$", line):
+            pass  # phone — skip
+        elif re.match(r"^(dept|department|school|faculty|division)", low):
+            author.department = line
+        elif re.search(r"(university|institute|college|laboratory|lab\b)", low):
+            author.organization = line
+        elif re.match(r"^[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\b", line):
+            author.city = line
+        elif not author.organization:
+            author.organization = line
 
-        for line in lines[1:]:
-            low = line.lower()
-            if "@" in line or re.match(r"[\w.+-]+@[\w.-]+", line):
-                author.email = line
-            elif re.match(r"^(dept|department|school|faculty|div)", low):
-                author.department = line
-            elif re.match(r"^\d[\d\s\-()]+$", line):
-                pass   # phone number — skip
-            elif not author.organization and re.search(r"(university|institute|college|lab|inc\.|ltd)", low):
-                author.organization = line
-            elif not author.city and re.match(r"^[A-Z][a-zA-Z\s]+,?\s*[A-Z]{2}[\s\d]*$", line):
-                author.city = line
-            elif not author.organization:
-                author.organization = line
-
+    if author.name:
         return [author]
     return []
 
 
-# ── Body parser ───────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Body parser
+# ─────────────────────────────────────────────────────────────────────────────
 
 def _parse_body(blocks: list[str], doc: Document):
     current_heading: str | None = None
-    current_body: list[str] = []
-    next_is_abstract = False   # flag: standalone "Abstract" block seen
-    in_references = False
+    current_body:    list[str]  = []
+    next_is_abstract = False
+    in_references    = False
 
     author_names = {a.name for a in doc.authors}
 
     def _flush():
         if current_heading and current_body:
             doc.sections.append(Section(
-                heading=current_heading,
-                body="\n\n".join(current_body).strip()
+                heading = current_heading,
+                body    = "\n\n".join(current_body).strip()
             ))
 
     for block in blocks:
-        lower = block.lower().strip()
+        lower      = block.lower().strip()
         first_line = block.split("\n")[0].strip()
 
-        # ── Skip title / author blocks ─────────────────────────────────────────
+        # ── Skip title / author identity blocks ───────────────────────────────
         if first_line == doc.title or first_line in author_names:
             continue
 
-        # ── Standalone "Abstract" label ────────────────────────────────────────
+        # ── Standalone "Abstract" label ───────────────────────────────────────
         if lower == "abstract":
             next_is_abstract = True
             continue
@@ -155,139 +300,316 @@ def _parse_body(blocks: list[str], doc: Document):
             next_is_abstract = False
             continue
 
-        # ── Inline "Abstract — text..." ───────────────────────────────────────
+        # ── Inline "Abstract — text..." ──────────────────────────────────────
         if re.match(r"^abstract[\s:—\-]+\S", block, re.IGNORECASE) and not doc.abstract:
-            doc.abstract = re.sub(
-                r"^abstract[\s:—\-]+", "", block, flags=re.IGNORECASE
-            ).strip()
+            doc.abstract = re.sub(r"^abstract[\s:—\-]+", "", block, flags=re.IGNORECASE).strip()
             continue
 
-        # ── Keywords ──────────────────────────────────────────────────────────
+        # ── Keywords ─────────────────────────────────────────────────────────
         if re.match(r"^(keywords?|index terms?)[\s:—\-]", lower):
-            kw_text = re.sub(
-                r"^(keywords?|index terms?)[\s:—\-]+", "", block, flags=re.IGNORECASE
-            )
-            doc.keywords = [k.strip() for k in re.split(r"[;,]", kw_text) if k.strip()]
+            kw = re.sub(r"^(keywords?|index terms?)[\s:—\-]+", "", block, flags=re.IGNORECASE)
+            doc.keywords = [k.strip() for k in re.split(r"[;,]", kw) if k.strip()]
             continue
 
-        # ── References block ──────────────────────────────────────────────────
-        # Could be a standalone "References" label...
+        # ── References section ────────────────────────────────────────────────
         if re.match(r"^references\.?$", lower):
             _flush()
             current_heading = None
-            current_body = []
-            in_references = True
+            current_body    = []
+            in_references   = True
             continue
 
-        # ...or subsequent blocks while inside references
         if in_references:
-            parts = _split_references(block)
-            for part in parts:
-                # Strip leading [N] marker from the text — \bibitem already adds the number
-                part = re.sub(r"^\[\d+\]\s*", "", part).strip()
-                if not part:
-                    continue
-                # If this part looks like a continuation (no capital letter start typical
-                # of a new author name) append to last ref
-                if doc.references and not re.match(r"^[A-Z\[]", part):
-                    doc.references[-1] = doc.references[-1] + " " + part
-                else:
-                    doc.references.append(part)
+            _accumulate_reference(block, doc)
             continue
 
-        # ── Section heading ───────────────────────────────────────────────────
+        # ── Section / subsection heading ─────────────────────────────────────
         heading = _detect_heading(block)
         if heading:
             _flush()
             current_heading = heading
-            current_body = []
+            current_body    = []
             continue
 
-        # ── Body text ─────────────────────────────────────────────────────────
-        # Skip blocks that look like raw table data (rows of numbers/columns)
-        if _is_table_data(block):
+        # ── Table cluster ─────────────────────────────────────────────────────
+        table_tex = _try_build_table(block)
+        if table_tex:
+            if current_heading is not None:
+                current_body.append("%%RAWTEX%%" + table_tex + "%%ENDRAWTEX%%")
             continue
+
+        # ── Body text ────────────────────────────────────────────────────────
         if current_heading is not None:
             current_body.append(block.strip())
 
     _flush()
 
 
-# ── Heading detection ─────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Table reconstruction
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _try_build_table(block: str) -> str | None:
+    """
+    Reconstruct a LaTeX table from a raw extracted block.
+
+    The block contains (all newline-separated):
+      - Optionally: a trailing body-text line before the table
+      - Header token lines  (text labels: "Benchmark", "8", "long", "RASSG"...)
+      - Data rows           (label + numbers: "loop1", "1.56", "1.02", ...)
+      - Group labels        ("Livermore", "Clinpack" — text between data rows)
+      - Caption line        ("Table 1: ..." possibly split across two lines)
+    """
+    lines = [l.strip() for l in block.split("\n") if l.strip()]
+    if len(lines) < 5:
+        return None
+
+    # Strip leading lines that are clearly body text (end with punctuation
+    # but aren't table tokens or a Table caption)
+    while lines:
+        l = lines[0]
+        if re.match(r"^Table\s+\d+", l, re.IGNORECASE):
+            break
+        # Body text: ends with sentence punctuation AND is not a pure token
+        if re.search(r"[.!?,;]$", l) and not re.match(r"^\d+\.?\d*$", l):
+            lines = lines[1:]
+        else:
+            break
+
+    if len(lines) < 5:
+        return None
+
+    # ── Find and reconstruct caption (may be split "...post-\npass") ──────────
+    caption_idx = None
+    caption_text = ""
+    for i, l in enumerate(lines):
+        m = re.match(r"^Table\s+\d+[:.]\s*(.*)", l, re.IGNORECASE)
+        if m:
+            caption_idx = i
+            caption_text = m.group(1).strip()
+            # If caption was hyphenated across lines, join with next line
+            if caption_text.endswith("-") and i + 1 < len(lines):
+                caption_text = caption_text[:-1] + lines[i + 1]
+            elif i + 1 < len(lines) and not re.match(r"^\d", lines[i + 1]):
+                # continuation word (no number start)
+                next_l = lines[i + 1]
+                if len(next_l.split()) <= 3:
+                    caption_text = caption_text + " " + next_l
+            break
+
+    if caption_idx is None:
+        return None
+
+    data_lines = lines[:caption_idx]
+
+    # Must have at least some numbers
+    num_count = sum(1 for l in data_lines if re.match(r"^\d+\.?\d*$", l))
+    if num_count < 3:
+        return None
+
+    # ── Determine data row width ──────────────────────────────────────────────
+    # Find the first data row (text label followed by numbers) to get n_cols
+    n_cols = 0
+    for idx, l in enumerate(data_lines):
+        if not re.match(r"^\d+\.?\d*$", l) and idx + 1 < len(data_lines):
+            if re.match(r"^\d+\.?\d*$", data_lines[idx + 1]):
+                # Count consecutive numbers after this label
+                j = idx + 1
+                count = 0
+                while j < len(data_lines) and re.match(r"^\d+\.?\d*$", data_lines[j]):
+                    count += 1
+                    j += 1
+                if count > n_cols:
+                    n_cols = count
+    if n_cols == 0:
+        return None
+
+    # ── Split into header tokens and data section ─────────────────────────────
+    # Strategy: group labels (Livermore, Clinpack) clearly mark where data starts.
+    # Everything before the FIRST group label is header material.
+    # A group label is a text line that is NOT followed by a number.
+    first_group_idx = len(data_lines)
+    for idx in range(len(data_lines)):
+        l = data_lines[idx]
+        if re.match(r"^\d+\.?\d*$", l):
+            continue
+        next_is_num = (idx + 1 < len(data_lines) and
+                       re.match(r"^\d+\.?\d*$", data_lines[idx + 1]))
+        if not next_is_num and idx > 0:  # text line not followed by number = group label
+            first_group_idx = idx
+            break
+
+    header_tokens = data_lines[:first_group_idx]
+    # Remove leading body-text lines
+    header_tokens = [t for t in header_tokens
+                     if not (re.search(r"[.!?,;]$", t) and len(t.split()) > 2)]
+    header_end = first_group_idx
+
+    # ── Parse data rows and group labels ─────────────────────────────────────
+    rows   = []   # (label, [val...])
+    groups = {}   # row_index → group_name
+
+    i = header_end
+    while i < len(data_lines):
+        l = data_lines[i]
+        if re.match(r"^\d+\.?\d*$", l):
+            i += 1
+            continue
+
+        # Is it a group label? — text line NOT followed immediately by a number
+        next_is_num = (i + 1 < len(data_lines) and
+                       re.match(r"^\d+\.?\d*$", data_lines[i + 1]))
+        if not next_is_num:
+            groups[len(rows)] = l
+            i += 1
+            continue
+
+        # Data row: collect label + following numbers
+        vals = []
+        i += 1
+        while i < len(data_lines) and re.match(r"^\d+\.?\d*$", data_lines[i]):
+            vals.append(data_lines[i])
+            i += 1
+        rows.append((l, vals))
+
+    if not rows:
+        return None
+
+    # ── Build LaTeX ───────────────────────────────────────────────────────────
+    def esc(t):
+        return t.replace("_", r"\_").replace("%", r"\%").replace("&", r"\&")
+
+    col_spec = "l" + "r" * n_cols
+
+    tex = [
+        r"\begin{table}[h!]",
+        r"\caption{" + esc(caption_text) + "}",
+        r"\begin{center}",
+        r"\resizebox{\columnwidth}{!}{",
+        r"\begin{tabular}{l|" + "r" * n_cols + "}",
+        r"\hline",
+    ]
+
+    # ── Header rows ───────────────────────────────────────────────────────────
+    # header_tokens = [Benchmark, Number of Registers, 8, 16,
+    #                  long, medium, long, medium,
+    #                  RASSG, REGOA, RASSG, REGOA, RASSG, REGOA, RASSG, REGOA]
+    # We know n_cols = 8 (from data rows).
+    # Row label col = "Benchmark", then n_cols value columns.
+    if header_tokens:
+        htoks = header_tokens[:]
+        row_label_hdr = htoks[0] if htoks else ""  # "Benchmark"
+        rest = htoks[1:]                             # remaining header tokens
+
+        # Row 1: "Benchmark" | spanning header (e.g. "Number of Registers")
+        # Find the spanning label — first multi-word token in rest
+        span_label = ""
+        span_start = 0
+        for k, t in enumerate(rest):
+            if len(t.split()) > 1:   # multi-word = spanning header
+                span_label = t
+                span_start = k
+                break
+
+        if span_label:
+            # Tokens before span_label are empty padding
+            tex.append(
+                "  \\textbf{" + esc(row_label_hdr) + "} & "
+                r"\multicolumn{" + str(n_cols) + r"}{c}{\textbf{" + esc(span_label) + r"}} \\"
+            )
+            sub_tokens = rest[span_start + 1:]  # 8, 16, long, medium, ..., RASSG, REGOA
+        else:
+            tex.append(
+                "  \\textbf{" + esc(row_label_hdr) + "} & " +
+                " & ".join("\\textbf{" + esc(t) + "}" if t else "" for t in (rest + [""] * n_cols)[:n_cols]) +
+                r" \\"
+            )
+            sub_tokens = []
+
+        # Row 2+: distribute remaining sub-tokens as additional header rows
+        # Each row fills n_cols value columns
+        while sub_tokens:
+            chunk = (sub_tokens[:n_cols] + [""] * n_cols)[:n_cols]
+            sub_tokens = sub_tokens[n_cols:]
+            # Only emit row if it has non-empty content
+            if any(chunk):
+                tex.append(
+                    "  & " +
+                    " & ".join("\\textbf{" + esc(t) + "}" if t else "" for t in chunk) +
+                    r" \\"
+                )
+
+        tex.append(r"\hline")
+
+    # ── Data rows ─────────────────────────────────────────────────────────────
+    for idx, (label, vals) in enumerate(rows):
+        if idx in groups:
+            tex.append(r"\multicolumn{" + str(n_cols + 1) +
+                       r"}{l}{\textbf{" + esc(groups[idx]) + r"}} \\")
+        padded = (vals + [""] * n_cols)[:n_cols]
+        tex.append("  " + esc(label) + " & " + " & ".join(padded) + r" \\")
+
+    tex += [r"\hline", r"\end{tabular}", r"}", r"\end{center}", r"\end{table}"]
+    return "\n".join(tex)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Reference accumulator
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _accumulate_reference(block: str, doc: Document):
+    """Add block content to doc.references, merging continuations."""
+    parts = re.split(r"(?=\[\d+\])", block)
+    for part in parts:
+        part = re.sub(r"^\[\d+\]\s*", "", part).strip()
+        if not part:
+            continue
+        # Merge into last ref if:
+        # - we have a previous ref, AND
+        # - previous ref does NOT end with a year like "1993." or "1992." (complete entry)
+        if doc.references:
+            prev = doc.references[-1]
+            prev_complete = bool(re.search(r"\b(19|20)\d{2}\.$", prev.strip()))
+            if not prev_complete:
+                doc.references[-1] += " " + part
+                continue
+        doc.references.append(part)
+
+
+def _split_references(block: str) -> list[str]:
+    stripped = re.sub(r"^references[\s\n]*", "", block, flags=re.IGNORECASE).strip()
+    if not stripped:
+        return []
+    parts = re.split(r"(?=\[\d+\])", stripped)
+    parts = [" ".join(p.split()) for p in parts if p.strip()]
+    return parts if len(parts) > 1 else [" ".join(stripped.split())]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Heading detection
+# ─────────────────────────────────────────────────────────────────────────────
 
 def _detect_heading(block: str) -> str | None:
-    """
-    Returns the clean heading string if the block is a section heading, else None.
-
-    Handles these formats from real PDFs:
-      "1\nIntroduction"          → "Introduction"
-      "2.1\nBackground"          → "Background"
-      "Introduction"             → "Introduction"
-      "INTRODUCTION"             → "Introduction"
-      "3 Experimental Study"     → "Experimental Study"
-    """
     stripped = block.strip()
-
-    # Multi-line: first line is a number, second line is the heading text
     lines = stripped.split("\n")
+
+    # Two-line: "1\nIntroduction" or "2.1\nSubsection"
     if len(lines) == 2:
         num, text = lines[0].strip(), lines[1].strip()
         if re.match(r"^\d+(\.\d+)*\.?$|^[ivxlcdmIVXLCDM]+\.?$", num, re.IGNORECASE):
             clean = _LEADING_NUM.sub("", text).strip().rstrip(".")
             if clean.lower() in IEEE_SECTION_NAMES or (text.isupper() and len(text) < 60):
                 return clean
+            # Subsection with custom name — keep it if it's short and title-like
+            if len(clean) < 60 and not re.search(r"[.!?]", clean):
+                return clean
 
-    # Single line with optional leading number: "3 Experimental Study"
+    # Single line
     if len(stripped) <= 80:
         clean = _LEADING_NUM.sub("", stripped).strip().rstrip(".")
         if clean.lower() in IEEE_SECTION_NAMES:
             return clean
-        # ALL CAPS short line
         if stripped.isupper() and 3 < len(stripped) < 60:
             return stripped.title()
 
     return None
-
-
-# ── Reference splitting ───────────────────────────────────────────────────────
-
-def _is_table_data(block: str) -> bool:
-    """
-    Detect blocks that are raw table data extracted from PDFs.
-    PyMuPDF often extracts table rows as lines of space-separated numbers,
-    or as individual numbers one per line.
-    We skip these — they can't be reconstructed as LaTeX tables from plain text.
-    """
-    lines = [l.strip() for l in block.split("\n") if l.strip()]
-    if len(lines) < 3:
-        return False
-
-    numeric_lines = sum(
-        1 for l in lines
-        # Line is mostly numbers/decimals with little alphabetic content
-        if re.match(r"^[\d\s.]+$", l) or
-           (len(re.findall(r"[\d.]+", l)) >= 2 and len(re.findall(r"[a-zA-Z]", l)) <= 4)
-    )
-    return numeric_lines >= len(lines) * 0.55
-
-
-def _split_references(block: str) -> list[str]:
-    """
-    Split a references block into individual entries.
-    Each block may be:
-      - A full entry:       "[1] Author, Title..."
-      - A continuation:     "for registers and functional units..."
-      - Multiple entries:   "[1] ... [2] ..."
-    """
-    stripped = re.sub(r"^references[\s\n]*", "", block, flags=re.IGNORECASE).strip()
-    if not stripped:
-        return []
-
-    # Multiple bracketed entries in one block
-    parts = re.split(r"(?=\[\d+\])", stripped)
-    parts = [" ".join(p.split()) for p in parts if p.strip()]
-    if len(parts) > 1:
-        return parts
-
-    # Single entry or continuation — return as-is (collapsed)
-    return [" ".join(stripped.split())]

@@ -75,8 +75,29 @@ def latex_escape(text: str) -> str:
 
 
 def latex_escape_paragraphs(text: str) -> str:
-    """Escape text preserving paragraph breaks and math."""
-    return "\n\n".join(latex_escape(p) for p in text.split("\n\n"))
+    """
+    Escape text preserving paragraph breaks and math.
+    Paragraphs wrapped in %%RAWTEX%%...%%ENDRAWTEX%% are passed through
+    completely unescaped (used for pre-built LaTeX like table environments).
+    """
+    # Split on RAWTEX sentinels
+    parts = re.split(r"(%%RAWTEX%%.*?%%ENDRAWTEX%%)", text, flags=re.DOTALL)
+    result = []
+    for part in parts:
+        if part.startswith("%%RAWTEX%%"):
+            # Strip sentinels and pass raw LaTeX through unchanged
+            raw = part[len("%%RAWTEX%%"):-len("%%ENDRAWTEX%%")]
+            result.append(raw)
+        else:
+            # Normal text: escape each paragraph, collapse single newlines
+            paragraphs = part.split("\n\n")
+            escaped = []
+            for p in paragraphs:
+                p = re.sub(r"\n", " ", p).strip()
+                if p:
+                    escaped.append(latex_escape(p))
+            result.append("\n\n".join(escaped))
+    return "\n\n".join(r for r in result if r.strip())
 
 
 # ── Renderer ──────────────────────────────────────────────────────────────────

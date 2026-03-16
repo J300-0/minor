@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12 Portable) (preloaded format=pdflatex 2026.3.16)  17 MAR 2026 00:18
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12 Portable) (preloaded format=pdflatex 2026.3.16)  17 MAR 2026 00:43
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -285,44 +285,53 @@ Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1370.
 Package xcolor Info: Model `Gray' substituted by `gray' on input line 1371.
 Package xcolor Info: Model `wave' substituted by `hsb' on input line 1372.
 )
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/float\float.s
+ty
+Package: float 2001/11/08 v1.3d Float enhancements (AL)
+\c@float@type=\count306
+\float@exts=\toks24
+\float@box=\box57
+\@float@everytoks=\toks25
+\@floatcapt=\box58
+)
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/l3backend\l3b
 ackend-pdftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count306
+\l__color_backend_stack_int=\count307
 ) (C:\Users\janme\Desktop\minor\formatter\output\generated.aux)
 \openout1 = `generated.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
 
 -- Lines per column: 56 (exact).
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/context/base/mkii\s
 upp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count307
+\scratchcounter=\count308
 \scratchdimen=\dimen183
-\scratchbox=\box57
-\nofMPsegments=\count308
-\nofMParguments=\count309
-\everyMPshowfont=\toks24
-\MPscratchCnt=\count310
+\scratchbox=\box59
+\nofMPsegments=\count309
+\nofMParguments=\count310
+\everyMPshowfont=\toks26
+\MPscratchCnt=\count311
 \MPscratchDim=\dimen184
-\MPnumerator=\count311
-\makeMPintoPDFobject=\count312
-\everyMPtoPDFconversion=\toks25
+\MPnumerator=\count312
+\makeMPintoPDFobject=\count313
+\everyMPtoPDFconversion=\toks27
 )
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/epstopdf-pkg\
 epstopdf-base.sty
@@ -334,8 +343,25 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 opdf-sys.cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 1
-34.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 71.
+
+
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
+.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Trying to load font information for U+msb on input line 71.
+
+
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
+.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 8
+3.
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/psnfss\ts1ptm
 .fd
@@ -366,21 +392,22 @@ L3 programming layer <2025-12-24>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 4149 strings out of 467871
- 66375 string characters out of 5413518
- 484398 words of memory out of 5000000
- 33011 multiletter control sequences out of 15000+600000
- 656266 words of font info for 88 fonts, out of 8000000 for 9000
+ 4275 strings out of 467871
+ 68497 string characters out of 5413518
+ 493829 words of memory out of 5000000
+ 33110 multiletter control sequences out of 15000+600000
+ 663978 words of font info for 107 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 57i,8n,65p,298b,271s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 57i,10n,65p,826b,339s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times
 /utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1
 /urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/
-fonts/type1/urw/times/utmr8a.pfb>
+fonts/type1/urw/times/utmr8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmf
+s/install/fonts/type1/urw/times/utmri8a.pfb>
 Output written on C:\Users\janme\Desktop\minor\formatter\output\generated.pdf (
-2 pages, 46671 bytes).
+2 pages, 62862 bytes).
 PDF statistics:
- 25 PDF objects out of 1000 (max. 8388607)
+ 30 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
