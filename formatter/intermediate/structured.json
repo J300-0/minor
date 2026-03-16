@@ -1,0 +1,43 @@
+{
+  "title": "An Example Conference Paper",
+  "authors": [
+    {
+      "name": "Cindy Norris",
+      "department": "",
+      "organization": "",
+      "city": "",
+      "country": "",
+      "email": ""
+    }
+  ],
+  "abstract": "The abstract contains a brief overview of the paper. It should be relatively short. There is usually",
+  "keywords": [],
+  "sections": [
+    {
+      "heading": "Introduction",
+      "body": "The introduction contains a longer overview of the paper. In the first paragraph, you should\n\nstart out saying what you did. You should try to slip in a statement here also about why your\n\nwork is so great.\n\nIn the next paragraph, you may want to briefly mention the related work. If you've come across\n\nother experimental papers similar to what you've done, this would be the place to mention them.\n\nMost of you have repeated experiments that have been done by other people. You should see if\n\nyou can find references for other experimental studies and explain them briefly here.\n\nI'll add a cite to a reference here [?] just for the fun of it. Generally, you cite something you\n\nare talking about so that cite doesn't really make sense, but I want to show you how to cite\n\nitems. If you want to cite a couple of things at the same time, you can do it like this [?, ?] or\n\nyou can cite it like this [?][?], but be consistent in whichever way you choose.\n\nThis section should end with a description of the rest of the paper. You would have a statement\n\nthat says Section 2 contains the background necessary for understanding the experimental study.\n\nSection 3 describes the experimental work and finally, the paper concludes in Section 4."
+    },
+    {
+      "heading": "Background",
+      "body": "This section describes the background of my work. In Section 2.1, I describe blah, blah, blah. In\n\nSection 2.2, I describe yada, yada, yada. You should describe the background in a pretty good\n\namount of detail, adding more sections if necessary.\n\n2.1\nHere is one background subsection\n\nHere is where you might explain the general organization of a cache. Be sure to explain why the\n\ncache is useful.\n\n2.2\nAnother background subsection\n\nHere is where you might focus on something more closely related to your cache study, for example,\n\nreplacement policies.\n\nBenchmark\nNumber of Registers\n8\n16\nlong\nmedium\nlong\nmedium\nRASSG\nREGOA\nRASSG\nREGOA\nRASSG\nREGOA\nRASSG\nREGOA\nLivermore\n\nTable 1: Speedup of fully cooperative and fully uncooperative techniques over postpass"
+    },
+    {
+      "heading": "Experimental Study",
+      "body": "Here is where you will describe your experimental study. You don't want to go into a lot of detail\n\nabout how you did the study. For example, the dineroIV parameters and the scripts you wrote\n\naren't important to this paper. What is important is the number of benchmarks and what they\n\nare. You should mention what experiments you ran even if you don't present all of the numbers.\n\nYou add several tables (or graphs from your tables) to this section and you need to explain\n\nthe tables. For example, you might say something like ``Table 1 contains the results of running\n\ndineroIV assuming a cache size of X.'' And then you should go into some detail about what the\n\ntable means. Don't just throw in the tables and not explain the results. On the other hand,\n\ndon't simply restate every detail in the table. You need to state the conclusions gained from\n\nlooking at all of the data.\n\nLike my table, your tables will need to be embedded in the body of the paper. Don't staple\n\nthem to the end."
+    },
+    {
+      "heading": "Conclusions",
+      "body": "This section kind of mimics the abstract but it also will explain any future work. If you neglected\n\nsomething in your implementation, you'll mention that here by saying something like ``my future\n\nwork will be to add so and so to my implementation and perform such and such experiments.''\n\n(I promise I won't hold you to any future work that you describe.)\n\nFinal notes:\n\n• Avoid the use of any pronouns (I, my, you, your, we, etc.) If you feel like you really need to use ``I'' (for\n\nexample, in order to explicitly state what you did) then use ``we.''\n\n• Don't put tables in the paper and not discuss them.\n\n• Don't add references to a paper and not cite them.\n\n• Don't make your paragraphs too long. Long, technical paragraphs are hard to follow.\n\n• Your paper should flow nicely -- one sentence to next, one paragraph to next paragraph, one section to the\n\nnext section. In other words, don't do sudden shifts in topic. Make a plan before writing and don't just\n\nwrite offof the top of your head. Figure out what should be in each section and each paragraph of each\n\nsection before you start writing.\n\n• Technical writing should be formal; for example, don't use words like ``cool.''\n\n• Add figures to clarify your explanation. Remember, a picture is worth a thousand words.\n\n• Don't quote anything that should be simply restated. Quotes should be reserved for something of an\n\nearth-shattering nature, and not because one is simply to lazy to figure out a way to restate the quote (or\n\nthe thought that he/she said it much better than I ever could).\n\n• Don't include rhetorical questions. (A rhetorical question is one that is asked without expecting an answer.)\n\n• Avoid starting sentences with ``To'' ``Because'' ``Before'' etc.\n\n• Don't have huge technical paragraphs. Technical material is easier to read if it is broken into several,\n\nsmaller paragraphs.\n\n• Finally, proof read your papers carefully -- multiple times and run a spell checker on it!"
+    }
+  ],
+  "references": [
+    "David A. Berson, Rajiv Gupta, and Mary Lou Soffa. URSA: A unified resource allocator for registers and functional units in VLIW architectures. In IFIP Working Conference on",
+    "Architectures and Compilation Techniques for Fine and Medium Grain Parallelism, Orlando,",
+    "Florida, January 1993.",
+    "D. G. Bradlee. Retargetable Instruction Scheduling for Pipelined Processors. PhD thesis,",
+    "University of Washington, 1992.",
+    "J. R. Ellis. Bulldog: A Compiler for VLIW Architectures. MIT Press, Cambridge, MA, 1986.",
+    "Claude-Nicolas Fiechter. PDG C Compiler. University of Pittsburgh, 1992.",
+    "H. Young. Evaluation of a decoupled computer architecture and the design of a vector extension. Computer Sciences Technical Report 603, 21(4), July 1985."
+  ]
+}
