@@ -1,6 +1,8 @@
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
@@ -53,19 +55,19 @@ Here is where you might focus on something more closely related to your cache st
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{l|rrrrrrrr}
 \hline
- \textbf{Benchmark} & \multicolumn{8}{c}{\textbf{Number of Registers}} \\
- & \textbf{8} & \textbf{16} & & & & & & \\
+  \textbf{Benchmark} & \multicolumn{8}{c}{\textbf{Number of Registers}} \\
+  & \textbf{8} & \textbf{16} &  &  &  &  &  &  \\
 \hline
 \multicolumn{9}{l}{\textbf{Livermore}} \\
- loop1 & 1.56 & 1.02 & 1.48 & 1.01 & 1.23 & 1.04 & 1.17 & 1.04 \\
- loop2 & 1.17 & 1.06 & 1.15 & 1.04 & 1.30 & 0.68 & 1.07 & 0.57 \\
- loop3 & 1.14 & 1.04 & 1.13 & 1.03 & 1.02 & 1.02 & 1.04 & 1.03 \\
- loop4 & 1.05 & 0.88 & 1.12 & 0.88 & 1.06 & 1.04 & 1.03 & 0.98 \\
- loop6 & 1.09 & 0.96 & 0.84 & 0.97 & 1.27 & 0.92 & 1.05 & 0.92 \\
+  loop1 & 1.56 & 1.02 & 1.48 & 1.01 & 1.23 & 1.04 & 1.17 & 1.04 \\
+  loop2 & 1.17 & 1.06 & 1.15 & 1.04 & 1.30 & 0.68 & 1.07 & 0.57 \\
+  loop3 & 1.14 & 1.04 & 1.13 & 1.03 & 1.02 & 1.02 & 1.04 & 1.03 \\
+  loop4 & 1.05 & 0.88 & 1.12 & 0.88 & 1.06 & 1.04 & 1.03 & 0.98 \\
+  loop6 & 1.09 & 0.96 & 0.84 & 0.97 & 1.27 & 0.92 & 1.05 & 0.92 \\
 \multicolumn{9}{l}{\textbf{Clinpack}} \\
- daxpy & 1.17 & 1.00 & 1.15 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
- matgen & 0.92 & 1.00 & 0.85 & 1.00 & 1.13 & 1.00 & 1.06 & 1.00 \\
- dgefa & 0.78 & 1.00 & 1.13 & 1.00 & 1.32 & 1.00 & 1.23 & 1.00 \\
+  daxpy & 1.17 & 1.00 & 1.15 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
+  matgen & 0.92 & 1.00 & 0.85 & 1.00 & 1.13 & 1.00 & 1.06 & 1.00 \\
+  dgefa & 0.78 & 1.00 & 1.13 & 1.00 & 1.32 & 1.00 & 1.23 & 1.00 \\
 \hline
 \end{tabular}
 }

@@ -55,25 +55,104 @@ def _from_pdf(path: str) -> str:
 
 def _from_docx(path: str) -> str:
     """
-    python-docx paragraph extraction.
-    Consecutive non-empty paragraphs are joined; blank paragraphs act as separators.
+    Extract text from DOCX preserving:
+      - Author blocks (multi-line paragraphs with \\n inside)
+      - Equations in [\\latex] or [\\n\\latex\\n] format → converted to $$...$$ display math
+      - Tables → reconstructed as pipe-delimited text with a Table caption marker
+      - Subsection headings (A. Title, B. Title)
+      - Normal paragraphs separated by blank lines
     """
-    from docx import Document
+    from docx import Document as DocxDocument
+    from docx.oxml.ns import qn
+    import re
 
-    doc = Document(path)
-    groups = []
-    current = []
+    doc = DocxDocument(path)
 
-    for para in doc.paragraphs:
-        text = para.text.strip()
-        if text:
-            current.append(text)
-        else:
-            if current:
-                groups.append(" ".join(current))
-                current = []
+    # Build a map of table positions so we can insert them inline
+    # (python-docx tables appear in doc.tables but also in the XML body)
+    table_texts = {}
+    for i, table in enumerate(doc.tables):
+        rows = []
+        for row in table.rows:
+            cells = [c.text.strip().replace("\n", " ") for c in row.cells]
+            rows.append(cells)
+        if rows:
+            # First row = header
+            n_cols = max(len(r) for r in rows)
+            header = rows[0]
+            sep    = ["-" * max(3, len(h)) for h in header]
+            lines  = [" | ".join((header + [""] * n_cols)[:n_cols])]
+            lines += [" | ".join((sep   + ["---"] * n_cols)[:n_cols])]
+            for row in rows[1:]:
+                lines.append(" | ".join((row + [""] * n_cols)[:n_cols]))
+            table_texts[i] = "\n".join(lines)
 
-    if current:
-        groups.append(" ".join(current))
+    # Walk body XML to get paragraphs and tables in document order
+    body = doc.element.body
+    para_idx  = 0
+    table_idx = 0
+    output_blocks: list[str] = []
 
-    return "\n\n".join(groups)
+    for child in body:
+        tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
+
+        if tag == "p":
+            # Normal paragraph
+            if para_idx < len(doc.paragraphs):
+                para = doc.paragraphs[para_idx]
+                para_idx += 1
+                text = para.text.strip()
+                if not text:
+                    continue
+
+                # ── Equation block: [\n\\latex\n] or [\\latex] ────────────────
+                eq_match = re.match(r"^\[\s*\n?(.*?)\n?\s*\]$", text, re.DOTALL)
+                if eq_match:
+                    latex = eq_match.group(1).strip()
+                    # Unescape doubled backslashes from DOCX string encoding
+                    latex = latex.replace("\\\\", "\\")
+                    output_blocks.append(f"$$\n{latex}\n$$")
+                    continue
+
+                # ── Multi-author block: contains \n (soft line breaks) ────────
+                if "\n" in text and para_idx <= 5:
+                    # Keep as-is — document_parser handles multi-line author blocks
+                    output_blocks.append(text)
+                    continue
+
+                output_blocks.append(text)
+
+        elif tag == "tbl":
+            if table_idx < len(doc.tables):
+                tbl = doc.tables[table_idx]
+                table_idx += 1
+
+                # Find caption: look at preceding paragraph
+                caption = ""
+                # Look back in output_blocks for a short title-like block
+                for prev in reversed(output_blocks[-3:]):
+                    if len(prev.split()) <= 6 and not prev.startswith("$$"):
+                        caption = prev
+                        output_blocks.remove(prev)
+                        break
+
+                rows = []
+                for row in tbl.rows:
+                    cells = [c.text.strip().replace("\n", " ") for c in row.cells]
+                    rows.append(cells)
+
+                if rows:
+                    n_cols  = max(len(r) for r in rows)
+                    header  = (rows[0] + [""] * n_cols)[:n_cols]
+                    tbl_lines = [" & ".join(header)]
+                    for row in rows[1:]:
+                        tbl_lines.append(" & ".join((row + [""] * n_cols)[:n_cols]))
+                    # Emit as a special TABLE block that document_parser can reconstruct
+                    cap_text = caption if caption else f"Table {table_idx}"
+                    output_blocks.append(
+                        "DOCX_TABLE_START\n" +
+                        "\n".join(tbl_lines) +
+                        f"\nTable {table_idx}: {cap_text}\nDOCX_TABLE_END"
+                    )
+
+    return "\n\n".join(output_blocks)

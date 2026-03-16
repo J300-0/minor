@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12 Portable) (preloaded format=pdflatex 2026.3.16)  17 MAR 2026 00:43
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12 Portable) (preloaded format=pdflatex 2026.3.16)  17 MAR 2026 01:04
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -122,6 +122,22 @@ LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size <24> not available
 )
 ** ATTENTION: Overriding command lockouts (line 2).
 
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/base\inputenc
+.sty
+Package: inputenc 2024/02/08 v1.3d Input encoding file
+\inpenc@prehook=\toks18
+\inpenc@posthook=\toks19
+)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/base\fontenc.
+sty
+Package: fontenc 2025/07/18 v2.1d Standard LaTeX package
+LaTeX Font Info:    Trying to load font information for T1+ptm on input line 11
+6.
+
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/psnfss\t1ptm.
+fd
+File: t1ptm.fd 2001/06/04 font definitions for T1/ptm.
+))
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/cite\cite.sty
 LaTeX Info: Redefining \cite on input line 302.
 LaTeX Info: Redefining \nocite on input line 332.
@@ -141,7 +157,7 @@ Package: amstext 2024/11/17 v2.01 AMS text
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsmath\amsge
 n.sty
 File: amsgen.sty 1999/11/30 v2.0 generic functions
-\@emptytoks=\toks18
+\@emptytoks=\toks20
 \ex@=\dimen172
 ))
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsmath\amsbs
@@ -183,21 +199,21 @@ LaTeX Info: Redefining \Relbar on input line 970.
 \dotsspace@=\muskip17
 \c@parentequation=\count297
 \dspbrk@lvl=\count298
-\tag@help=\toks19
+\tag@help=\toks21
 \row@=\count299
 \column@=\count300
 \maxfields@=\count301
-\andhelp@=\toks20
+\andhelp@=\toks22
 \eqnshift@=\dimen175
 \alignsep@=\dimen176
 \tagshift@=\dimen177
 \tagwidth@=\dimen178
 \totwidth@=\dimen179
 \lineht@=\dimen180
-\@envbody=\toks21
+\@envbody=\toks23
 \multlinegap=\skip53
 \multlinetaggap=\skip54
-\mathdisplay@stack=\toks22
+\mathdisplay@stack=\toks24
 LaTeX Info: Redefining \[ on input line 2950.
 LaTeX Info: Redefining \] on input line 2951.
 )
@@ -225,7 +241,7 @@ Package: ifthen 2024/03/16 v1.1e Standard LaTeX ifthen package (DPC)
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/graphics\keyv
 al.sty
 Package: keyval 2022/05/29 v1.15 key=value parser (DPC)
-\KV@toks@=\toks23
+\KV@toks@=\toks25
 )
 \c@ALC@unique=\count302
 \c@ALC@line=\count303
@@ -289,9 +305,9 @@ Package xcolor Info: Model `wave' substituted by `hsb' on input line 1372.
 ty
 Package: float 2001/11/08 v1.3d Float enhancements (AL)
 \c@float@type=\count306
-\float@exts=\toks24
+\float@exts=\toks26
 \float@box=\box57
-\@float@everytoks=\toks25
+\@float@everytoks=\toks27
 \@floatcapt=\box58
 )
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/l3backend\l3b
@@ -301,20 +317,20 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 ) (C:\Users\janme\Desktop\minor\formatter\output\generated.aux)
 \openout1 = `generated.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 15.
+LaTeX Font Info:    ... okay on input line 15.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 15.
+LaTeX Font Info:    ... okay on input line 15.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 15.
+LaTeX Font Info:    ... okay on input line 15.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 15.
+LaTeX Font Info:    ... okay on input line 15.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 15.
+LaTeX Font Info:    ... okay on input line 15.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 15.
+LaTeX Font Info:    ... okay on input line 15.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 15.
+LaTeX Font Info:    ... okay on input line 15.
 
 -- Lines per column: 56 (exact).
 
@@ -326,12 +342,12 @@ upp-pdf.mkii
 \scratchbox=\box59
 \nofMPsegments=\count309
 \nofMParguments=\count310
-\everyMPshowfont=\toks26
+\everyMPshowfont=\toks28
 \MPscratchCnt=\count311
 \MPscratchDim=\dimen184
 \MPnumerator=\count312
 \makeMPintoPDFobject=\count313
-\everyMPtoPDFconversion=\toks27
+\everyMPtoPDFconversion=\toks29
 )
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/epstopdf-pkg\
 epstopdf-base.sty
@@ -343,14 +359,14 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 opdf-sys.cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-LaTeX Font Info:    Trying to load font information for U+msa on input line 71.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 73.
 
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
 .fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 71.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 73.
 
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
@@ -361,7 +377,7 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 8
-3.
+5.
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/psnfss\ts1ptm
 .fd
@@ -392,11 +408,11 @@ L3 programming layer <2025-12-24>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 4275 strings out of 467871
- 68497 string characters out of 5413518
- 493829 words of memory out of 5000000
- 33110 multiletter control sequences out of 15000+600000
- 663978 words of font info for 107 fonts, out of 8000000 for 9000
+ 4596 strings out of 467871
+ 72076 string characters out of 5413518
+ 494609 words of memory out of 5000000
+ 33418 multiletter control sequences out of 15000+600000
+ 738202 words of font info for 147 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  57i,10n,65p,826b,339s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times
@@ -405,7 +421,7 @@ Here is how much of TeX's memory you used:
 fonts/type1/urw/times/utmr8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmf
 s/install/fonts/type1/urw/times/utmri8a.pfb>
 Output written on C:\Users\janme\Desktop\minor\formatter\output\generated.pdf (
-2 pages, 62862 bytes).
+2 pages, 62872 bytes).
 PDF statistics:
  30 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)

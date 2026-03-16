@@ -83,6 +83,16 @@ def _build_blocks(raw: str) -> list[str]:
             blocks.append(chunk)
             continue
 
+        # Never merge equation blocks
+        if chunk.startswith("$$") or prev.startswith("$$"):
+            blocks.append(chunk)
+            continue
+
+        # Never merge DOCX table blocks
+        if chunk.startswith("DOCX_TABLE") or prev.startswith("DOCX_TABLE"):
+            blocks.append(chunk)
+            continue
+
         if _is_metadata_line(chunk) or _is_metadata_line(prev):
             blocks.append(chunk)
             continue
@@ -216,17 +226,18 @@ def _find_title(blocks: list[str]) -> str:
 
 def _find_authors(blocks: list[str], title: str) -> list[Author]:
     """
-    Author info is spread across consecutive single-line blocks right after title:
-      "Cindy Norris"
-      "Department of Computer Science"
-      "Appalachian State University"
-      "Boone, NC 28608"
-      "(828)262-2359"
-      "can@cs.appstate.edu"
-    Collect them all until we hit the Abstract label or a section heading.
+    Detect author blocks. Handles two formats:
+
+    PDF format — each author info spread across consecutive single-line blocks:
+        "Cindy Norris"
+        "Department of Computer Science"
+        ...
+
+    DOCX format — each author is one multi-line paragraph:
+        "Peter Szabó\\nDepartment of...\\nUniversity...\\nCity\\nemail"
+        "Miroslava Ferencová\\nDepartment of...\\n..."
     """
-    author = Author()
-    found_name = False
+    authors = []
 
     for block in blocks[1:12]:
         if block.lower() == "abstract" or _detect_heading(block):
@@ -234,33 +245,63 @@ def _find_authors(blocks: list[str], title: str) -> list[Author]:
         if block == title:
             continue
 
-        line = block.strip()
-
-        # First block that looks like a name
-        if not found_name:
-            if re.match(r"^[A-Z][a-z]+([\s\-][A-Z][a-z]+)+$", line):
-                author.name = line
-                found_name = True
+        # DOCX multi-line author block — contains \n, first line is the name
+        if "\n" in block:
+            lines = [l.strip() for l in block.split("\n") if l.strip()]
+            if not lines:
+                continue
+            first = lines[0]
+            # Accept name with accented chars — just needs to look name-like
+            # (2+ words, starts with capital, no digits, not too long)
+            if (re.match(r"^[\w\u00C0-\u024F][\w\u00C0-\u024F\-]*"
+                         r"(\s+[\w\u00C0-\u024F][\w\u00C0-\u024F\-]*)+$", first)
+                    and len(first) < 60 and not re.search(r"\d", first)):
+                author = Author(name=first)
+                for line in lines[1:]:
+                    low = line.lower()
+                    if "@" in line:
+                        author.email = line
+                    elif re.match(r"^\(?\d[\d\s\-().]+$", line):
+                        pass  # phone
+                    elif re.match(r"^(dept|department|school|faculty|division)", low):
+                        author.department = line
+                    elif re.search(r"(university|institute|college|laboratory|lab\b)", low):
+                        author.organization = line
+                    elif re.match(r"^[A-Z\u00C0-\u024F][a-z\u00C0-\u024F\s]+,\s*\S", line):
+                        author.city = line
+                    elif not author.organization:
+                        author.organization = line
+                authors.append(author)
             continue
 
-        # Subsequent blocks — classify by content
-        low = line.lower()
-        if "@" in line:
-            author.email = line
-        elif re.match(r"^\(?\d[\d\s\-().]+$", line):
-            pass  # phone — skip
-        elif re.match(r"^(dept|department|school|faculty|division)", low):
-            author.department = line
-        elif re.search(r"(university|institute|college|laboratory|lab\b)", low):
-            author.organization = line
-        elif re.match(r"^[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\b", line):
-            author.city = line
-        elif not author.organization:
-            author.organization = line
+        # PDF single-line format — only first matching block
+        if not authors:
+            line = block.strip()
+            if re.match(r"^[A-Z][a-z]+([\s\-][A-Z][a-z]+)+$", line):
+                author = Author(name=line)
+                # Collect following single-line blocks as affiliation
+                found_idx = blocks.index(block)
+                for aff_block in blocks[found_idx + 1:found_idx + 7]:
+                    if "\n" in aff_block or _detect_heading(aff_block):
+                        break
+                    aff = aff_block.strip()
+                    low = aff.lower()
+                    if "@" in aff:
+                        author.email = aff
+                    elif re.match(r"^\(?\d[\d\s\-().]+$", aff):
+                        pass
+                    elif re.match(r"^(dept|department|school|faculty|division)", low):
+                        author.department = aff
+                    elif re.search(r"(university|institute|college|laboratory|lab\b)", low):
+                        author.organization = aff
+                    elif re.match(r"^[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\b", aff):
+                        author.city = aff
+                    elif not author.organization:
+                        author.organization = aff
+                authors.append(author)
+                break
 
-    if author.name:
-        return [author]
-    return []
+    return authors
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -323,6 +364,21 @@ def _parse_body(blocks: list[str], doc: Document):
             _accumulate_reference(block, doc)
             continue
 
+        # ── DOCX table block ──────────────────────────────────────────────────
+        if block.startswith("DOCX_TABLE_START"):
+            table_tex = _build_docx_table(block)
+            if table_tex and current_heading is not None:
+                current_body.append("%%RAWTEX%%" + table_tex + "%%ENDRAWTEX%%")
+            continue
+
+        # ── Display math equation ($$...$$) ──────────────────────────────────
+        if block.startswith("$$") and block.endswith("$$"):
+            if current_heading is not None:
+                # Pass through as raw LaTeX — already valid
+                inner = block[2:-2].strip()
+                current_body.append("%%RAWTEX%%\\begin{equation}\n" + inner + "\n\\end{equation}%%ENDRAWTEX%%")
+            continue
+
         # ── Section / subsection heading ─────────────────────────────────────
         heading = _detect_heading(block)
         if heading:
@@ -331,7 +387,7 @@ def _parse_body(blocks: list[str], doc: Document):
             current_body    = []
             continue
 
-        # ── Table cluster ─────────────────────────────────────────────────────
+        # ── Table cluster (PDF tables) ────────────────────────────────────────
         table_tex = _try_build_table(block)
         if table_tex:
             if current_heading is not None:
@@ -600,12 +656,21 @@ def _detect_heading(block: str) -> str | None:
             clean = _LEADING_NUM.sub("", text).strip().rstrip(".")
             if clean.lower() in IEEE_SECTION_NAMES or (text.isupper() and len(text) < 60):
                 return clean
-            # Subsection with custom name — keep it if it's short and title-like
             if len(clean) < 60 and not re.search(r"[.!?]", clean):
                 return clean
 
     # Single line
     if len(stripped) <= 80:
+        # Roman numeral section: "I. INTRODUCTION", "II. NUMBERS"
+        m = re.match(r"^([IVXLCDM]+)\.\s+(.+)$", stripped)
+        if m and len(stripped) < 60:
+            return m.group(2).title() if m.group(2).isupper() else m.group(2)
+
+        # Letter subsection: "A. Mathematical Formulas", "B. Physical Formulas"
+        m = re.match(r"^([A-Z])\.\s+(.+)$", stripped)
+        if m and len(stripped) < 80 and not re.search(r"[.!?]$", stripped):
+            return m.group(2)
+
         clean = _LEADING_NUM.sub("", stripped).strip().rstrip(".")
         if clean.lower() in IEEE_SECTION_NAMES:
             return clean
@@ -613,3 +678,88 @@ def _detect_heading(block: str) -> str | None:
             return stripped.title()
 
     return None
+
+
+def _build_docx_table(block: str) -> str | None:
+    """
+    Reconstruct a LaTeX table from a DOCX_TABLE_START...DOCX_TABLE_END block.
+    Rows are pipe/ampersand-delimited.
+    """
+    inner = re.sub(r"^DOCX_TABLE_START\n?", "", block)
+    inner = re.sub(r"\nDOCX_TABLE_END$", "", inner)
+    lines = [l.strip() for l in inner.split("\n") if l.strip()]
+
+    if not lines:
+        return None
+
+    # Find caption line
+    caption = ""
+    cap_idx = None
+    for i, l in enumerate(lines):
+        m = re.match(r"^Table\s+\d+[:.]\s*(.*)", l, re.IGNORECASE)
+        if m:
+            caption = m.group(1).strip() or l
+            cap_idx = i
+            break
+    if cap_idx is not None:
+        lines = lines[:cap_idx]
+
+    def esc(t):
+        """Escape a table cell. If it contains math chars, wrap in $...$."""
+        t = t.strip()
+        # Already looks like inline math: (a^2+b^2=c^2) or $...$
+        if re.match(r"^\(.*\)$", t) and re.search(r"[\^_\\]", t):
+            # Strip outer parens and wrap in $...$
+            inner = t[1:-1]
+            return "$" + inner + "$"
+        if t.startswith("$") and t.endswith("$"):
+            return t  # already math
+        # Plain text — escape special chars
+        t = t.replace("\\", r"\textbackslash{}")
+        t = t.replace("_", r"\_")
+        t = t.replace("%", r"\%")
+        t = t.replace("&", r"\&")
+        t = t.replace("#", r"\#")
+        t = t.replace("~", r"\textasciitilde{}")
+        # ^ outside math crashes — replace with text
+        t = t.replace("^", r"\textasciicircum{}")
+        return t
+
+    # Split rows — cells separated by " & " or " | "
+    rows = []
+    for l in lines:
+        if " & " in l:
+            cells = [c.strip() for c in l.split(" & ")]
+        elif " | " in l:
+            cells = [c.strip() for c in l.split(" | ")]
+        else:
+            cells = [l.strip()]
+        rows.append(cells)
+
+    if not rows:
+        return None
+
+    n_cols = max(len(r) for r in rows)
+    col_spec = "|" + "|".join(["l"] * n_cols) + "|"
+
+    tex = [
+        r"\begin{table}[h!]",
+        r"\caption{" + esc(caption if caption else "Table") + "}",
+        r"\begin{center}",
+        r"\resizebox{\columnwidth}{!}{",
+        r"\begin{tabular}{" + col_spec + "}",
+        r"\hline",
+    ]
+
+    for i, row in enumerate(rows):
+        padded = (row + [""] * n_cols)[:n_cols]
+        escaped = [esc(c) for c in padded]
+        if i == 0:
+            # Header row — bold
+            escaped = ["\\textbf{" + c + "}" if c else "" for c in escaped]
+        tex.append("  " + " & ".join(escaped) + r" \\")
+        if i == 0:
+            tex.append(r"\hline")
+
+    tex += [r"\hline", r"\end{tabular}", r"}", r"\end{center}", r"\end{table}"]
+    return "\n".join(tex)
