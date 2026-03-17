@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Document",
+  "description": "Intermediate structured representation of an academic paper (structured.json)",
+  "type": "object",
+  "required": ["title", "authors", "abstract", "keywords", "sections", "references"],
+  "properties": {
+    "title":    { "type": "string" },
+    "abstract": { "type": "string" },
+    "keywords": { "type": "array", "items": { "type": "string" } },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name":         { "type": "string" },
+          "department":   { "type": "string" },
+          "organization": { "type": "string" },
+          "city":         { "type": "string" },
+          "country":      { "type": "string" },
+          "email":        { "type": "string" }
+        }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "heading": { "type": "string" },
+          "body":    { "type": "string" },
+          "tables": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "caption": { "type": "string" },
+                "headers": { "type": "array", "items": { "type": "string" } },
+                "rows":    { "type": "array", "items": { "type": "array", "items": { "type": "string" } } },
+                "notes":   { "type": "string" }
+              }
+            }
+          },
+          "figures": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "caption":    { "type": "string" },
+                "image_path": { "type": "string" },
+                "label":      { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": { "type": "integer" },
+          "text":  { "type": "string" }
+        },
+        "required": ["index", "text"]
+      }
+    }
+  }
+}

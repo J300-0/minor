@@ -16,7 +16,27 @@
 
 \title{Machine Learning (2026) 115:72}
 
-\author{\IEEEauthorblockN{Author Unknown}}
+\author{
+\IEEEauthorblockN{Keywords Federated learning}
+\IEEEauthorblockA{%
+~%
+}%
+\and
+\IEEEauthorblockN{Gaussian process}
+\IEEEauthorblockA{%
+~%
+}%
+\and
+\IEEEauthorblockN{Random feature}
+\IEEEauthorblockA{%
+~%
+}%
+\and
+\IEEEauthorblockN{Bayesian method}
+\IEEEauthorblockA{%
+~%
+}%
+}
 \maketitle
 
 \begin{abstract}
@@ -33,7 +53,7 @@ Mahdi Karami and Guojun Zhang: The work was done at their previous affiliation, 
 
 However, extending GPs to the federated learning (FL) setting itself is challenging. In  FL, we seek to train a model in a distributed way across several clients without any data leav­ ing the clients to preserve privacy. Several works have explored distributed GPs (Deisenroth  \& Ng, 2015; Yin et al., 2020) and federated GPs (Achituve et al., 2021; Kontoudis \& Stil­ well, 2023, 2024). While distributed GPs are designed to improve scalability, they pose an  important privacy risk since sharing kernels either implies sharing data or sharing pairwise  data similarity. In contrast, federated GPs including pFedGP (Achituve et al., 2021),DECapx-GP (Kontoudis \& Stilwell, 2023), and DEC-gapx-GP (Kontoudis \& Stilwell, 2024)  share only the hyperparameters of kernels while learning local GP posteriors that are never  shared. This personalized approach reduces privacy risks, but the local GPs do not benefit  from other client information beyond the shared kernel hyperparameters. Thus, its accu­ racy suffers when generalization is desired or new clients come without training data. For  example, a hospital that only collected chest X-rays of lung emphysema patients may also  want their model to help diagnose rib fractures with the same type of input. However, per­ sonalization would prevent the model from generalizing to other ranges. Moreover, new  clients with few training data cannot effectively train predictors with local GPs, even if they  do not need generalization.
 
-To address such challenges, we propose a new federated GP technique called Federated  Bayesian Neural Regression (FedBNR) that learns a global federated GP. We first define a  unifying random kernel (URK) which allows random feature approximation of both sta­ tionary and non-stationary kernels. FedBNR with URK avoids kernel sharing by working  directly in the feature space and sharing scatter matrices, reducing privacy risks and decreas­ ing the computational complexity to linear in the amount of data. Since FedBNR maintains  a global posterior, it makes full use of different clients' information, and performs better for  generalization and new clients. The approach is demonstrated on real world regression data­ sets where we achieve statistically significant improvements over prior techniques both in  terms of point and uncertainty estimation. We further extend our algorithm with differential  privacy to provide formal privacy guarantees. The main contributions are: \textbackslash{}textbullet New random feature approximations of non-stationary kernels enabled by URK, and  their concentration guarantees.   \textbackslash{}textbullet A new federated GP technique FedBNR, which achieves better generalization perfor­ mance in both accuracy and uncertainty calibration due to its global posterior.
+To address such challenges, we propose a new federated GP technique called Federated  Bayesian Neural Regression (FedBNR) that learns a global federated GP. We first define a  unifying random kernel (URK) which allows random feature approximation of both sta­ tionary and non-stationary kernels. FedBNR with URK avoids kernel sharing by working  directly in the feature space and sharing scatter matrices, reducing privacy risks and decreas­ ing the computational complexity to linear in the amount of data. Since FedBNR maintains  a global posterior, it makes full use of different clients' information, and performs better for  generalization and new clients. The approach is demonstrated on real world regression data­ sets where we achieve statistically significant improvements over prior techniques both in  terms of point and uncertainty estimation. We further extend our algorithm with differential  privacy to provide formal privacy guarantees. The main contributions are: $\bullet$ New random feature approximations of non-stationary kernels enabled by URK, and  their concentration guarantees.   $\bullet$ A new federated GP technique FedBNR, which achieves better generalization perfor­ mance in both accuracy and uncertainty calibration due to its global posterior.
 
 1 3 Page 3 of 36   72 Machine Learning (2026) 115:72 The paper is structured as follows. In Sect. 2, we review essential background knowledge of  GP, FL, and related works. In Sect. 3, we introduce URK and its theoretical guarantees, pro­ pose FedBNR based on URK, and extend FedBNR with differential privacy (DP). Sect. 4  details synthetic and real-world experiments. Finally, Sect. 5 concludes the work.
 
@@ -165,7 +185,7 @@ Algorithms
 
 FedAvg FedAvg shares no risky messages listed before. It shares model parameters only. pFedGP Similar to FedAvg, pFedGP only shares model hyperparameters. Any prediction  that requires K, k(x$\star$, X) resorts to a local version Kc, k(x$\star$, Xc). FedBNR In phase 1, we share hyperparameters like FedAvg and pFedGP, which is safe.  In phase 2, we share hyperparameters and three other terms back and forth. No risky mes­ sages are shared.
 
-\textbackslash{}textbullet message1 := $\Phi$c$\Phi$$\top$ c : The outer product (known as the scatter matrix) is a non-invertible  function of $\Phi$c, and our model requires at least $\Phi$c to predict yc.   \textbackslash{}textbullet message2 := $\Phi$cyc: This alone poses an under-constrained system of equations that has  m equations and (m + 1)nc variables, so $\Phi$c, yc is non-identifiable.   \textbackslash{}textbullet message3 := ¯w = $\sigma$-2($\sigma$-2 $\sum$ c$\in$S $\Phi$c$\Phi$$\top$ c + $\lambda$-2I)-1 $\sum$ c$\in$S($\Phi$cyc): This alone poses  an under-constrained system of equations that has m equations and (m + 1)n variables,  so $\Phi$, y is non-identifiable.
+$\bullet$ message1 := $\Phi$c$\Phi$$\top$ c : The outer product (known as the scatter matrix) is a non-invertible  function of $\Phi$c, and our model requires at least $\Phi$c to predict yc.   $\bullet$ message2 := $\Phi$cyc: This alone poses an under-constrained system of equations that has  m equations and (m + 1)nc variables, so $\Phi$c, yc is non-identifiable.   $\bullet$ message3 := ¯w = $\sigma$-2($\sigma$-2 $\sum$ c$\in$S $\Phi$c$\Phi$$\top$ c + $\lambda$-2I)-1 $\sum$ c$\in$S($\Phi$cyc): This alone poses  an under-constrained system of equations that has m equations and (m + 1)n variables,  so $\Phi$, y is non-identifiable.
 
 In  total,  these  three  messages  pose  a  system  of  equations  that  has  m(m + 1)/2 + 2m = 0.5m2 + 2.5m equations and (m + 1)n variables (i.e. $\Phi$, y).  Since m $\ll$n, meaning the number of random samples is much smaller than the size of  training data, the system has multiple solutions and the true values of $\Phi$, y are non-iden­ tifiable. Similarly, the first two messages pose a (local) system of equations that has  m(m + 1)/2 + m = 0.5m2 + 1.5m equations and (m + 1)nc variables (i.e. $\Phi$c, yc). As  long as 1 < m $\leq$nc, the variables are still non-identifiable.
 
@@ -187,7 +207,7 @@ We acknowledge that uncertainty quantification could pose potential negative con
 
 FedBNR+DP: Sensitivities
 
-To use the Gaussian mechanism to protect FedBNR, we need to add noise to all the mes­ sages sent by the clients. In the first phase, kernel hyperparameters are revealed. In the  second phase, $\Phi$c$\Phi$$\top$ c , $\Phi$cyc, and y$\top$ c yc are revealed. The L2 sensitivity of each function is  as follows: \textbackslash{}textbullet In phase 1, L2 sensitivity of the hyperpameters is the L2 gradient clipping constant  times the number of local update rounds times the learning rate $\zeta$. Since we take the  average during aggregation, the actual sensitivity of the mean has an extra factor of  1/$\sqrt{}$nS, where nS is the number of clients. This means the more clients there are in the  system, the less perturbation the mean exhibits. This factor further decreases to 1/nS if  we adapt secure multi-party computation and add noise directly to the summation of all  the messages globally, instead of adding noise to messages at clients.   \textbackslash{}textbullet In phase 2, suppose we use the latent stationary architecture (sin, cos activation functions  normalized by $\sqrt{}$m), then each entry of $\Phi$c can change by up to 2/$\sqrt{}$m. y is in general
+To use the Gaussian mechanism to protect FedBNR, we need to add noise to all the mes­ sages sent by the clients. In the first phase, kernel hyperparameters are revealed. In the  second phase, $\Phi$c$\Phi$$\top$ c , $\Phi$cyc, and y$\top$ c yc are revealed. The L2 sensitivity of each function is  as follows: $\bullet$ In phase 1, L2 sensitivity of the hyperpameters is the L2 gradient clipping constant  times the number of local update rounds times the learning rate $\zeta$. Since we take the  average during aggregation, the actual sensitivity of the mean has an extra factor of  1/$\sqrt{}$nS, where nS is the number of clients. This means the more clients there are in the  system, the less perturbation the mean exhibits. This factor further decreases to 1/nS if  we adapt secure multi-party computation and add noise directly to the summation of all  the messages globally, instead of adding noise to messages at clients.   $\bullet$ In phase 2, suppose we use the latent stationary architecture (sin, cos activation functions  normalized by $\sqrt{}$m), then each entry of $\Phi$c can change by up to 2/$\sqrt{}$m. y is in general
 
 \begin{figure}[h!]
 \centering

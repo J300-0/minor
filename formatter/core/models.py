@@ -1,44 +1,63 @@
 """
-core/models.py
-Typed dataclasses for the pipeline's intermediate Document representation.
+core/models.py  —  Shared Document dataclasses
 
-Author now carries the full IEEE author block fields:
-  name / department / organization / city / country / email
-These map directly to \IEEEauthorblockN and \IEEEauthorblockA in the template.
-All fields are optional strings — leave blank if not available in the source.
+All pipeline stages read/write these objects.
+Serialises cleanly to/from JSON (structured.json).
 """
 
 from dataclasses import dataclass, field, asdict
-import json
-import os
+import json, os
 
 
 @dataclass
 class Author:
     name:         str = ""
-    department:   str = ""   # \textit{dept. name of organization}
-    organization: str = ""   # \textit{name of organization}
+    department:   str = ""
+    organization: str = ""
     city:         str = ""
     country:      str = ""
     email:        str = ""
 
 
 @dataclass
+class Table:
+    caption:  str  = ""
+    headers:  list = field(default_factory=list)   # list[str]
+    rows:     list = field(default_factory=list)   # list[list[str]]
+    notes:    str  = ""
+
+
+@dataclass
+class Figure:
+    caption:    str = ""
+    image_path: str = ""
+    label:      str = ""
+
+
+@dataclass
+class Reference:
+    index: int = 0
+    text:  str = ""
+
+
+@dataclass
 class Section:
-    heading: str
-    body:    str
+    heading: str  = ""
+    body:    str  = ""
+    tables:  list = field(default_factory=list)   # list[Table]
+    figures: list = field(default_factory=list)   # list[Figure]
 
 
 @dataclass
 class Document:
-    title:      str           = "Untitled"
-    authors:    list[Author]  = field(default_factory=list)
-    abstract:   str           = ""
-    keywords:   list[str]     = field(default_factory=list)
-    sections:   list[Section] = field(default_factory=list)
-    references: list[str]     = field(default_factory=list)
+    title:      str  = "Untitled"
+    authors:    list = field(default_factory=list)   # list[Author]
+    abstract:   str  = ""
+    keywords:   list = field(default_factory=list)   # list[str]
+    sections:   list = field(default_factory=list)   # list[Section]
+    references: list = field(default_factory=list)   # list[Reference]
 
-    # ── Serialization ──────────────────────────────────────────────────────────
+    # ── Serialisation ────────────────────────────────────────────────────────
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -48,23 +67,47 @@ class Document:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
 
+    def to_dict_with_objects(self) -> dict:
+        """Pass actual dataclass objects to Jinja2 (attribute access: ref.text, etc.)"""
+        return {
+            "title":      self.title,
+            "authors":    self.authors,
+            "abstract":   self.abstract,
+            "keywords":   self.keywords,
+            "sections":   self.sections,
+            "references": self.references,
+        }
+
     @classmethod
     def from_dict(cls, data: dict) -> "Document":
-        authors = [
-            Author(**a) if isinstance(a, dict) else a
-            for a in data.get("authors", [])
-        ]
-        sections = [
-            Section(**s) if isinstance(s, dict) else s
-            for s in data.get("sections", [])
-        ]
+        authors = [Author(**a) if isinstance(a, dict) else a
+                   for a in data.get("authors", [])]
+
+        sections = []
+        for s in data.get("sections", []):
+            if isinstance(s, dict):
+                tables  = [Table(**t)  if isinstance(t, dict) else t for t in s.get("tables",  [])]
+                figures = [Figure(**f) if isinstance(f, dict) else f for f in s.get("figures", [])]
+                sections.append(Section(
+                    heading=s.get("heading", ""), body=s.get("body", ""),
+                    tables=tables, figures=figures,
+                ))
+            else:
+                sections.append(s)
+
+        refs = []
+        for i, r in enumerate(data.get("references", []), 1):
+            if isinstance(r, dict):
+                refs.append(Reference(**r))
+            elif isinstance(r, str):
+                refs.append(Reference(index=i, text=r))
+            elif isinstance(r, Reference):
+                refs.append(r)
+
         return cls(
-            title      = data.get("title", "Untitled"),
-            authors    = authors,
-            abstract   = data.get("abstract", ""),
-            keywords   = data.get("keywords", []),
-            sections   = sections,
-            references = data.get("references", []),
+            title=data.get("title", "Untitled"), authors=authors,
+            abstract=data.get("abstract", ""), keywords=data.get("keywords", []),
+            sections=sections, references=refs,
         )
 
     @classmethod

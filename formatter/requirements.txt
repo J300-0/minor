@@ -1,9 +1,14 @@
-# Core pipeline
-pymupdf>=1.23.0          # PDF text + image extraction
-python-docx>=1.1.0       # DOCX extraction
-jinja2>=3.1.0            # LaTeX template rendering
-flask>=3.0.0             # Web UI
+# Extraction
+pdfplumber>=0.10.0       # PDF text + table extraction (primary)
+pypdf>=4.0.0             # PDF fallback + metadata
+pymupdf>=1.23.0          # Image extraction from PDFs (fitz)
+python-docx>=1.1.0       # DOCX parsing
 
-# Optional: install pix2text for better formula extraction from PDFs
-# pip install pix2text
-# (without it, PyMuPDF is used as fallback — works fine for text-heavy PDFs)
+# Templating
+jinja2>=3.1.0            # LaTeX template rendering
+
+# Web UI (optional)
+flask>=3.0.0
+
+# Dev / validation
+jsonschema>=4.0.0        # validate structured.json against paper_schema.json

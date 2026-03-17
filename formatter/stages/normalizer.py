@@ -70,7 +70,7 @@ _MATH_SYMBOLS: dict[str, str] = {
     "≪": r"$\ll$",       # U+226A much less than
     "⋆": r"$\star$",     # U+22C6 star operator
     "□": r"$\square$",   # U+25A1 proof end box
-    "●": r"\textbullet", # U+25CF bullet
+    "●": r"$\bullet$",  # U+25CF bullet — use math mode, works without textcomp
     "̸": "",             # U+0338 combining solidus — strip
 }
 
@@ -165,6 +165,9 @@ def _clean_body(text: str) -> str:
 def _fix_ligatures(text: str) -> str:
     for bad, good in _LIGATURES.items():
         text = text.replace(bad, good)
+    # Strip literal \textbullet strings from Springer PDF extraction —
+    # these are internal markup artifacts that appear as raw strings in text
+    text = re.sub(r"\\textbullet\s*", "", text)
     return text
 
 

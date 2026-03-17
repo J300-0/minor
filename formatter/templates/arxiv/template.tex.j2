@@ -1,48 +1,29 @@
-\documentclass[conference]{IEEEtran}
-\IEEEoverridecommandlockouts
+\documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{algorithmic}
 \usepackage{graphicx}
-\usepackage{textcomp}
-\usepackage{xcolor}
-\usepackage{float}
+\usepackage{hyperref}
 \usepackage{booktabs}
-\begin{document}
-
+\usepackage{float}
+\usepackage[margin=1in]{geometry}
 \title{\VAR{title | e}}
-
-%% if authors
-\author{
+\author{%
 %% for author in authors
-\IEEEauthorblockN{\VAR{author.name | e}}
-\IEEEauthorblockA{%
-%% if author.department
-\textit{\VAR{author.department | e}} \\
-%% endif
+\VAR{author.name | e}%
 %% if author.organization
-\textit{\VAR{author.organization | e}} \\
-%% endif
-%% if author.city or author.country
-\VAR{([author.city, author.country] | select | list | join(", ") | e)} \\
+\\\small\VAR{author.organization | e}%
 %% endif
 %% if author.email
-\VAR{author.email | e}%
-%% else
-~%
+\\\small\texttt{\VAR{author.email | e}}%
 %% endif
-}%
 %% if not loop.last
-\and
+\and %
 %% endif
 %% endfor
 }
-%% else
-\author{\IEEEauthorblockN{Author Unknown}}
-%% endif
-
+\date{}
+\begin{document}
 \maketitle
 
 \begin{abstract}
@@ -50,29 +31,24 @@
 \end{abstract}
 
 %% if keywords
-\begin{IEEEkeywords}
-\VAR{keywords | map("e") | join(", ")}
-\end{IEEEkeywords}
+\noindent\textbf{Keywords:} \VAR{keywords | map("e") | join(", ")}
+\bigskip
+
 %% endif
 
 %% for section in sections
-%% if section.heading.lower() in ["acknowledgment", "acknowledgements"]
-\section*{\VAR{section.heading | e}}
-%% else
 \section{\VAR{section.heading | e}}
-%% endif
 \VAR{section.body | paras}
 
 %% for table in section.tables
 \begin{table}[htbp]
+\centering
 \caption{\VAR{table.caption | e}}
-\begin{center}
-\resizebox{\columnwidth}{!}{%
+\resizebox{\textwidth}{!}{%
 %% if table.headers
 \begin{tabular}{l\VAR{"r" * ([table.headers | length - 1, 0] | max)}}
 \toprule
-\VAR{table.headers | map("e") | join(" & ")} \\
-\midrule
+\VAR{table.headers | map("e") | join(" & ")} \\\midrule
 %% for row in table.rows
 \VAR{row | map("e") | join(" & ")} \\
 %% endfor
@@ -80,18 +56,12 @@
 \end{tabular}
 %% else
 \begin{tabular}{l}
-\toprule
 %% for row in table.rows
 \VAR{row | map("e") | join(" & ")} \\
 %% endfor
-\bottomrule
 \end{tabular}
 %% endif
 }
-\end{center}
-%% if table.notes
-\footnotesize{\VAR{table.notes | e}}
-%% endif
 \end{table}
 %% endfor
 

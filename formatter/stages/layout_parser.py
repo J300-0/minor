@@ -2,10 +2,8 @@
 stages/layout_parser.py
 Stage 1 — PDF/DOCX → raw text blocks (extracted.txt)
 
-PDF path:  pix2text  → layout + formula detection + OCR → Markdown
-           Falls back to PyMuPDF if pix2text is not installed.
-
-DOCX path: python-docx → paragraphs, equations, tables (unchanged)
+PDF path:  PyMuPDF → text blocks + image extraction
+DOCX path: python-docx → paragraphs, equations, tables
 """
 
 import os
@@ -16,7 +14,7 @@ def parse(input_path: str, output_path: str) -> str:
     ext = os.path.splitext(input_path)[1].lower()
 
     if ext == ".pdf":
-        text = _from_pdf(input_path)
+        text = _from_pdf_pymupdf(input_path)
     elif ext in (".docx", ".doc"):
         text = _from_docx(input_path)
     else:
@@ -30,86 +28,11 @@ def parse(input_path: str, output_path: str) -> str:
     return output_path
 
 
-# ── PDF: pix2text (preferred) with PyMuPDF fallback ──────────────────────────
 
-def _from_pdf(path: str) -> str:
-    try:
-        return _from_pdf_pix2text(path)
-    except ImportError:
-        print("         [layout_parser] pix2text not found — falling back to PyMuPDF")
-        print("         Install with: pip install pix2text")
-        return _from_pdf_pymupdf(path)
-
-
-def _from_pdf_pix2text(path: str) -> str:
-    """
-    Use pix2text to extract PDF content with formula recognition.
-    Returns double-newline-separated blocks for document_parser.
-    """
-    from pix2text import Pix2Text
-
-    print("         [pix2text] loading models (first run downloads ~500MB)...")
-    p2t = Pix2Text.from_config()
-
-    print(f"         [pix2text] recognising {os.path.basename(path)}...")
-    pages = p2t.recognize_pdf(path, page_numbers=None)
-
-    blocks = []
-    for page in pages:
-        md = page.to_markdown(None)
-        if md:
-            for para in _md_to_blocks(md):
-                if para.strip():
-                    blocks.append(para.strip())
-
-    return "\n\n".join(blocks)
-
-
-def _md_to_blocks(md: str) -> list[str]:
-    """
-    Split pix2text Markdown into double-newline-separated blocks,
-    keeping $$...$$ display math blocks intact.
-    """
-    blocks          = []
-    current         = []
-    in_display_math = False
-
-    for line in md.split("\n"):
-        stripped = line.strip()
-
-        if stripped == "$$":
-            if in_display_math:
-                current.append("$$")
-                blocks.append("\n".join(current))
-                current = []
-                in_display_math = False
-            else:
-                if current:
-                    blocks.append("\n".join(current))
-                    current = []
-                current.append("$$")
-                in_display_math = True
-            continue
-
-        if in_display_math:
-            current.append(line)
-            continue
-
-        if stripped == "":
-            if current:
-                blocks.append("\n".join(current))
-                current = []
-        else:
-            current.append(line)
-
-    if current:
-        blocks.append("\n".join(current))
-
-    return blocks
-
+# ── PDF: PyMuPDF ──────────────────────────────────────────────────────────────
 
 def _from_pdf_pymupdf(path: str) -> str:
-    """Fallback: PyMuPDF plain text + image extraction."""
+    """PyMuPDF plain text + image extraction."""
     import fitz
     from core.config import INTERMEDIATE_DIR
 
