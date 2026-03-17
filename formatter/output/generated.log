@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12 Portable) (preloaded format=pdflatex 2026.3.16)  17 MAR 2026 01:04
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12 Portable) (preloaded format=pdflatex 2026.3.16)  17 MAR 2026 12:37
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -359,35 +359,297 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 opdf-sys.cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-LaTeX Font Info:    Trying to load font information for U+msa on input line 73.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 27.
 
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
 .fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 73.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 27.
 
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
 .fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-)
-
-LaTeX Warning: `!h' float specifier changed to `!ht'.
-
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 8
-5.
-
-(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/psnfss\ts1ptm
-.fd
-File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 ) [1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdfte
 x.map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/b
 ase/8r.enc}
 
 
 ]
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 43.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 43.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 47.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 49.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 49.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 51.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 51.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 51.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 51.
+ [2] [3]
+<C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_1.jpeg, id=19,
+ 1423.3175pt x 777.90625pt>
+File: C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_1.jpeg Gr
+aphic file (type jpg)
+<use C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_1.jpeg>
+Package pdftex.def Info: C:/Users/janme/Desktop/minor/formatter/intermediate/fi
+gures/fig_1.jpeg  used on input line 82.
+(pdftex.def)             Requested size: 252.0pt x 137.7262pt.
+ [4 <C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_1.jpeg>]
+<C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_2.jpeg, id=25,
+ 1423.3175pt x 721.69624pt>
+File: C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_2.jpeg Gr
+aphic file (type jpg)
+<use C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_2.jpeg>
+Package pdftex.def Info: C:/Users/janme/Desktop/minor/formatter/intermediate/fi
+gures/fig_2.jpeg  used on input line 108.
+(pdftex.def)             Requested size: 252.0pt x 127.77437pt.
+
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 116.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 116.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 116.
+
+Underfull \hbox (badness 10000) in paragraph at lines 118--119
+[]\T1/ptm/m/n/10 LKD = LML kd + $\OML/cmm/m/it/10 $ $\OMS/cmsy/m/n/10 ^^C$\T1/
+ptm/m/n/10 MSE($\OML/cmm/m/it/10 ^^^$$^^R$\T1/ptm/m/n/10 (Xkd)$\OMS/cmsy/m/n/10
+ >$$\OML/cmm/m/it/10 ^^^$$^^R$\T1/ptm/m/n/10 (Xkd),
+ []
+
+
+Underfull \hbox (badness 6252) in paragraph at lines 118--119
+\OML/cmm/m/it/10 ^^^$$^^R$\T1/ptm/m/n/10 c(Xkd)$\OMS/cmsy/m/n/10 >$$\OML/cmm/m/
+it/10 ^^^$$^^R$\T1/ptm/m/n/10 c(Xkd)/|S|). (17) c$\OMS/cmsy/m/n/10 2$\T1/ptm/m/
+n/10 S here, LML kd is
+ []
+
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 120.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 120.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 120.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 124.
+[5 <C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_2.jpeg>]
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 136.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 136.
+
+Underfull \hbox (badness 10000) in paragraph at lines 136--137
+\T1/ptm/m/n/10 AGE__intermediate/figures/fig_3.jpeg__PAGE_13__Y_322__
+ []
+
+
+Underfull \hbox (badness 1377) in paragraph at lines 136--137
+\T1/ptm/m/n/10 and un-cer-tainty es-ti-ma-tion, we con-ducted com-pre-hen-sive
+ []
+
+
+Underfull \hbox (badness 1484) in paragraph at lines 136--137
+\T1/ptm/m/n/10 sig-nif-i-cant the dis-tri-bu-tion skew is. Be-fore train-ing, w
+e
+ []
+
+
+Underfull \hbox (badness 1648) in paragraph at lines 136--137
+\T1/ptm/m/n/10 pro-cess is ter-mi-nated. We re-port the av-er-age min-i-mum
+ []
+
+[6]
+Underfull \hbox (badness 1603) in paragraph at lines 138--139
+[]\T1/ptm/m/n/10 Skillcraft SML Parkin-sons Bike CCPP Train/test size
+ []
+
+[7]
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 140.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 140.
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 140.
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 140.
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 140.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 140.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 140.
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 140.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 140.
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 144.
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 144.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 144.
+
+Underfull \hbox (badness 10000) in paragraph at lines 148--149
+\T1/ptm/m/n/10 AGE__intermediate/figures/fig_4.jpeg__PAGE_17__Y_327__
+ []
+
+[8]
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 168.
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 1
+78.
+
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/psnfss\ts1ptm
+.fd
+File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
+) [9]
+<C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_5.jpeg, id=43,
+ 1423.3175pt x 494.84875pt>
+File: C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_5.jpeg Gr
+aphic file (type jpg)
+<use C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_5.jpeg>
+Package pdftex.def Info: C:/Users/janme/Desktop/minor/formatter/intermediate/fi
+gures/fig_5.jpeg  used on input line 194.
+(pdftex.def)             Requested size: 252.0pt x 87.61163pt.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 203.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 203.
+LaTeX Info: Symbol \textasciimacron not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 203.
+ [10 <C:/Users/janme/Desktop/minor/formatter/intermediate/figures/fig_5.jpeg>]
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 237.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 237.
+
+Underfull \hbox (badness 10000) in paragraph at lines 237--238
+\T1/ptm/m/n/10 AGE__intermediate/figures/fig_6.jpeg__PAGE_27__Y_247__
+ []
+
+[11]
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 239.
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 241.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 241.
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 245.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 245.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 247.
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 251.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 251.
+
+Underfull \hbox (badness 10000) in paragraph at lines 251--252
+[]\T1/ptm/m/n/10 ours 1 3 Page 31 of 36 72 Ma-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 251--252
+\T1/ptm/m/n/10 chine Learn-ing (2026) 115:72 __IM-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 251--252
+\T1/ptm/m/n/10 AGE__intermediate/figures/fig_7.png__PAGE_30__Y_53__
+ []
+
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 255.
+LaTeX Info: Symbol \textuparrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 255.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 255.
+LaTeX Info: Symbol \textdownarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 257.
+[12]
+Underfull \hbox (badness 3525) in paragraph at lines 261--262
+\T1/ptm/m/n/10 fund-ing from Huawei Canada un-der Grant Agree-ment
+ []
+
+
+Underfull \hbox (badness 2012) in paragraph at lines 328--388
+\T1/ptm/m/n/8 guokaiyang@huawei.com Mahdi Karami mahdikaramia@gmail.com
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [13]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+Underfull \hbox (badness 1946) in paragraph at lines 389--396
+[]\T1/ptm/m/n/8 Page 36 of 36 Ma-chine Learn-ing (2026) 115:72 Hongliang Li
+ []
+
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -399,31 +661,40 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[2
-
-] (C:\Users\janme\Desktop\minor\formatter\output\generated.aux)
+[14] (C:\Users\janme\Desktop\minor\formatter\output\generated.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 4596 strings out of 467871
- 72076 string characters out of 5413518
- 494609 words of memory out of 5000000
- 33418 multiletter control sequences out of 15000+600000
- 738202 words of font info for 147 fonts, out of 8000000 for 9000
+ 4633 strings out of 467871
+ 73867 string characters out of 5413518
+ 519163 words of memory out of 5000000
+ 33452 multiletter control sequences out of 15000+600000
+ 734440 words of font info for 156 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 57i,10n,65p,826b,339s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times
-/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1
-/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/
-fonts/type1/urw/times/utmr8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmf
-s/install/fonts/type1/urw/times/utmri8a.pfb>
+ 57i,8n,65p,10245b,267s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ <C:\Users\janme\scoop\apps\latex\current\texmfs/data\fonts/pk/ljfour/jknappe
+n/ec/dpi600\tcrm1000.pk><C:/Users/janme/scoop/apps/latex/current/texmfs/install
+/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Users/janme/scoop/apps/latex/cur
+rent/texmfs/install/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/janme/s
+coop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmmi8.pfb
+><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/ams
+fonts/cm/cmr10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/font
+s/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/janme/scoop/apps/latex/current/te
+xmfs/install/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/ap
+ps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Us
+ers/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/c
+m/cmsy9.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1
+/public/amsfonts/symbols/msam10.pfb><C:/Users/janme/scoop/apps/latex/current/te
+xmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/
+current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/
+apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb>
 Output written on C:\Users\janme\Desktop\minor\formatter\output\generated.pdf (
-2 pages, 62872 bytes).
+14 pages, 374120 bytes).
 PDF statistics:
- 30 PDF objects out of 1000 (max. 8388607)
+ 119 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 16 words of extra memory for PDF output out of 10000 (max. 10000000)
 

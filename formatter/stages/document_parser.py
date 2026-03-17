@@ -83,6 +83,11 @@ def _build_blocks(raw: str) -> list[str]:
             blocks.append(chunk)
             continue
 
+        # Never merge image markers
+        if chunk.startswith("__IMAGE__") or prev.startswith("__IMAGE__"):
+            blocks.append(chunk)
+            continue
+
         # Never merge equation blocks
         if chunk.startswith("$$") or prev.startswith("$$"):
             blocks.append(chunk)
@@ -109,15 +114,15 @@ def _build_blocks(raw: str) -> list[str]:
 def _cluster_tables(chunks: list[str]) -> list[str]:
     """
     Find table data clusters and collapse them into a single __TABLE__ block.
-    The cluster is defined as all chunks from the first table-data chunk
-    up to and including the caption line.
+    Looks up to 40 chunks ahead for a Table caption.
+    Handles captions like "Table 1", "Table 1:", "Table 1 Caption text".
     """
     result = []
     i = 0
     while i < len(chunks):
-        # Look for a "Table N:" caption within next 5 chunks
+        # Look for a "Table N" caption within next 40 chunks
         caption_offset = None
-        for j in range(i, min(i + 5, len(chunks))):
+        for j in range(i, min(i + 40, len(chunks))):
             if re.match(r"^Table\s+\d+", chunks[j], re.IGNORECASE):
                 caption_offset = j
                 break
@@ -125,10 +130,10 @@ def _cluster_tables(chunks: list[str]) -> list[str]:
         if caption_offset is not None and caption_offset > i:
             span = chunks[i:caption_offset + 1]
             all_text = "\n".join(span)
+            # Must contain numbers (data) and be reasonably long
             num_count = len(re.findall(r"\b\d+\.?\d*\b", all_text))
-            if num_count >= 5:
-                # Check if the FIRST chunk in span is body text (long sentence)
-                # If so, keep it separate and only cluster from the second chunk
+            if num_count >= 3 and len(span) >= 2:
+                # Skip leading body-text chunk if it looks like prose
                 first = span[0]
                 if len(first.split()) > 6 and re.search(r"[.!?]", first):
                     result.append(first)
@@ -331,6 +336,31 @@ def _parse_body(blocks: list[str], doc: Document):
         if first_line == doc.title or first_line in author_names:
             continue
 
+        # ── Image marker from layout_parser ──────────────────────────────────
+        if block.startswith("__IMAGE__"):
+            img_path = re.search(r"__IMAGE__(.*?)__PAGE_", block)
+            if img_path and current_heading is not None:
+                path = img_path.group(1)
+                # Store pending image — will be paired with next caption
+                current_body.append(f"__PENDING_IMG__{path}")
+            continue
+
+        # ── Figure caption — pair with pending image ──────────────────────────
+        if re.match(r"^(fig\.?|figure)\s*\d+", lower):
+            caption = block.strip()
+            # Look back for a pending image in current_body
+            fig_tex = None
+            for i in range(len(current_body) - 1, -1, -1):
+                if current_body[i].startswith("__PENDING_IMG__"):
+                    img_path = current_body[i][len("__PENDING_IMG__"):]
+                    fig_tex = _build_figure(img_path, caption)
+                    current_body[i] = "%%RAWTEX%%" + fig_tex + "%%ENDRAWTEX%%"
+                    break
+            # No pending image found — still emit caption as a figure placeholder
+            if fig_tex is None and current_heading is not None:
+                current_body.append(f"%%RAWTEX%%% Figure: {caption}%%ENDRAWTEX%%")
+            continue
+
         # ── Standalone "Abstract" label ───────────────────────────────────────
         if lower == "abstract":
             next_is_abstract = True
@@ -427,7 +457,7 @@ def _try_build_table(block: str) -> str | None:
         if re.match(r"^Table\s+\d+", l, re.IGNORECASE):
             break
         # Body text: ends with sentence punctuation AND is not a pure token
-        if re.search(r"[.!?,;]$", l) and not re.match(r"^\d+\.?\d*$", l):
+        if re.search(r"[.!?,;]$", l) and not re.match(r"^\d+\.?\d*[⇑⇓↑↓\u2191\u2193\u21D1\u21D3\*]?$", l):
             lines = lines[1:]
         else:
             break
@@ -435,21 +465,28 @@ def _try_build_table(block: str) -> str | None:
     if len(lines) < 5:
         return None
 
-    # ── Find and reconstruct caption (may be split "...post-\npass") ──────────
+    # ── Find and reconstruct caption ──────────────────────────────────────────
     caption_idx = None
     caption_text = ""
     for i, l in enumerate(lines):
+        # Match "Table N:" or "Table N " (with or without colon)
         m = re.match(r"^Table\s+\d+[:.]\s*(.*)", l, re.IGNORECASE)
+        if not m:
+            # Also match bare "Table N" — caption text may be on next line
+            m2 = re.match(r"^Table\s+\d+$", l, re.IGNORECASE)
+            if m2 and i + 1 < len(lines):
+                caption_idx = i
+                caption_text = lines[i + 1] if i + 1 < len(lines) else ""
+                break
         if m:
             caption_idx = i
             caption_text = m.group(1).strip()
-            # If caption was hyphenated across lines, join with next line
+            # Join hyphenated continuation
             if caption_text.endswith("-") and i + 1 < len(lines):
                 caption_text = caption_text[:-1] + lines[i + 1]
             elif i + 1 < len(lines) and not re.match(r"^\d", lines[i + 1]):
-                # continuation word (no number start)
                 next_l = lines[i + 1]
-                if len(next_l.split()) <= 3:
+                if len(next_l.split()) <= 6:
                     caption_text = caption_text + " " + next_l
             break
 
@@ -459,7 +496,7 @@ def _try_build_table(block: str) -> str | None:
     data_lines = lines[:caption_idx]
 
     # Must have at least some numbers
-    num_count = sum(1 for l in data_lines if re.match(r"^\d+\.?\d*$", l))
+    num_count = sum(1 for l in data_lines if re.match(r"^\d+\.?\d*[⇑⇓↑↓\u2191\u2193\u21D1\u21D3\*]?$", l))
     if num_count < 3:
         return None
 
@@ -467,12 +504,12 @@ def _try_build_table(block: str) -> str | None:
     # Find the first data row (text label followed by numbers) to get n_cols
     n_cols = 0
     for idx, l in enumerate(data_lines):
-        if not re.match(r"^\d+\.?\d*$", l) and idx + 1 < len(data_lines):
-            if re.match(r"^\d+\.?\d*$", data_lines[idx + 1]):
+        if not re.match(r"^\d+\.?\d*[⇑⇓↑↓\u2191\u2193\u21D1\u21D3\*]?$", l) and idx + 1 < len(data_lines):
+            if re.match(r"^\d+\.?\d*[⇑⇓↑↓\u2191\u2193\u21D1\u21D3\*]?$", data_lines[idx + 1]):
                 # Count consecutive numbers after this label
                 j = idx + 1
                 count = 0
-                while j < len(data_lines) and re.match(r"^\d+\.?\d*$", data_lines[j]):
+                while j < len(data_lines) and re.match(r"^\d+\.?\d*[⇑⇓↑↓\u2191\u2193\u21D1\u21D3\*]?$", data_lines[j]):
                     count += 1
                     j += 1
                 if count > n_cols:
@@ -487,10 +524,10 @@ def _try_build_table(block: str) -> str | None:
     first_group_idx = len(data_lines)
     for idx in range(len(data_lines)):
         l = data_lines[idx]
-        if re.match(r"^\d+\.?\d*$", l):
+        if re.match(r"^\d+\.?\d*[⇑⇓↑↓\u2191\u2193\u21D1\u21D3\*]?$", l):
             continue
         next_is_num = (idx + 1 < len(data_lines) and
-                       re.match(r"^\d+\.?\d*$", data_lines[idx + 1]))
+                       re.match(r"^\d+\.?\d*[⇑⇓↑↓\u2191\u2193\u21D1\u21D3\*]?$", data_lines[idx + 1]))
         if not next_is_num and idx > 0:  # text line not followed by number = group label
             first_group_idx = idx
             break
@@ -508,13 +545,13 @@ def _try_build_table(block: str) -> str | None:
     i = header_end
     while i < len(data_lines):
         l = data_lines[i]
-        if re.match(r"^\d+\.?\d*$", l):
+        if re.match(r"^\d+\.?\d*[⇑⇓↑↓\u2191\u2193\u21D1\u21D3\*]?$", l):
             i += 1
             continue
 
         # Is it a group label? — text line NOT followed immediately by a number
         next_is_num = (i + 1 < len(data_lines) and
-                       re.match(r"^\d+\.?\d*$", data_lines[i + 1]))
+                       re.match(r"^\d+\.?\d*[⇑⇓↑↓\u2191\u2193\u21D1\u21D3\*]?$", data_lines[i + 1]))
         if not next_is_num:
             groups[len(rows)] = l
             i += 1
@@ -523,7 +560,7 @@ def _try_build_table(block: str) -> str | None:
         # Data row: collect label + following numbers
         vals = []
         i += 1
-        while i < len(data_lines) and re.match(r"^\d+\.?\d*$", data_lines[i]):
+        while i < len(data_lines) and re.match(r"^\d+\.?\d*[⇑⇓↑↓\u2191\u2193\u21D1\u21D3\*]?$", data_lines[i]):
             vals.append(data_lines[i])
             i += 1
         rows.append((l, vals))
@@ -763,3 +800,51 @@ def _build_docx_table(block: str) -> str | None:
 
     tex += [r"\hline", r"\end{tabular}", r"}", r"\end{center}", r"\end{table}"]
     return "\n".join(tex)
+
+
+def _build_figure(img_path: str, caption: str) -> str:
+    """
+    Build a LaTeX figure environment for an extracted image.
+    img_path is relative to project root — converted to absolute for pdflatex.
+    """
+    import os as _os
+    from core.config import ROOT
+    from stages.normalizer import _fix_math_symbols, _fix_unicode_spaces, _strip_control_chars
+
+    def esc(t):
+        # 1. Strip control chars and normalise unicode spaces
+        t = _strip_control_chars(t)
+        t = _fix_unicode_spaces(t)
+        # 2. Replace Unicode math symbols with LaTeX equivalents
+        t = _fix_math_symbols(t)
+        # 3. Collapse any newlines — \caption{} cannot span paragraphs
+        t = re.sub(r"\s*\n\s*", " ", t).strip()
+        # 4. Escape remaining LaTeX special chars (not already wrapped in $...$)
+        import re as _re
+        parts = _re.split(r"(\$[^$]*\$)", t)
+        result = []
+        for part in parts:
+            if part.startswith("$") and part.endswith("$"):
+                result.append(part)  # math — pass through
+            else:
+                result.append(
+                    part.replace("_", r"\_")
+                        .replace("%", r"\%")
+                        .replace("&", r"\&")
+                        .replace("#", r"\#")
+                )
+        return "".join(result)
+
+    abs_path = _os.path.join(ROOT, img_path).replace("\\", "/")
+
+    num_match = re.search(r"(\d+)", caption)
+    label = f"fig{num_match.group(1)}" if num_match else "fig"
+
+    return (
+        r"\begin{figure}[h!]" + "\n"
+        r"\centering" + "\n"
+        r"\includegraphics[width=\columnwidth]{" + abs_path + "}\n"
+        r"\caption{" + esc(caption) + "}\n"
+        r"\label{" + label + "}\n"
+        r"\end{figure}"
+    )
