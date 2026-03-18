@@ -7,6 +7,8 @@ Per the DOCX skill: python-docx is recommended for reading .docx files.
 """
 
 import os, re
+from core.logger import get_logger
+log = get_logger(__name__)
 
 
 def extract(input_path: str, intermediate_dir: str) -> dict:
@@ -19,6 +21,7 @@ def extract(input_path: str, intermediate_dir: str) -> dict:
         result = _extract_docx(input_path, intermediate_dir)
     except Exception as e:
         print(f"         [extractor] DOCX extraction failed: {e}")
+        log.error(f"DOCX extraction failed: {e}", exc_info=True)
 
     _write_outputs(result, intermediate_dir)
     print(f"         [docx] {len(result['raw_text'])} chars | "

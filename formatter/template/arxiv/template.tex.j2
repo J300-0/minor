@@ -1,0 +1,78 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage[margin=1in]{geometry}
+\title{\VAR{title | e}}
+\author{%
+%% for author in authors
+\VAR{author.name | e}%
+%% if author.organization
+\\\small\VAR{author.organization | e}%
+%% endif
+%% if author.email
+\\\small\texttt{\VAR{author.email | e}}%
+%% endif
+%% if not loop.last
+\and %
+%% endif
+%% endfor
+}
+\date{}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\VAR{abstract | e}
+\end{abstract}
+
+%% if keywords
+\noindent\textbf{Keywords:} \VAR{keywords | map("e") | join(", ")}
+\bigskip
+
+%% endif
+
+%% for section in sections
+\section{\VAR{section.heading | e}}
+\VAR{section.body | paras}
+
+%% for table in section.tables
+\begin{table}[htbp]
+\centering
+\caption{\VAR{table.caption | e}}
+\resizebox{\textwidth}{!}{%
+%% if table.headers
+\begin{tabular}{l\VAR{"r" * ([table.headers | length - 1, 0] | max)}}
+\toprule
+\VAR{table.headers | map("e") | join(" & ")} \\\midrule
+%% for row in table.rows
+\VAR{row | map("e") | join(" & ")} \\
+%% endfor
+\bottomrule
+\end{tabular}
+%% else
+\begin{tabular}{l}
+%% for row in table.rows
+\VAR{row | map("e") | join(" & ")} \\
+%% endfor
+\end{tabular}
+%% endif
+}
+\end{table}
+%% endfor
+
+%% endfor
+
+%% if references
+\begin{thebibliography}{00}
+%% for ref in references
+\bibitem{b\VAR{ref.index}} \VAR{ref.text | e}
+%% endfor
+\end{thebibliography}
+%% endif
+
+\end{document}

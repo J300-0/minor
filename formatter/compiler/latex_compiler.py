@@ -1,5 +1,7 @@
 """compiler/latex_compiler.py  —  .tex → PDF via pdflatex"""
 import os, shutil, subprocess
+from core.logger import get_logger
+log = get_logger(__name__)
 from core.config import PDFLATEX_PASSES, PDFLATEX_FLAGS
 
 
@@ -19,7 +21,8 @@ def compile(tex_file: str, output_dir: str) -> str:
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0 and n == 1:
             _report(result.stdout)
-            raise RuntimeError("pdflatex failed — see log above")
+            log.error("pdflatex failed — see log/pipeline.log for full output")
+        raise RuntimeError("pdflatex failed — see log above")
 
     pdf = os.path.join(output_dir, os.path.splitext(os.path.basename(tex_file))[0] + ".pdf")
     if not os.path.exists(pdf):

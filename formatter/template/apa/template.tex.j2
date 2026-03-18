@@ -1,0 +1,44 @@
+\documentclass[man,12pt]{apa7}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\begin{document}
+
+\title{\VAR{title | e}}
+\author{%
+%% for author in authors
+\VAR{author.name | e}%
+%% if not loop.last
+, %
+%% endif
+%% endfor
+}
+%% if authors and authors[0].organization
+\affiliation{\VAR{authors[0].organization | e}}
+%% endif
+
+\maketitle
+
+\begin{abstract}
+\VAR{abstract | e}
+\end{abstract}
+
+%% if keywords
+\keywords{\VAR{keywords | map("e") | join(", ")}}
+%% endif
+
+%% for section in sections
+\section{\VAR{section.heading | e}}
+\VAR{section.body | paras}
+%% endfor
+
+%% if references
+\begin{references}
+%% for ref in references
+\VAR{ref.text | e}
+
+%% endfor
+\end{references}
+%% endif
+
+\end{document}

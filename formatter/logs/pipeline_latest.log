@@ -1,0 +1,31 @@
+2026-03-18 12:53:05  INFO      pipeline                      ========================================================================
+2026-03-18 12:53:05  INFO      pipeline                      RUN START
+2026-03-18 12:53:05  INFO      pipeline                        input     = your_paper.pdf
+2026-03-18 12:53:05  INFO      pipeline                        template  = ieee
+2026-03-18 12:53:05  INFO      pipeline                        use_ai    = True
+2026-03-18 12:53:05  INFO      pipeline                        model     = qwen3-8b
+2026-03-18 12:53:05  INFO      pipeline                        batch     = 10000 chars
+2026-03-18 12:53:05  INFO      pipeline                        max_tok   = 8192
+2026-03-18 12:53:05  INFO      pipeline                        timeout   = 60s (connect+first-token)
+2026-03-18 12:53:05  INFO      pipeline                      ========================================================================
+2026-03-18 12:53:05  INFO      pipeline                      [1/5] Extractor — PDF/DOCX → text + tables + images
+2026-03-18 12:53:05  DEBUG     extractor.pdf_extractor       PyMuPDF extracted 3749 chars, 0 images
+2026-03-18 12:53:05  WARNING   extractor.pdf_extractor       pdfplumber found 0 tables — paper may use image-based tables
+2026-03-18 12:53:05  INFO      extractor.pdf_extractor       extracted: 3749 chars | 0 tables | 0 images
+2026-03-18 12:53:05  INFO      pipeline                        extracted: 3749 chars | 0 tables | 0 images
+2026-03-18 12:53:05  WARNING   pipeline                      No tables extracted — paper may use image-based tables, or pdfplumber line-strategy found no ruled lines
+2026-03-18 12:53:05  INFO      pipeline                      [2/5] Parser — raw text → structured Document
+2026-03-18 12:53:07  INFO      ai.structure_llm              AI parse start — 3749 chars, model=qwen3-8b, backend=requests
+2026-03-18 12:53:07  INFO      ai.structure_llm              Extracting header (first 3000 chars)
+2026-03-18 12:56:55  DEBUG     ai.structure_llm              [header] done — 491 tokens
+2026-03-18 12:56:55  INFO      ai.structure_llm              Header: title='An Example Conference Paper', 1 authors
+2026-03-18 12:56:55  INFO      ai.structure_llm              Batches: 1  batch_size=10000
+2026-03-18 12:56:55  INFO      ai.structure_llm              Batch 1/1 start — 2949 chars
+2026-03-18 13:04:46  DEBUG     ai.structure_llm              [b1] done — 2166 tokens
+2026-03-18 13:04:46  INFO      ai.structure_llm              Batch 1/1 OK — 1 sections, 5 refs, 471.4s
+2026-03-18 13:04:46  INFO      ai.structure_llm              AI parse complete — 1 sections, 0 tables, 5 refs
+2026-03-18 13:04:46  INFO      core.pipeline                        parse: AI path succeeded
+2026-03-18 13:04:46  INFO      pipeline                        doc: title='An Example Conference Paper'  authors=1  sections=1  tables=0  refs=5
+2026-03-18 13:04:46  INFO      pipeline                        references: 5 found via heuristic/AI
+2026-03-18 13:04:46  INFO      pipeline                      [3/5] Normalizer — fix ligatures, unicode, math symbols
+2026-03-18 13:04:46  INFO      pipeline                      [4/5] Renderer — Document → LaTeX [ieee]
