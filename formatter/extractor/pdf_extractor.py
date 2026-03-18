@@ -1,132 +1,148 @@
 """
-extractor/pdf_extractor.py  —  PDF → {raw_text, tables, images}
+extractor/pdf_extractor.py — Stage 1: PDF → raw text + font-aware blocks + tables.
 
-Text extraction:  PyMuPDF (fitz) — primary, handles CID/Springer fonts reliably
-Table extraction: pdfplumber — native table detection via line strategy
-Image extraction: PyMuPDF (fitz)
-
-Why PyMuPDF for text (not pdfplumber):
-  pdfplumber uses pdfminer under the hood which struggles with CID-encoded fonts
-  (Adobe-Identity-UCS) common in Springer/Elsevier publisher PDFs.
-  This causes extraction to silently return ~3K chars instead of ~92K.
-  PyMuPDF handles these fonts correctly and consistently returns full text.
+Uses:
+  - pymupdf (fitz) for text with font metadata (size, bold)
+  - pdfplumber for table detection
 """
-
-import os, re, json
+import os, json, re
 from core.logger import get_logger
 
 log = get_logger(__name__)
 
 
-def extract(input_path: str, intermediate_dir: str) -> dict:
-    """Always returns {raw_text, tables, images} — never raises."""
-    result = {"raw_text": "", "tables": [], "images": []}
+def extract(pdf_path: str, inter_dir: str) -> dict:
+    """
+    Returns:
+      {
+        "raw_text":  str,             # plain text of entire PDF
+        "blocks":    list[dict],      # [{text, font_size, bold, page}, ...]
+        "tables":    list[dict],      # [{caption, headers, rows}, ...]
+        "images":    list[str],       # saved image paths
+      }
+    """
+    os.makedirs(inter_dir, exist_ok=True)
+    blocks = _extract_blocks(pdf_path, inter_dir)
+    raw_text = _blocks_to_text(blocks)
+    tables   = _extract_tables(pdf_path)
+    images   = []   # image extraction omitted for simplicity
+
+    # Write raw text for inspection
+    txt_path = os.path.join(inter_dir, "extracted.txt")
+    with open(txt_path, "w", encoding="utf-8") as f:
+        f.write(raw_text)
+
+    log.info("PDF extraction: %d blocks, %d chars, %d tables",
+             len(blocks), len(raw_text), len(tables))
+    return {"raw_text": raw_text, "blocks": blocks, "tables": tables, "images": images}
+
+
+def _extract_blocks(pdf_path: str, inter_dir: str) -> list:
+    """Extract text blocks with font size and bold flag using pymupdf."""
     try:
-        result = _extract(input_path, intermediate_dir)
-    except Exception as e:
-        log.error(f"PDF extraction failed: {e}", exc_info=True)
-        print(f"         [extractor] failed: {e}")
+        import fitz  # pymupdf
+    except ImportError:
+        log.warning("pymupdf not installed — falling back to plain text extraction")
+        return _fallback_blocks(pdf_path)
 
-    _write_outputs(result, intermediate_dir)
-    print(f"         [pdf] {len(result['raw_text'])} chars | "
-          f"{len(result['tables'])} tables | {len(result['images'])} images")
-    log.info(f"extracted: {len(result['raw_text'])} chars | "
-             f"{len(result['tables'])} tables | {len(result['images'])} images")
-    return result
+    blocks = []
+    doc = fitz.open(pdf_path)
 
-
-def _extract(input_path: str, intermediate_dir: str) -> dict:
-    import fitz  # PyMuPDF
-
-    figures_dir = os.path.join(intermediate_dir, "figures")
-    os.makedirs(figures_dir, exist_ok=True)
-
-    # ── Text + images via PyMuPDF ─────────────────────────────────────────────
-    text_pages = []
-    images     = []
-    fig_count  = 0
-
-    doc = fitz.open(input_path)
-    for page_num, page in enumerate(doc):
-        # Text — PyMuPDF handles CID/Springer fonts correctly
-        text = page.get_text("text")
-        if text.strip():
-            text_pages.append(text)
-
-        # Images
-        for img in page.get_images(full=True):
-            xref = img[0]
-            try:
-                base  = doc.extract_image(xref)
-                data  = base["image"]
-                if len(data) < 5000:
-                    continue
-                fig_count += 1
-                ext   = base["ext"]
-                fpath = os.path.join(figures_dir, f"fig_{fig_count}.{ext}")
-                with open(fpath, "wb") as f:
-                    f.write(data)
-                rects = page.get_image_rects(xref)
-                images.append({
-                    "path":  fpath,
-                    "page":  page_num + 1,
-                    "y_pos": int(rects[0].y0) if rects else 0,
-                })
-            except Exception:
+    for page_num, page in enumerate(doc, start=1):
+        page_dict = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)
+        for block in page_dict.get("blocks", []):
+            if block.get("type") != 0:   # 0 = text, 1 = image
                 continue
+            lines_text = []
+            font_sizes = []
+            is_bold    = False
+            for line in block.get("lines", []):
+                for span in line.get("spans", []):
+                    t = span.get("text", "").strip()
+                    if t:
+                        lines_text.append(t)
+                        font_sizes.append(span.get("size", 10))
+                        # bold flag is bit 4 (0b10000 = 16) of flags int
+                        if span.get("flags", 0) & 16:
+                            is_bold = True
+
+            if not lines_text:
+                continue
+
+            text = " ".join(lines_text).strip()
+            if not text:
+                continue
+
+            avg_size = sum(font_sizes) / len(font_sizes) if font_sizes else 10
+            blocks.append({
+                "text":      text,
+                "font_size": round(avg_size, 2),
+                "bold":      is_bold,
+                "page":      page_num,
+            })
+
     doc.close()
-
-    raw_text = "\n\n".join(text_pages)
-    log.debug(f"PyMuPDF extracted {len(raw_text)} chars, {fig_count} images")
-
-    # ── Tables via pdfplumber (line strategy) ─────────────────────────────────
-    tables = _extract_tables_pdfplumber(input_path)
-    if tables:
-        _match_captions(raw_text, tables)
-        log.info(f"pdfplumber found {len(tables)} tables")
-    else:
-        log.warning("pdfplumber found 0 tables — paper may use image-based tables")
-
-    return {"raw_text": raw_text, "tables": tables, "images": images}
+    return blocks
 
 
-def _extract_tables_pdfplumber(path: str) -> list:
-    """Extract tables only — isolated so a pdfplumber crash doesn't kill text."""
+def _fallback_blocks(pdf_path: str) -> list:
+    """
+    Fallback when pymupdf isn't installed: extract per-line blocks
+    from pdfplumber with page numbers. No font info available.
+    """
     try:
         import pdfplumber
-        tables = []
-        with pdfplumber.open(path) as pdf:
-            for page_num, page in enumerate(pdf.pages, 1):
-                page_tables = page.extract_tables({
-                    "vertical_strategy":   "lines",
-                    "horizontal_strategy": "lines",
-                    "snap_tolerance": 5,
-                    "join_tolerance":  5,
-                })
-                for tbl in (page_tables or []):
-                    if not tbl or len(tbl) < 2:
-                        continue
-                    clean = [[str(c).strip() if c else "" for c in row] for row in tbl]
-                    tables.append({
-                        "caption": "", "headers": clean[0],
-                        "rows": clean[1:], "page": page_num, "notes": "",
-                    })
-        return tables
-    except Exception as e:
-        log.warning(f"pdfplumber table extraction failed: {e}")
+    except ImportError:
+        log.error("Neither pymupdf nor pdfplumber installed — cannot extract PDF")
         return []
 
+    blocks = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_num, page in enumerate(pdf.pages, start=1):
+            text = page.extract_text() or ""
+            for line in text.split("\n"):
+                line = line.strip()
+                if line:
+                    blocks.append({
+                        "text":      line,
+                        "font_size": 10,    # unknown without pymupdf
+                        "bold":      False,
+                        "page":      page_num,
+                    })
 
-def _match_captions(text: str, tables: list):
-    caps = re.findall(r"(Table\s+\d+[^\.\n]*(?:\.[^\.\n]*)?)", text, re.IGNORECASE)
-    for i, tbl in enumerate(tables):
-        if i < len(caps):
-            tbl["caption"] = caps[i].strip()
+    log.info("Fallback extraction: %d line-blocks from %d pages",
+             len(blocks), blocks[-1]["page"] if blocks else 0)
+    return blocks
 
 
-def _write_outputs(result: dict, intermediate_dir: str):
-    os.makedirs(intermediate_dir, exist_ok=True)
-    with open(os.path.join(intermediate_dir, "extracted.txt"), "w", encoding="utf-8") as f:
-        f.write(result["raw_text"])
-    with open(os.path.join(intermediate_dir, "extracted_rich.json"), "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2, ensure_ascii=False, default=str)
+def _blocks_to_text(blocks: list) -> str:
+    """Join blocks into clean plain text with double-newline separators."""
+    parts = []
+    for b in blocks:
+        t = b["text"].strip()
+        if t:
+            parts.append(t)
+    text = "\n\n".join(parts)
+    # Strip common PDF noise: page numbers, running headers
+    text = re.sub(r"^\s*\d{1,4}\s*$", "", text, flags=re.MULTILINE)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def _extract_tables(pdf_path: str) -> list:
+    """Extract tables using pdfplumber."""
+    tables = []
+    try:
+        import pdfplumber
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                for tbl in (page.extract_tables() or []):
+                    if not tbl:
+                        continue
+                    headers = [str(c or "").strip() for c in tbl[0]]
+                    rows    = [[str(c or "").strip() for c in row] for row in tbl[1:]]
+                    if any(h for h in headers):
+                        tables.append({"caption": "", "headers": headers, "rows": rows, "notes": ""})
+    except Exception as e:
+        log.warning("Table extraction failed: %s", e)
+    return tables

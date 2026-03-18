@@ -1,15 +1,14 @@
 \documentclass[conference]{IEEEtran}
-\IEEEoverridecommandlockouts
-\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\IEEEoverridecommandlockouts
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
-\usepackage{float}
-\usepackage{booktabs}
+\usepackage{hyperref}
+
 \begin{document}
 
 \title{\VAR{title | e}}
@@ -17,90 +16,60 @@
 %% if authors
 \author{
 %% for author in authors
-\IEEEauthorblockN{\VAR{author.name | e}}
-\IEEEauthorblockA{%
+  \IEEEauthorblockN{\VAR{author.name | e}}
+  \IEEEauthorblockA{
 %% if author.department
-\textit{\VAR{author.department | e}} \\
+    \textit{\VAR{author.department | e}}\\
 %% endif
 %% if author.organization
-\textit{\VAR{author.organization | e}} \\
+    \VAR{author.organization | e}\\
 %% endif
-%% if author.city or author.country
-\VAR{([author.city, author.country] | select | list | join(", ") | e)} \\
+%% if author.city and author.country
+    \VAR{author.city | e}, \VAR{author.country | e}\\
+%% elif author.city
+    \VAR{author.city | e}\\
+%% elif author.country
+    \VAR{author.country | e}\\
 %% endif
 %% if author.email
-\VAR{author.email | e}%
-%% else
-~%
+    \VAR{author.email | e}
 %% endif
-}%
+  }
 %% if not loop.last
-\and
+  \and
 %% endif
 %% endfor
 }
-%% else
-\author{\IEEEauthorblockN{Author Unknown}}
 %% endif
 
 \maketitle
 
+%% if abstract
 \begin{abstract}
-\VAR{abstract | e}
+\VAR{abstract | paras}
 \end{abstract}
+%% endif
 
 %% if keywords
 \begin{IEEEkeywords}
-\VAR{keywords | map("e") | join(", ")}
+\VAR{keywords | join(', ') | e}
 \end{IEEEkeywords}
 %% endif
 
 %% for section in sections
-%% if section.heading.lower() in ["acknowledgment", "acknowledgements"]
-\section*{\VAR{section.heading | e}}
-%% else
 \section{\VAR{section.heading | e}}
-%% endif
 \VAR{section.body | paras}
 
 %% for table in section.tables
-\begin{table}[htbp]
-\caption{\VAR{table.caption | e}}
-\begin{center}
-\resizebox{\columnwidth}{!}{%
-%% if table.headers
-\begin{tabular}{l\VAR{"r" * ([table.headers | length - 1, 0] | max)}}
-\toprule
-\VAR{table.headers | map("e") | join(" & ")} \\
-\midrule
-%% for row in table.rows
-\VAR{row | map("e") | join(" & ")} \\
-%% endfor
-\bottomrule
-\end{tabular}
-%% else
-\begin{tabular}{l}
-\toprule
-%% for row in table.rows
-\VAR{row | map("e") | join(" & ")} \\
-%% endfor
-\bottomrule
-\end{tabular}
-%% endif
-}
-\end{center}
-%% if table.notes
-\footnotesize{\VAR{table.notes | e}}
-%% endif
-\end{table}
+\VAR{table | render_table}
 %% endfor
 
 %% endfor
 
 %% if references
-\begin{thebibliography}{00}
+\begin{thebibliography}{99}
 %% for ref in references
-\bibitem{b\VAR{ref.index}} \VAR{ref.text | e}
+\bibitem{ref\VAR{ref.index}} \VAR{ref.text | e}
 %% endfor
 \end{thebibliography}
 %% endif

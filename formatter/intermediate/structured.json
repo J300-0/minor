@@ -1,45 +1,148 @@
 {
-  "title": "An Example Conference Paper",
+  "title": "THE FORMULAS",
   "authors": [
     {
-      "name": "Cindy Norris",
-      "department": "",
-      "organization": "",
-      "city": "",
+      "name": "Peter SZABÓ*",
+      "department": "Technical University of Košice, Faculty of Aeronautics Department of Aviation Technical Studies, Rampová 7, 040 01 Košice, Slovak Republic Miroslava FERENCOVÁ Technical University of Košice, Faculty of Aeronautics Department of Air Transport Management, Rampová 7, 040 01 Košice, Slovak Republic * Corresponding author. E-mail: peter.szabo@tuke.sk Abstract . The most effective way to express the mathematical and physical research results is by using the formulas. Our article contains the formulas that were the biggest contributors to the development of technical, physical, and mathematical sciences. The formulas can be applied in different research areas. In this article, we will show how to calculate an orbit of a miniature satellite based on the Law of Gravity. For calculations and online recording of results, we are using the MATLAB system. This article contains also a description of some formulas discovered by the authors.",
+      "organization": "89, 2017. [7] Peter Szabó and Katarína Gombíková. Keplerian Orbit. MATLAB Central File Exchange, 2019. [8] Peter Szabó, Katarína Gombíková, Miroslava Ferencová, and Marek Košuda. Keplerian Orbit and",
+      "city": "Hilton, Catherina Hohenkerk, George Krasinsky, Gérard Petit, Elena Pitjeva, Michael Soffel, and Patrick Wallace. The IAU 2009 system of astronomical constants:the report of the IAU working group on numerical standards for Fundamental Astronomy. Technical report, 2011. [4] Isaac Newton. THE PRINCIPIA Mathematical Principles of Natural Philosophy, 1668 .",
       "country": "",
       "email": ""
     }
   ],
-  "abstract": "Abstract---",
-  "keywords": [],
+  "abstract": "",
+  "keywords": [
+    "mathematical formulas",
+    "physical formulas"
+  ],
   "sections": [
     {
+      "heading": "INTRODUCTION",
+      "body": "Science is the cornerstone of civilization. We capture the knowledge of the world around us; consequently, we pass this knowledge on to the next generation. Scientific knowledge present solved problems that we can express as procedures, methods, algorithms. There are diverse areas of knowledge; they vary from exploring the oceans to flying and discovering space, but there are also medical procedures that are used to cure diseases. Algorithms and procedures can be expressed most succinctly using formulas that contain mathematical operations and relationships between numbers that can be concrete or abstract.",
+      "tables": [],
+      "figures": []
+    },
+    {
+      "heading": "NUMBERS",
+      "body": "Numbers play a very important role in recording procedures. By using numbers, we can express counts, quantities, sizes and quantify the examined objects. Numbers can be both concrete and abstract. The concrete numbers are constants, e.g. $\\pi$ = 3 . 1415 .... is Ludolph's number - it is the ratio of the circumference of an arbitrary circle to its diameter. If we denote the circumference of the circle as O and the diameter as r , the constant $\\pi$ can be expressed as\n\n(1) Numbers O, r are no longer concrete numbers. They are variables , symbols, abstract numbers for which we can place the values of an arbitrary circle. Relations of the type (1) are called formulas . A formula is an expression that contains mathematical operations and expresses relations between variables ( O, r ) and constants ( $\\pi$ ), that describe a given problem. Formulas express scientific knowledge in the most concise way. Formulas can be mathematical, physical, chemical, and biological. It is to be noted that in each field of science there are special constants. The system of constants used in astronomy can be found in the publication [3].",
+      "tables": [],
+      "figures": []
+    },
+    {
+      "heading": "Peter Szabó, Miroslava Ferencová",
+      "body": "ISSN 1339-9853 (online) http://acta-avionica.tuke.sk ISSN 1335-9479 (print)",
+      "tables": [],
+      "figures": []
+    },
+    {
+      "heading": "FORMULAS",
+      "body": "In this chapter, we will list some of the formulas that have had a major impact on the development of scientific knowledge and we may encounter them in the study of mathematics, physics but also in other scientific disciplines. The formulas can be found in publication [5]. This publication contains 17 of the most important formulas with a description of the historical background of their origin. In this article, we list 8 of them.\n\nDerivative, differential calculus I. Newton, 1668\n\nNewton's Law of Gravity I. Newton, 1687\n\n5 i 2 = -1 Complex numbers L. Euler, 1750 6\n\nNormal distribution C.F. Gauss, 1810\n\nFourier Transform J. Fourier, 1822",
+      "tables": [],
+      "figures": []
+    },
+    {
+      "heading": "E = mc 2 Relativity A. Einstein, 1905 3.1. Mathematical formulas",
+      "body": "Mathematical formulas contain mathematical constants, variables, and operations. All formulas (except 4 and 8) are mathematical formulas; formulas 4 and 8 are physical. Mathematical formulas contain only mathematical constants, variables. The number $\\pi$ is a mathematical constant because it was formed using mathematical objects (the circle, the circumference of the circle, and the diameter). Mathematical formulas are universal, they have universal validity.",
+      "tables": [],
+      "figures": []
+    },
+    {
+      "heading": "Physical formulas",
+      "body": "Formulas 4 and 8 are physical because the variables and some constants in relations are physical and we express those using physics. Such a constant is e.g. the gravitational constant G in relation 4, it is one of the fundamental constants of physics [3]. Each formula in the table has been registered in some way. Formula 3 which can be considered as the beginning and basic relation of the differential calculus can be found in [4].",
+      "tables": [
+        {
+          "caption": "",
+          "headers": [
+            "1",
+            "a2 + b2 = c2",
+            "Pythagoras theorem",
+            "Pythagoras,\nBc 560"
+          ],
+          "rows": [
+            [
+              "2",
+              "log(xy) = log(x)+ log(y)",
+              "Logarithm",
+              "J. Napier, 1610"
+            ],
+            [
+              "3",
+              "",
+              "Derivative, differential calculus",
+              "I. Newton, 1668"
+            ],
+            [
+              "4",
+              "",
+              "Newton's Law of Gravity",
+              "I. Newton, 1687"
+            ],
+            [
+              "5",
+              "i2 = -1",
+              "Complex numbers",
+              "L. Euler, 1750"
+            ],
+            [
+              "6",
+              "",
+              "Normal distribution",
+              "C.F. Gauss, 1810"
+            ],
+            [
+              "7",
+              "",
+              "Fourier Transform",
+              "J. Fourier, 1822"
+            ],
+            [
+              "8",
+              "E = mc2",
+              "Relativity",
+              "A. Einstein, 1905"
+            ]
+          ],
+          "notes": ""
+        }
+      ],
+      "figures": []
+    },
+    {
+      "heading": "APPLICATION OF FORMULAS",
+      "body": "The formulas listed in Table 1 have been and are being applied for calculations in various fields of science. In our example, there is an application of the Law of Gravity (formula 4) to calculate the orbit of a miniature satellite. The Law of Gravity was also expressed using Kepler's Laws, which originated in the early 17th century (around 1610). The final formulaic form of the Law of Gravity was developed after 200 years. Kepler's third law describes the relationship between the orbital period of the planets around the Sun and the longitude of the major semi-axis of their elliptical orbits. The\n\nThe Formulas 3 .\n\nISSN 1339-9853 (online) http://acta-avionica.tuke.sk ISSN 1335-9479 (print)\n\ngeneralized form of these laws we have applied to the calculation of the orbit of a miniature satellite around the Earth in [8]. Specific calculations and applications are contained in the program [7].\n\nFigure 1 The orbit of a miniature satellite around the Earth - main parameters",
+      "tables": [],
+      "figures": []
+    },
+    {
+      "heading": "THE AUTHOR'S FORMULAS",
+      "body": "The book [3] inspired us to write some of our scientific results using formulas. Of course, the meaning of these results is not comparable to the results described in the book [3]. Our results are less significant. For a simpler understanding of our formulas, individual chapters contain a brief description of the problems addressed. 5.1. Strong linear independence in bottleneck algebra\n\nThe paper [1] deals with the solvability of the system of equations Ax = b in the Bottleneck algebra. By Bottleneck algebra, we mean an algebra in which the basic arithmetic operations of linear algebra (+, $\\times$) are replaced by the operations ( $\\oplus$ , $\\otimes$ ) = (maximum, minimum). Here we have addressed the question: when does a system of equations\n\nA $\\otimes$ x = b (2) has a unique solution or in other words, when the matrix A is strongly regular in the Bottleneck algebra. We find that in this algebra, the class of strongly regular matrices consist of trapezoidal matrices. The real square matrix A = ( a ij ) of type n $\\times$ n is trapezoidal when\n\n(3) for each i = 1 , $\\cdot$$\\cdot$$\\cdot$ ,n . This is the formula that describes the problem. The question of testing condition (3), where we can convert the input matrix to trapezoidal form, is a question of algorithms of complexity O ( n 2 logn ). We have also presented such an algorithm in our work. This work is the result of the cooperation of three authors.",
+      "tables": [],
+      "figures": []
+    },
+    {
+      "heading": "Monge Matrices",
+      "body": "Monge matrices were already mentioned in 1781. The square matrix A = ( a ij ) of type n $\\times$ n has the Monge's property when\n\na ii + a jk $\\leq$ a ij + a ki (4)",
+      "tables": [],
+      "figures": []
+    },
+    {
+      "heading": "Peter Szabó, Miroslava Ferencová",
+      "body": "ISSN 1339-9853 (online) http://acta-avionica.tuke.sk ISSN 1335-9479 (print)\n\nfor each i = 1 ,...,n and for every j, k > i . The problem of when it is possible to transform a matrix A into a matrix with the Monge's property has not been solved yet. The first solution to this problem is given in [2]. The solution to the problem, when we can transform ($\\leftrightarrow$) an input matrix A into a matrix which has the Monge property is the existence of permutations $\\sigma$, $\\pi$ such that\n\n(5) for each i = 1 ,...,n and for every j, k > i . We can write this attribute as\n\n(6)\n\nThis relationship allows us to apply an iterative algorithm to test the relation $\\leftrightarrow$ (The relation means that we can transform the matrix A into a Monge matrix if and only if we know the matrix A 22 and for the element $\\alpha$ $\\sigma$(1)$\\pi$(1) the following relation applies (5)). For testing this property of matrices we can use an algorithm of complexity O(n 4 ) . Therefore, it was not easy to find a testing algorithm or a solution to the problem. Note that even the more complicated polynomial matrix algorithms have a complexity no greater than O(n 3 ) . This work is the result of the cooperation of two authors.",
+      "tables": [],
+      "figures": []
+    },
+    {
+      "heading": "Goldbach's Conjecture in Max-Algebra",
+      "body": "In max-algebra, the basic arithmetic operations of linear algebra (+, $\\times$) are replaced by the operations ( $\\oplus$ , $\\otimes$ ) = (maximum, +). The well-known Goldbach conjecture states that every even integer greater than 2 can be expressed as the sum of two primes. So far, no one has proved this nearly 300-year-old conjecture. In max algebra, we can successfully solve some polynomially indecomposable linear algebra problems (e.g. the problem of computing an eigenvalue and an eigenvector). In [6] Goldbach's conjecture in max-algebra is pronounced. To the conjecture, we can associate the formula\n\n(7) Such formulas have a symbolic meaning. The exact mathematical meaning of each object needs to be defined; in our case, the matrix A , vector t and the eigenvalue $\\lambda$ ( A ). Detailed definitions, theorems, and proofs are found in the work [6]. To illustrate, we state that matrix A is of the form\n\n(8) where vector t = ( t 0 ,t 1 ,...,t n -1 ) T is defined such that t i = 0 a t j = 1 just when j is prime, for each i, j = 0 , 1 ,...,n - 1 .\n\nThe Formulas 5 .\n\nISSN 1339-9853 (online) http://acta-avionica.tuke.sk ISSN 1335-9479 (print)",
+      "tables": [],
+      "figures": []
+    },
+    {
       "heading": "CONCLUSIONS",
-      "body": "This section kind of mimics the abstract but it also will explain any future work. If you neglected something in your implementation, you'll mention that here by saying something like \"my future work will be to add so and so to my implementation and perform such and such experiments.\" (I promise I won't hold you to any future work that you describe.) Final notes:\n\n• Avoid the use of any pronouns (I, my, you, your, we, etc.)\nIf you feel like you really need to use \"I\" (for example, in order to explicitly state what you did) then use \"we.\"\n• Don't put tables in the paper and not discuss them.\n• Don't add references to a paper and not cite them.\n• Don't make your paragraphs too long. Long, technical paragraphs are hard to follow.\n• Your paper should flow nicely -- one sentence to next, one paragraph to next paragraph, one section to the next section.\nIn other words, don't do sudden shifts in topic. Make a plan before writing and don't just write offof the top of your head. Figure out what should be in each section and each paragraph of each section before you start writing.\n• Technical writing should be formal; for example, don't use words like \"cool.\"\n• Add figures to clarify your explanation. Remember, a picture is worth a thousand words.\n• Don't quote anything that should be simply restated.\nQuotes should be reserved for something of an earth-shattering nature, and not because one is simply to lazy to figure out a way to restate the quote (or the thought that he/she said it much better than I ever could).\n• Don't include rhetorical questions. (A rhetorical question is one that is asked without expecting an answer.)\n• Avoid starting sentences with \"To\" \"Because\" \"Before\" etc.\n• Don't have huge technical paragraphs. Technical material is easier to read if it is broken into several, smaller paragraphs.\n• Finally, proof read your papers carefully -- multiple times and run a spell checker on it!",
+      "body": "In this paper, we wanted to highlight the importance of mathematical and physical formulas in engineering and mathematical sciences. The most important formulas in these fields can be found in the publication [5]. There are also special constants included in the formulas. Constants used in astronomy are found in publication [3]. These physical constants, like the number $\\pi$, are probably irrational numbers. That is why the database of physical constants is occasionally updated. The paper also contains some formulas discovered by the authors (3, 6, 7). References\n\n[1] Peter Butkovič, Katarína Cechlárová, and Peter Szabó. Strong linear independence in bottleneck\n\nalgebra. Linear Algebra and it's Applications , 94:133--155, 1987. [2] Katarína Cechlárová and Peter Szabó. On the Monge property of matrices. Discrete Mathematics ,\n\n81(2):123--128, 1990. [3] Brian Luzum, Nicole Capitaine, Agnès Fienga, William Folkner, Toshio Fukushima, James\n\nHilton, Catherina Hohenkerk, George Krasinsky, Gérard Petit, Elena Pitjeva, Michael Soffel, and Patrick Wallace. The IAU 2009 system of astronomical constants:the report of the IAU working group on numerical standards for Fundamental Astronomy. Technical report, 2011. [4] Isaac Newton. THE PRINCIPIA Mathematical Principles of Natural Philosophy, 1668 .\n\nUniversity of California Press, 1999. [5] Ian Steart. In pursuit of the unknown. 17 equations that changed the world . Basic Books, New\n\nYork, 2012. [6] Peter Szabó. Goldbach's conjecture in max-algebra. Computational Management Science , 14:81--\n\n89, 2017. [7] Peter Szabó and Katarína Gombíková. Keplerian Orbit. MATLAB Central File Exchange, 2019. [8] Peter Szabó, Katarína Gombíková, Miroslava Ferencová, and Marek Košuda. Keplerian Orbit and\n\nSatellite skCUBE. In New Trends in Aviation Development (NTAD) , pages 174--179. IEEE, 2019. Received 12, 2021, accepted 02, 2022\n\nArticle is licensed under a Creative Commons Attribution 4.0 International License",
       "tables": [],
       "figures": []
     }
   ],
-  "references": [
-    {
-      "index": 1,
-      "text": "David A. Berson, Rajiv Gupta, and Mary Lou Soffa. URSA: A unified resource allocator for registers and functional units in VLIW architectures. In IFIP Working Conference on Architectures and Compilation Techniques for Fine and Medium Grain Parallelism, Orlando, Florida, January 1993."
-    },
-    {
-      "index": 2,
-      "text": "D. G. Bradlee. Retargetable Instruction Scheduling for Pipelined Processors. PhD thesis, University of Washington, 1092."
-    },
-    {
-      "index": 3,
-      "text": "J. R. Ellis. Bulldog: A Compiler for VLIW Architectures. MIT Press, Cambridge, MA, 1986."
-    },
-    {
-      "index": 4,
-      "text": "Claude-Nicolas Fiechter. PDG C Compiler. University of Pittsburgh, 1992."
-    },
-    {
-      "index": 5,
-      "text": "H. Young. Evaluation of a decoupled computer architecture and the design of a vector extension. Computer Sciences Technical Report 603, 21(4), July 1985."
-    }
-  ]
+  "references": []
 }

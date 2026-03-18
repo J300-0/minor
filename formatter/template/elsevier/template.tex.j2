@@ -1,39 +1,38 @@
 \documentclass[preprint,12pt]{elsarticle}
+\usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage{booktabs}
-\journal{Elsevier}
+\usepackage{hyperref}
+\usepackage{lineno}
+
+\journal{Journal Name}
+
 \begin{document}
 
 \begin{frontmatter}
+
 \title{\VAR{title | e}}
 
 %% for author in authors
-\author{\VAR{author.name | e}%
+\author{\VAR{author.name | e}%% if author.email %}\fnref{fn\VAR{loop.index}}%% endif %}
+%% if author.department or author.organization or author.city
+\address{%% if author.department %}\VAR{author.department | e}, %% endif %}\VAR{author.organization | e}%% if author.city %}, \VAR{author.city | e}%% endif %}%% if author.country %}, \VAR{author.country | e}%% endif %}}
+%% endif
 %% if author.email
-\corref{cor\VAR{loop.index}}%
-%% endif
-}
-%% if author.email
-\cortext[cor\VAR{loop.index}]{Corresponding author. Email: \VAR{author.email | e}}
-%% endif
-%% if author.organization
-\address{\VAR{author.organization | e}%
-%% if author.city
-, \VAR{author.city | e}%
-%% endif
-}
+\fntext[fn\VAR{loop.index}]{\VAR{author.email | e}}
 %% endif
 %% endfor
 
+%% if abstract
 \begin{abstract}
-\VAR{abstract | e}
+\VAR{abstract | paras}
 \end{abstract}
+%% endif
 
 %% if keywords
 \begin{keyword}
-\VAR{keywords | map("e") | join(" \\sep ")}
+\VAR{keywords | join(' \sep ') | e}
 \end{keyword}
 %% endif
 
@@ -44,27 +43,17 @@
 \VAR{section.body | paras}
 
 %% for table in section.tables
-\begin{table}[htbp]
-\caption{\VAR{table.caption | e}}
-\begin{tabular}{\VAR{"l" + "r" * ([table.headers | length - 1, 0] | max)}}
-\toprule
-%% if table.headers
-\VAR{table.headers | map("e") | join(" & ")} \\\midrule
-%% endif
-%% for row in table.rows
-\VAR{row | map("e") | join(" & ")} \\
-%% endfor
-\bottomrule
-\end{tabular}
-\end{table}
+\VAR{table | render_table}
 %% endfor
 
 %% endfor
 
 %% if references
-\begin{thebibliography}{00}
+\begin{thebibliography}{99}
 %% for ref in references
-\bibitem{b\VAR{ref.index}} \VAR{ref.text | e}
+\bibitem{ref\VAR{ref.index}}
+\VAR{ref.text | e}
+
 %% endfor
 \end{thebibliography}
 %% endif

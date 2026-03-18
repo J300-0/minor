@@ -1,44 +1,65 @@
-\documentclass[man,12pt]{apa7}
+\documentclass[12pt,a4paper]{article}
+\usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{amsmath}
-\usepackage{booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage{times}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{hyperref}
+\doublespacing
+
 \begin{document}
 
-\title{\VAR{title | e}}
-\author{%
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\LARGE \textbf{\VAR{title | e}}\par}
+\vspace{1.5cm}
 %% for author in authors
-\VAR{author.name | e}%
-%% if not loop.last
-, %
+{\large \VAR{author.name | e}\par}
+%% if author.department
+{\normalsize \VAR{author.department | e}\par}
+%% endif
+%% if author.organization
+{\normalsize \VAR{author.organization | e}\par}
+%% endif
+%% if author.city
+{\normalsize \VAR{author.city | e}\par}
+%% endif
+%% if author.email
+{\normalsize \texttt{\VAR{author.email | e}}\par}
 %% endif
 %% endfor
-}
-%% if authors and authors[0].organization
-\affiliation{\VAR{authors[0].organization | e}}
-%% endif
+\vfill
+\end{titlepage}
 
-\maketitle
-
+%% if abstract
 \begin{abstract}
-\VAR{abstract | e}
-\end{abstract}
-
+\VAR{abstract | paras}
 %% if keywords
-\keywords{\VAR{keywords | map("e") | join(", ")}}
+\textbf{Keywords:} \VAR{keywords | join(', ') | e}
+%% endif
+\end{abstract}
 %% endif
 
 %% for section in sections
 \section{\VAR{section.heading | e}}
 \VAR{section.body | paras}
+
+%% for table in section.tables
+\VAR{table | render_table}
+%% endfor
+
 %% endfor
 
 %% if references
-\begin{references}
+\section*{References}
+\begin{enumerate}
 %% for ref in references
-\VAR{ref.text | e}
-
+\item \VAR{ref.text | e}
 %% endfor
-\end{references}
+\end{enumerate}
 %% endif
 
 \end{document}

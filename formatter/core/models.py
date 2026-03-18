@@ -1,12 +1,10 @@
 """
-core/models.py  —  Shared Document dataclasses
-
-All pipeline stages read/write these objects.
-Serialises cleanly to/from JSON (structured.json).
+core/models.py — Data model for a parsed academic paper.
 """
-
+from __future__ import annotations
+import json
 from dataclasses import dataclass, field, asdict
-import json, os
+from typing import List
 
 
 @dataclass
@@ -21,10 +19,10 @@ class Author:
 
 @dataclass
 class Table:
-    caption:  str  = ""
-    headers:  list = field(default_factory=list)   # list[str]
-    rows:     list = field(default_factory=list)   # list[list[str]]
-    notes:    str  = ""
+    caption: str       = ""
+    headers: List[str] = field(default_factory=list)
+    rows:    List[List[str]] = field(default_factory=list)
+    notes:   str       = ""
 
 
 @dataclass
@@ -42,72 +40,46 @@ class Reference:
 
 @dataclass
 class Section:
-    heading: str  = ""
-    body:    str  = ""
-    tables:  list = field(default_factory=list)   # list[Table]
-    figures: list = field(default_factory=list)   # list[Figure]
+    heading: str            = ""
+    body:    str            = ""
+    tables:  List[Table]    = field(default_factory=list)
+    figures: List[Figure]   = field(default_factory=list)
 
 
 @dataclass
 class Document:
-    title:      str  = "Untitled"
-    authors:    list = field(default_factory=list)   # list[Author]
-    abstract:   str  = ""
-    keywords:   list = field(default_factory=list)   # list[str]
-    sections:   list = field(default_factory=list)   # list[Section]
-    references: list = field(default_factory=list)   # list[Reference]
+    title:      str             = "Untitled"
+    authors:    List[Author]    = field(default_factory=list)
+    abstract:   str             = ""
+    keywords:   List[str]       = field(default_factory=list)
+    sections:   List[Section]   = field(default_factory=list)
+    references: List[Reference] = field(default_factory=list)
 
-    # ── Serialisation ────────────────────────────────────────────────────────
+    # ── Serialisation ──────────────────────────────────────────────────────────
 
     def to_dict(self) -> dict:
         return asdict(self)
 
-    def to_json(self, path: str):
+    def to_json(self, path: str) -> None:
+        import os
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
-
-    def to_dict_with_objects(self) -> dict:
-        """Pass actual dataclass objects to Jinja2 (attribute access: ref.text, etc.)"""
-        return {
-            "title":      self.title,
-            "authors":    self.authors,
-            "abstract":   self.abstract,
-            "keywords":   self.keywords,
-            "sections":   self.sections,
-            "references": self.references,
-        }
+            json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Document":
-        authors = [Author(**a) if isinstance(a, dict) else a
-                   for a in data.get("authors", [])]
-
-        sections = []
-        for s in data.get("sections", []):
-            if isinstance(s, dict):
-                tables  = [Table(**t)  if isinstance(t, dict) else t for t in s.get("tables",  [])]
-                figures = [Figure(**f) if isinstance(f, dict) else f for f in s.get("figures", [])]
-                sections.append(Section(
-                    heading=s.get("heading", ""), body=s.get("body", ""),
-                    tables=tables, figures=figures,
-                ))
-            else:
-                sections.append(s)
-
-        refs = []
-        for i, r in enumerate(data.get("references", []), 1):
-            if isinstance(r, dict):
-                refs.append(Reference(**r))
-            elif isinstance(r, str):
-                refs.append(Reference(index=i, text=r))
-            elif isinstance(r, Reference):
-                refs.append(r)
-
+    def from_dict(cls, d: dict) -> "Document":
         return cls(
-            title=data.get("title", "Untitled"), authors=authors,
-            abstract=data.get("abstract", ""), keywords=data.get("keywords", []),
-            sections=sections, references=refs,
+            title    = d.get("title", "Untitled"),
+            abstract = d.get("abstract", ""),
+            keywords = d.get("keywords", []),
+            authors  = [Author(**a) for a in d.get("authors", [])],
+            sections = [Section(
+                heading = s["heading"],
+                body    = s["body"],
+                tables  = [Table(**t) for t in s.get("tables", [])],
+                figures = [Figure(**f) for f in s.get("figures", [])],
+            ) for s in d.get("sections", [])],
+            references = [Reference(**r) for r in d.get("references", [])],
         )
 
     @classmethod

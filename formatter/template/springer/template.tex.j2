@@ -1,38 +1,55 @@
-\documentclass[peerreview]{IEEEtran}
-\usepackage[utf8]{inputenc}
+\documentclass{llncs}
 \usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage{booktabs}
-\usepackage{float}
+\usepackage{hyperref}
+
 \begin{document}
 
 \title{\VAR{title | e}}
-\author{%
+
+%% if authors
+\author{
 %% for author in authors
-\VAR{author.name | e}%
-%% if author.organization
-\thanks{\VAR{author.organization | e}%
-%% if author.email
-. E-mail: \VAR{author.email | e}%
-%% endif
-}%
-%% endif
+  \VAR{author.name | e}
 %% if not loop.last
-\and %
+  \and
 %% endif
 %% endfor
 }
+\institute{
+%% for author in authors
+%% if author.department or author.organization or author.city or author.email
+%% if author.department
+  \VAR{author.department | e}\\
+%% endif
+%% if author.organization
+  \VAR{author.organization | e}\\
+%% endif
+%% if author.city
+  \VAR{author.city | e}\\
+%% endif
+%% if author.email
+  \email{\VAR{author.email | e}}
+%% endif
+%% if not loop.last
+  \and
+%% endif
+%% endif
+%% endfor
+}
+%% endif
+
 \maketitle
 
+%% if abstract
 \begin{abstract}
-\VAR{abstract | e}
-\end{abstract}
-
+\VAR{abstract | paras}
 %% if keywords
-\begin{IEEEkeywords}
-\VAR{keywords | map("e") | join("; ")}
-\end{IEEEkeywords}
+\keywords{\VAR{keywords | join(' \\and ') | e}}
+%% endif
+\end{abstract}
 %% endif
 
 %% for section in sections
@@ -40,35 +57,15 @@
 \VAR{section.body | paras}
 
 %% for table in section.tables
-\begin{table}[htbp]
-\caption{\VAR{table.caption | e}}
-\centering\resizebox{\columnwidth}{!}{%
-%% if table.headers
-\begin{tabular}{l\VAR{"r" * ([table.headers | length - 1, 0] | max)}}
-\toprule
-\VAR{table.headers | map("e") | join(" & ")} \\\midrule
-%% for row in table.rows
-\VAR{row | map("e") | join(" & ")} \\
-%% endfor
-\bottomrule
-\end{tabular}
-%% else
-\begin{tabular}{l}
-%% for row in table.rows
-\VAR{row | map("e") | join(" & ")} \\
-%% endfor
-\end{tabular}
-%% endif
-}
-\end{table}
+\VAR{table | render_table}
 %% endfor
 
 %% endfor
 
 %% if references
-\begin{thebibliography}{00}
+\begin{thebibliography}{99}
 %% for ref in references
-\bibitem{b\VAR{ref.index}} \VAR{ref.text | e}
+\bibitem{ref\VAR{ref.index}} \VAR{ref.text | e}
 %% endfor
 \end{thebibliography}
 %% endif

@@ -1,101 +1,54 @@
 """
-extractor/docx_extractor.py  —  DOCX → {raw_text, tables, images}
-
-Uses python-docx to walk the document body in order (paragraphs + tables
-interleaved), preserving document structure.
-Per the DOCX skill: python-docx is recommended for reading .docx files.
+extractor/docx_extractor.py — Stage 1: DOCX → raw text + blocks + tables.
+Uses python-docx.
 """
-
-import os, re
+import os
 from core.logger import get_logger
+
 log = get_logger(__name__)
 
 
-def extract(input_path: str, intermediate_dir: str) -> dict:
-    """
-    Extract text, tables, and images from a DOCX.
-    Always returns: {"raw_text": str, "tables": list, "images": list}
-    """
-    result = {"raw_text": "", "tables": [], "images": []}
+def extract(docx_path: str, inter_dir: str) -> dict:
+    os.makedirs(inter_dir, exist_ok=True)
     try:
-        result = _extract_docx(input_path, intermediate_dir)
-    except Exception as e:
-        print(f"         [extractor] DOCX extraction failed: {e}")
-        log.error(f"DOCX extraction failed: {e}", exc_info=True)
+        import docx as python_docx
+    except ImportError:
+        log.error("python-docx not installed — run: pip install python-docx")
+        return {"raw_text": "", "blocks": [], "tables": [], "images": []}
 
-    _write_outputs(result, intermediate_dir)
-    print(f"         [docx] {len(result['raw_text'])} chars | "
-          f"{len(result['tables'])} tables | {len(result['images'])} images")
-    return result
+    doc   = python_docx.Document(docx_path)
+    blocks = []
+    tables = []
 
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if not text:
+            continue
+        # Detect bold / heading style
+        is_bold  = any(run.bold for run in para.runs if run.text.strip())
+        is_head  = para.style.name.startswith("Heading")
+        font_size = 12
+        for run in para.runs:
+            if run.font.size:
+                font_size = run.font.size.pt
+                break
+        blocks.append({
+            "text":      text,
+            "font_size": font_size if not is_head else 14,
+            "bold":      is_bold or is_head,
+            "page":      0,
+        })
 
-def _extract_docx(input_path: str, intermediate_dir: str) -> dict:
-    from docx import Document as DocxDoc
+    for tbl in doc.tables:
+        rows = [[cell.text.strip() for cell in row.cells] for row in tbl.rows]
+        if rows:
+            tables.append({"caption": "", "headers": rows[0], "rows": rows[1:], "notes": ""})
 
-    doc        = DocxDoc(input_path)
-    body       = doc.element.body
-    para_idx   = 0
-    table_idx  = 0
-    text_parts = []
-    tables     = []
+    raw_text = "\n\n".join(b["text"] for b in blocks)
+    txt_path = os.path.join(inter_dir, "extracted.txt")
+    with open(txt_path, "w", encoding="utf-8") as f:
+        f.write(raw_text)
 
-    for child in body:
-        tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
-
-        if tag == "p":
-            if para_idx < len(doc.paragraphs):
-                para = doc.paragraphs[para_idx]
-                para_idx += 1
-                text = para.text.strip()
-                if not text:
-                    continue
-                # Detect equation blocks: [$latex$]
-                eq = re.match(r"^\[\s*\n?(.*?)\n?\s*\]$", text, re.DOTALL)
-                if eq:
-                    latex = eq.group(1).strip().replace("\\\\", "\\")
-                    text_parts.append(f"$$\n{latex}\n$$")
-                else:
-                    text_parts.append(text)
-
-        elif tag == "tbl":
-            if table_idx < len(doc.tables):
-                tbl = doc.tables[table_idx]
-                table_idx += 1
-                rows_raw = []
-                for row in tbl.rows:
-                    cells = [c.text.strip().replace("\n", " ") for c in row.cells]
-                    rows_raw.append(cells)
-
-                if rows_raw:
-                    n       = max(len(r) for r in rows_raw)
-                    headers = (rows_raw[0] + [""] * n)[:n]
-                    rows    = [(r   + [""] * n)[:n] for r in rows_raw[1:]]
-                    # Caption: look back in text_parts for "Table N ..."
-                    cap = ""
-                    for prev in reversed(text_parts[-3:]):
-                        if re.match(r"^Table\s+\d+", prev, re.IGNORECASE) or \
-                           (len(prev.split()) <= 8 and not prev.startswith("$$")):
-                            cap = prev
-                            break
-                    tables.append({
-                        "caption": cap,
-                        "headers": headers,
-                        "rows":    rows,
-                        "page":    0,
-                        "notes":   "",
-                    })
-
-    return {
-        "raw_text": "\n\n".join(text_parts),
-        "tables":   tables,
-        "images":   [],
-    }
-
-
-def _write_outputs(result: dict, intermediate_dir: str):
-    import json
-    os.makedirs(intermediate_dir, exist_ok=True)
-    with open(os.path.join(intermediate_dir, "extracted.txt"), "w", encoding="utf-8") as f:
-        f.write(result["raw_text"])
-    with open(os.path.join(intermediate_dir, "extracted_rich.json"), "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2, ensure_ascii=False, default=str)
+    log.info("DOCX extraction: %d blocks, %d chars, %d tables",
+             len(blocks), len(raw_text), len(tables))
+    return {"raw_text": raw_text, "blocks": blocks, "tables": tables, "images": []}

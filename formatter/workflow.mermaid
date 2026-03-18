@@ -1,0 +1,99 @@
+graph TD
+    subgraph INPUT["Input"]
+        A["PDF / DOCX File"]
+    end
+
+    subgraph STAGE1["Stage 1 — Extract"]
+        B1{"File type?"}
+        B2["pdf_extractor.py<br/><i>pymupdf (font-aware)</i><br/><i>pdfplumber (fallback)</i>"]
+        B3["docx_extractor.py"]
+        B4["Raw text + Blocks<br/>+ Tables + Images"]
+    end
+
+    subgraph STAGE2["Stage 2 — Parse"]
+        C1{"Has font info?"}
+        C2["_parse_font_aware()<br/><i>Font size → headings</i><br/><i>Bold → headings</i>"]
+        C3["_parse_text_only()<br/><i>Regex → headings</i><br/><i>Numbered patterns</i>"]
+        C4["Document Model<br/><i>title, authors, abstract,</i><br/><i>sections, tables, refs</i>"]
+    end
+
+    subgraph STAGE3["Stage 3 — Normalize"]
+        D1["cleaner.py<br/><i>Fix ligatures</i><br/><i>Unicode cleanup</i><br/><i>Math symbols</i><br/><i>Soft hyphens</i>"]
+    end
+
+    subgraph STAGE4["Stage 4 — Render"]
+        E1{"Template?"}
+        E2["IEEE"]
+        E3["ACM"]
+        E4["Springer"]
+        E5["Elsevier"]
+        E6["APA"]
+        E7["arXiv"]
+        E8["Jinja2 Engine<br/><i>LaTeX-safe delimiters</i><br/><i>latex_escape filter</i><br/><i>render_table filter</i>"]
+        E9[".tex file"]
+    end
+
+    subgraph STAGE5["Stage 5 — Compile"]
+        F1["Copy .cls file"]
+        F2["pdflatex pass 1"]
+        F3["pdflatex pass 2"]
+        F4["generated_FORMAT.pdf"]
+    end
+
+    A --> B1
+    B1 -->|".pdf"| B2
+    B1 -->|".docx"| B3
+    B2 --> B4
+    B3 --> B4
+    B4 --> C1
+    C1 -->|"Yes (pymupdf)"| C2
+    C1 -->|"No (pdfplumber)"| C3
+    C2 --> C4
+    C3 --> C4
+    C4 --> D1
+    D1 --> E1
+    E1 --> E2
+    E1 --> E3
+    E1 --> E4
+    E1 --> E5
+    E1 --> E6
+    E1 --> E7
+    E2 --> E8
+    E3 --> E8
+    E4 --> E8
+    E5 --> E8
+    E6 --> E8
+    E7 --> E8
+    E8 --> E9
+    E9 --> F1
+    F1 --> F2
+    F2 --> F3
+    F3 --> F4
+
+    subgraph PARSING_DETAIL["Parsing Details"]
+        direction LR
+        P1["Title Detection<br/><i>Largest font / first line</i>"]
+        P2["Author + Affiliation<br/><i>dept, org, city, email</i>"]
+        P3["Abstract Collection<br/><i>All blocks until heading</i>"]
+        P4["Section Splitting<br/><i>Headings by font/regex</i>"]
+        P5["Table Attachment<br/><i>Heuristic matching</i>"]
+        P6["Reference Extraction<br/><i>Split on [N] markers</i>"]
+    end
+
+    subgraph DATA_MODEL["Document Model"]
+        direction LR
+        M1["Document"]
+        M2["Author<br/><i>name, dept, org,</i><br/><i>city, country, email</i>"]
+        M3["Section<br/><i>heading, body,</i><br/><i>tables, figures</i>"]
+        M4["Table<br/><i>caption, headers, rows</i>"]
+        M5["Reference<br/><i>index, text</i>"]
+    end
+
+    style INPUT fill:#e1f5fe
+    style STAGE1 fill:#f3e5f5
+    style STAGE2 fill:#fff3e0
+    style STAGE3 fill:#e8f5e9
+    style STAGE4 fill:#fce4ec
+    style STAGE5 fill:#e0f2f1
+    style PARSING_DETAIL fill:#fff8e1
+    style DATA_MODEL fill:#f1f8e9

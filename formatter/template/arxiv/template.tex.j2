@@ -1,39 +1,47 @@
-\documentclass{article}
-\usepackage[utf8]{inputenc}
+\documentclass[11pt,a4paper]{article}
 \usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
 \usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{float}
-\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+
 \title{\VAR{title | e}}
-\author{%
+
+\author{
 %% for author in authors
-\VAR{author.name | e}%
+  \VAR{author.name | e}
+%% if author.department
+  \\ {\small \VAR{author.department | e}}
+%% endif
 %% if author.organization
-\\\small\VAR{author.organization | e}%
+  \\ {\small \VAR{author.organization | e}}
 %% endif
 %% if author.email
-\\\small\texttt{\VAR{author.email | e}}%
+  \\ {\small \texttt{\VAR{author.email | e}}}
 %% endif
 %% if not loop.last
-\and %
+  \and
 %% endif
 %% endfor
 }
+
 \date{}
+
 \begin{document}
+
 \maketitle
 
+%% if abstract
 \begin{abstract}
-\VAR{abstract | e}
+\VAR{abstract | paras}
 \end{abstract}
+%% endif
 
 %% if keywords
-\noindent\textbf{Keywords:} \VAR{keywords | map("e") | join(", ")}
-\bigskip
-
+\noindent\textbf{Keywords:} \VAR{keywords | join(', ') | e}
+\vspace{1em}
 %% endif
 
 %% for section in sections
@@ -41,36 +49,15 @@
 \VAR{section.body | paras}
 
 %% for table in section.tables
-\begin{table}[htbp]
-\centering
-\caption{\VAR{table.caption | e}}
-\resizebox{\textwidth}{!}{%
-%% if table.headers
-\begin{tabular}{l\VAR{"r" * ([table.headers | length - 1, 0] | max)}}
-\toprule
-\VAR{table.headers | map("e") | join(" & ")} \\\midrule
-%% for row in table.rows
-\VAR{row | map("e") | join(" & ")} \\
-%% endfor
-\bottomrule
-\end{tabular}
-%% else
-\begin{tabular}{l}
-%% for row in table.rows
-\VAR{row | map("e") | join(" & ")} \\
-%% endfor
-\end{tabular}
-%% endif
-}
-\end{table}
+\VAR{table | render_table}
 %% endfor
 
 %% endfor
 
 %% if references
-\begin{thebibliography}{00}
+\begin{thebibliography}{99}
 %% for ref in references
-\bibitem{b\VAR{ref.index}} \VAR{ref.text | e}
+\bibitem{ref\VAR{ref.index}} \VAR{ref.text | e}
 %% endfor
 \end{thebibliography}
 %% endif
