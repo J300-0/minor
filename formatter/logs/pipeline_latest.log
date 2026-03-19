@@ -1,57 +1,24 @@
-2026-03-19 17:53:57  INFO      pipeline                  ======================================================================
-2026-03-19 17:53:57  INFO      pipeline                  RUN START
-2026-03-19 17:53:57  INFO      pipeline                    input    = your_paper.pdf
-2026-03-19 17:53:57  INFO      pipeline                    template = ieee
-2026-03-19 17:53:57  INFO      pipeline                    parser   = heuristic
-2026-03-19 17:53:57  INFO      pipeline                  ======================================================================
-2026-03-19 17:53:57  INFO      pipeline                  [1/5] Extractor — PDF/DOCX → text + tables + images
-2026-03-19 17:54:04  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
-2026-03-19 17:54:05  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
-2026-03-19 17:54:09  INFO      extractor.pdf_extractor   Extracted 7 images from PDF
-2026-03-19 17:54:09  INFO      extractor.pdf_extractor   PDF extraction: 717 blocks, 97837 chars, 0 tables
-2026-03-19 17:54:09  INFO      pipeline                    extracted: 97837 chars | 0 tables | 7 images
-2026-03-19 17:54:09  INFO      pipeline                  [2/5] Parser — raw text → structured Document
-2026-03-19 17:54:09  INFO      parser.heuristic          Attached 7 image(s) to sections
-2026-03-19 17:54:09  INFO      parser.heuristic          Extracted 11 references
-2026-03-19 17:54:09  INFO      parser.heuristic          parse: title='1\u202f3'  authors=13  sections=54  refs=11
-2026-03-19 17:54:09  INFO      pipeline                    doc: title='1\u202f3'  authors=13  sections=54  tables=0  refs=11
-2026-03-19 17:54:09  INFO      pipeline                  [3/5] Normalizer — fix ligatures, unicode, math
-2026-03-19 17:54:09  INFO      pipeline                  [4/5] Renderer — Document → LaTeX [ieee]
-2026-03-19 17:54:09  INFO      pipeline                  [5/5] Compiler — .tex → PDF
-2026-03-19 17:54:10  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
-ast page
- of your paper;
-
- 2. Ensure that any PostScript and/or PDF output post-processing
- uses only Type 1 fonts and that every step in the generation
- process uses the appropriate paper size.
-
-[17] (generated.aux)
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
-
-Package rerunfilecheck Warning: File `generated.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
- )
-(see the transcript file for additional information)<C:/Users/janme/scoop/apps/
-latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/User
-s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/
-cmmi10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/
-public/amsfonts/cm/cmmi8.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/in
-stall/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/janme/scoop/apps/latex
-/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/jan
-me/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy7
-.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/ti
-mes/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/ty
-pe1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/insta
-ll/fonts/type1/urw/times/utmr8a.pfb>
-Output written on generated.pdf (17 pages, 464244 bytes).
-Transcript written on generated.log.
-
-2026-03-19 17:54:11  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+2026-03-19 17:57:11  INFO      pipeline                  ======================================================================
+2026-03-19 17:57:11  INFO      pipeline                  RUN START
+2026-03-19 17:57:11  INFO      pipeline                    input    = your_paper.pdf
+2026-03-19 17:57:11  INFO      pipeline                    template = ieee
+2026-03-19 17:57:11  INFO      pipeline                    parser   = heuristic
+2026-03-19 17:57:11  INFO      pipeline                  ======================================================================
+2026-03-19 17:57:11  INFO      pipeline                  [1/5] Extractor — PDF/DOCX → text + tables + images
+2026-03-19 17:57:20  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
+2026-03-19 17:57:24  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
+2026-03-19 17:57:35  INFO      extractor.pdf_extractor   Extracted 7 images from PDF
+2026-03-19 17:57:35  INFO      extractor.pdf_extractor   PDF extraction: 717 blocks, 97837 chars, 0 tables
+2026-03-19 17:57:35  INFO      pipeline                    extracted: 97837 chars | 0 tables | 7 images
+2026-03-19 17:57:35  INFO      pipeline                  [2/5] Parser — raw text → structured Document
+2026-03-19 17:57:35  INFO      parser.heuristic          Attached 7 image(s) to sections
+2026-03-19 17:57:35  INFO      parser.heuristic          Extracted 11 references
+2026-03-19 17:57:35  INFO      parser.heuristic          parse: title='1\u202f3'  authors=13  sections=54  refs=11
+2026-03-19 17:57:35  INFO      pipeline                    doc: title='1\u202f3'  authors=13  sections=54  tables=0  refs=11
+2026-03-19 17:57:35  INFO      pipeline                  [3/5] Normalizer — fix ligatures, unicode, math
+2026-03-19 17:57:35  INFO      pipeline                  [4/5] Renderer — Document → LaTeX [ieee]
+2026-03-19 17:57:35  INFO      pipeline                  [5/5] Compiler — .tex → PDF
+2026-03-19 17:57:36  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
 ines 989--990
 \T1/ptm/m/n/10 fund-ing from Huawei Canada un-der Grant Agree-ment
 [15 <./fig_6_p28.png> <./fig_7_p31.png>] [16]
@@ -82,6 +49,37 @@ ll/fonts/type1/urw/times/utmr8a.pfb>
 Output written on generated.pdf (17 pages, 479243 bytes).
 Transcript written on generated.log.
 
-2026-03-19 17:54:11  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
-2026-03-19 17:54:11  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (13.7s)
-2026-03-19 17:54:11  INFO      pipeline                  
+2026-03-19 17:57:37  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+ines 989--990
+\T1/ptm/m/n/10 fund-ing from Huawei Canada un-der Grant Agree-ment
+[15 <./fig_6_p28.png> <./fig_7_p31.png>] [16]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[17] (generated.aux) )
+(see the transcript file for additional information)<C:/Users/janme/scoop/apps/
+latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/User
+s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/
+cmmi10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/
+public/amsfonts/cm/cmmi8.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/in
+stall/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/janme/scoop/apps/latex
+/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/jan
+me/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy7
+.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/ti
+mes/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/ty
+pe1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/insta
+ll/fonts/type1/urw/times/utmr8a.pfb>
+Output written on generated.pdf (17 pages, 479243 bytes).
+Transcript written on generated.log.
+
+2026-03-19 17:57:37  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+2026-03-19 17:57:37  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (25.8s)
+2026-03-19 17:57:37  INFO      pipeline                  
