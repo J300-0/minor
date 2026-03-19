@@ -25,7 +25,7 @@ def extract(pdf_path: str, inter_dir: str) -> dict:
     blocks = _extract_blocks(pdf_path, inter_dir)
     raw_text = _blocks_to_text(blocks)
     tables   = _extract_tables(pdf_path)
-    images   = []   # image extraction omitted for simplicity
+    images   = _extract_images(pdf_path, inter_dir)
 
     # Write raw text for inspection
     txt_path = os.path.join(inter_dir, "extracted.txt")
@@ -130,19 +130,66 @@ def _blocks_to_text(blocks: list) -> str:
 
 
 def _extract_tables(pdf_path: str) -> list:
-    """Extract tables using pdfplumber."""
+    """Extract tables using pdfplumber with multiple strategies."""
     tables = []
     try:
         import pdfplumber
         with pdfplumber.open(pdf_path) as pdf:
-            for page in pdf.pages:
+            for page_num, page in enumerate(pdf.pages, start=1):
+                # Try default (line-based) first
                 for tbl in (page.extract_tables() or []):
-                    if not tbl:
+                    if not tbl or len(tbl) < 2:
                         continue
                     headers = [str(c or "").strip() for c in tbl[0]]
                     rows    = [[str(c or "").strip() for c in row] for row in tbl[1:]]
                     if any(h for h in headers):
-                        tables.append({"caption": "", "headers": headers, "rows": rows, "notes": ""})
+                        tables.append({
+                            "caption": "", "headers": headers,
+                            "rows": rows, "notes": "",
+                            "page": page_num,
+                        })
     except Exception as e:
         log.warning("Table extraction failed: %s", e)
+    log.info("Extracted %d tables from PDF", len(tables))
     return tables
+
+
+def _extract_images(pdf_path: str, inter_dir: str) -> list:
+    """Extract images from PDF pages using pdfplumber."""
+    images = []
+    img_dir = os.path.join(inter_dir, "images")
+    os.makedirs(img_dir, exist_ok=True)
+
+    try:
+        import pdfplumber
+        with pdfplumber.open(pdf_path) as pdf:
+            img_idx = 0
+            for page_num, page in enumerate(pdf.pages, start=1):
+                for im in (page.images or []):
+                    w, h = im.get("width", 0), im.get("height", 0)
+                    # Skip tiny images (logos, line decorations)
+                    if w < 100 or h < 50:
+                        continue
+                    img_idx += 1
+                    try:
+                        bbox = (im["x0"], im["top"], im["x1"], im["bottom"])
+                        cropped = page.crop(bbox)
+                        rendered = cropped.to_image(resolution=200)
+                        filename = f"fig_{img_idx}_p{page_num}.png"
+                        filepath = os.path.join(img_dir, filename)
+                        rendered.save(filepath)
+                        images.append({
+                            "path": filepath,
+                            "filename": filename,
+                            "page": page_num,
+                            "width": w,
+                            "height": h,
+                        })
+                    except Exception as e:
+                        log.warning("Failed to extract image %d from page %d: %s",
+                                    img_idx, page_num, e)
+    except Exception as e:
+        log.warning("Image extraction failed: %s", e)
+
+    log.info("Extracted %d images from PDF", len(images))
+    return images

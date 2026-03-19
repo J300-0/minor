@@ -19,15 +19,26 @@ TEMPLATE_FILE = "template.tex.j2"
 
 def render(doc: Document, template_name: str, template_dir: str, output_tex: str) -> str:
     doc = _sanitize(doc)
+    out_dir = os.path.dirname(output_tex)
 
     # Copy required .cls file next to the output .tex
     from core.config import CLS_FILES
     cls = CLS_FILES.get(template_name)
     if cls:
         src = os.path.join(template_dir, cls)
-        dst = os.path.join(os.path.dirname(output_tex), cls)
+        dst = os.path.join(out_dir, cls)
         if os.path.exists(src) and not os.path.exists(dst):
             shutil.copy2(src, dst)
+
+    # Copy figure images next to the .tex so \includegraphics can find them
+    for section in doc.sections:
+        for fig in section.figures:
+            if fig.image_path and os.path.exists(fig.image_path):
+                fname = os.path.basename(fig.image_path)
+                dst = os.path.join(out_dir, fname)
+                if not os.path.exists(dst):
+                    shutil.copy2(fig.image_path, dst)
+                fig.image_path = fname  # use relative path in .tex
 
     env = Environment(
         loader               = FileSystemLoader(template_dir),

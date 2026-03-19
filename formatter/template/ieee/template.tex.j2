@@ -64,6 +64,19 @@
 \VAR{table | render_table}
 %% endfor
 
+%% for figure in section.figures
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{\VAR{figure.image_path}}
+%% if figure.caption
+\caption{\VAR{figure.caption | e}}
+%% endif
+%% if figure.label
+\label{\VAR{figure.label}}
+%% endif
+\end{figure}
+%% endfor
+
 %% endfor
 
 %% if references

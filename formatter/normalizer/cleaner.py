@@ -4,7 +4,7 @@ Pure local transforms — no external calls.
 """
 import re, unicodedata
 from copy import deepcopy
-from core.models import Document, Section, Author, Reference, Table
+from core.models import Document, Section, Author, Reference, Table, Figure
 
 _LIGATURES = {
     "\ufb01": "fi",  "\ufb02": "fl",
@@ -122,7 +122,11 @@ def normalize(doc: Document) -> Document:
             rows    = [[_clean(c) for c in row] for row in t.rows],
             notes   = _clean(t.notes),
         ) for t in s.tables],
-        figures = s.figures,
+        figures = [Figure(
+            caption    = _clean(f.caption) if f.caption else "",
+            image_path = f.image_path,
+            label      = f.label,
+        ) for f in s.figures],
     ) for s in doc.sections]
     return doc
 
