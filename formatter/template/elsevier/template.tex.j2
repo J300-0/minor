@@ -15,9 +15,13 @@
 \title{\VAR{title | e}}
 
 %% for author in authors
-\author{\VAR{author.name | e}%% if author.email %}\fnref{fn\VAR{loop.index}}%% endif %}
+%% if author.email
+\author{\VAR{author.name | e}\fnref{fn\VAR{loop.index}}}
+%% else
+\author{\VAR{author.name | e}}
+%% endif
 %% if author.department or author.organization or author.city
-\address{%% if author.department %}\VAR{author.department | e}, %% endif %}\VAR{author.organization | e}%% if author.city %}, \VAR{author.city | e}%% endif %}%% if author.country %}, \VAR{author.country | e}%% endif %}}
+\address{\VAR{[author.department, author.organization, author.city, author.country] | select | map('e') | join(', ')}}
 %% endif
 %% if author.email
 \fntext[fn\VAR{loop.index}]{\VAR{author.email | e}}
@@ -32,18 +36,31 @@
 
 %% if keywords
 \begin{keyword}
-\VAR{keywords | join(' \sep ') | e}
+\VAR{keywords | map('e') | join(' \\sep ')}
 \end{keyword}
 %% endif
 
 \end{frontmatter}
 
 %% for section in sections
-\section{\VAR{section.heading | e}}
+\VAR{section.depth | section_cmd}{\VAR{section.heading | e}}
 \VAR{section.body | paras}
 
 %% for table in section.tables
 \VAR{table | render_table}
+%% endfor
+
+%% for figure in section.figures
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{\VAR{figure.image_path}}
+%% if figure.caption
+\caption{\VAR{figure.caption | e}}
+%% endif
+%% if figure.label
+\label{\VAR{figure.label}}
+%% endif
+\end{figure}
 %% endfor
 
 %% endfor

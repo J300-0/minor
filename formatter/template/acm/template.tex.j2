@@ -1,35 +1,33 @@
-\documentclass[sigconf]{acmart}
+\documentclass[10pt,twocolumn]{article}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
+\usepackage[margin=0.75in]{geometry}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{times}
+\usepackage{titlesec}
 
-\begin{document}
+% ACM-like styling
+\titleformat{\section}{\normalfont\bfseries\large}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\bfseries}{\thesubsection}{1em}{}
 
 \title{\VAR{title | e}}
 
+\author{
 %% for author in authors
-\author{\VAR{author.name | e}}
-%% if author.department or author.organization or author.city or author.country
-\affiliation{%
-%% if author.department
-  \department{\VAR{author.department | e}}
-%% endif
-%% if author.organization
-  \institution{\VAR{author.organization | e}}
-%% endif
-%% if author.city
-  \city{\VAR{author.city | e}}
-%% endif
-%% if author.country
-  \country{\VAR{author.country | e}}
-%% endif
-}
-%% endif
-%% if author.email
-\email{\VAR{author.email | e}}
+  \VAR{author.name | e}%% if author.organization %% \\ {\small \VAR{author.organization | e}}%% endif %%%% if author.email %% \\ {\small \texttt{\VAR{author.email | e}}}%% endif %%
+%% if not loop.last
+  \and
 %% endif
 %% endfor
+}
+
+\date{}
+
+\begin{document}
+
+\maketitle
 
 %% if abstract
 \begin{abstract}
@@ -38,27 +36,38 @@
 %% endif
 
 %% if keywords
-\keywords{\VAR{keywords | join(', ') | e}}
+\noindent\textbf{Keywords:} \VAR{keywords | join(', ') | e}
+\vspace{1em}
 %% endif
 
-\maketitle
-
 %% for section in sections
-\section{\VAR{section.heading | e}}
+\VAR{section.depth | section_cmd}{\VAR{section.heading | e}}
 \VAR{section.body | paras}
 
 %% for table in section.tables
 \VAR{table | render_table}
 %% endfor
 
+%% for figure in section.figures
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{\VAR{figure.image_path}}
+%% if figure.caption
+\caption{\VAR{figure.caption | e}}
+%% endif
+%% if figure.label
+\label{\VAR{figure.label}}
+%% endif
+\end{figure}
+%% endfor
+
 %% endfor
 
 %% if references
 \begin{thebibliography}{99}
+\small
 %% for ref in references
-\bibitem{ref\VAR{ref.index}}
-\VAR{ref.text | e}
-
+\bibitem{ref\VAR{ref.index}} \VAR{ref.text | e}
 %% endfor
 \end{thebibliography}
 %% endif

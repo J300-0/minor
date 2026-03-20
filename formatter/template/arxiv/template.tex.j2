@@ -5,7 +5,7 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
 \usepackage{hyperref}
-\usepackage{microtype}
+\usepackage[expansion=false]{microtype}
 
 \title{\VAR{title | e}}
 
@@ -45,11 +45,24 @@
 %% endif
 
 %% for section in sections
-\section{\VAR{section.heading | e}}
+\VAR{section.depth | section_cmd}{\VAR{section.heading | e}}
 \VAR{section.body | paras}
 
 %% for table in section.tables
 \VAR{table | render_table}
+%% endfor
+
+%% for figure in section.figures
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{\VAR{figure.image_path}}
+%% if figure.caption
+\caption{\VAR{figure.caption | e}}
+%% endif
+%% if figure.label
+\label{\VAR{figure.label}}
+%% endif
+\end{figure}
 %% endfor
 
 %% endfor

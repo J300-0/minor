@@ -2,7 +2,8 @@
 # Install with: pip install -r requirements.txt
 
 pymupdf>=1.23.0          # PDF text + font extraction (import as fitz)
-pdfplumber>=0.10.0       # PDF table extraction
+pdfplumber>=0.10.0       # PDF table extraction only
 python-docx>=1.1.0       # DOCX extraction
 jinja2>=3.1.0            # LaTeX template rendering
 requests>=2.31.0         # (optional) future API integrations
+# scikit-learn           # (optional) for ML classifier in canon/classifier.py

@@ -1,8 +1,11 @@
 """
-compiler/latex_compiler.py — Stage 5: .tex → PDF via pdflatex.
+compiler/latex_compiler.py — Stage 5: .tex -> PDF via pdflatex.
 Runs pdflatex twice (needed for cross-references / table of contents).
 """
-import os, shutil, subprocess
+import os
+import shutil
+import subprocess
+
 from core.config import PDFLATEX_PASSES, PDFLATEX_FLAGS, CLS_FILES, TEMPLATES_DIR
 from core.logger import get_logger
 
@@ -11,7 +14,7 @@ log = get_logger(__name__)
 
 def compile(tex_path: str, output_dir: str, template_name: str) -> str:
     """
-    Compile tex_path to PDF inside a temp work dir, then copy to output_dir.
+    Compile tex_path to PDF, then copy result to output_dir.
     Returns path to the final PDF.
     """
     if not shutil.which("pdflatex"):
@@ -23,10 +26,10 @@ def compile(tex_path: str, output_dir: str, template_name: str) -> str:
         )
 
     os.makedirs(output_dir, exist_ok=True)
-    work_dir = os.path.dirname(tex_path)    # intermediate/ — compile in place
+    work_dir = os.path.dirname(tex_path)
     tex_name = os.path.basename(tex_path)
 
-    # Copy required .cls file into the work dir if needed
+    # Copy required .cls file into work dir if needed
     cls = CLS_FILES.get(template_name)
     if cls:
         src = os.path.join(TEMPLATES_DIR, template_name, cls)
@@ -39,29 +42,27 @@ def compile(tex_path: str, output_dir: str, template_name: str) -> str:
 
     for n in range(1, PDFLATEX_PASSES + 1):
         print(f"         pdflatex pass {n}/{PDFLATEX_PASSES}...")
-        result = subprocess.run(
-            cmd, cwd=work_dir,
-            capture_output=True, text=True,
-        )
+        result = subprocess.run(cmd, cwd=work_dir, capture_output=True)
+        stdout_text = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
         log.debug("pdflatex pass %d stdout (last 1500 chars):\n%s",
-                  n, result.stdout[-1500:] if result.stdout else "")
+                  n, stdout_text[-1500:])
         if result.returncode != 0:
-            _log_pdflatex_error(result.stdout)
+            _log_pdflatex_error(stdout_text)
             raise RuntimeError(
                 f"pdflatex failed on pass {n} — check logs/pipeline_latest.log\n"
-                f"Also inspect: {os.path.join(work_dir, tex_name.replace('.tex', '.log'))}"
+                f"Also inspect: "
+                f"{os.path.join(work_dir, tex_name.replace('.tex', '.log'))}"
             )
 
-    # Move final PDF to output_dir with template name in filename
-    pdf_name  = tex_name.replace(".tex", ".pdf")
-    src_pdf   = os.path.join(work_dir, pdf_name)
+    # Move final PDF to output_dir
+    pdf_name = tex_name.replace(".tex", ".pdf")
+    src_pdf = os.path.join(work_dir, pdf_name)
     if not os.path.exists(src_pdf):
         raise RuntimeError(f"pdflatex finished but PDF not found: {src_pdf}")
 
-    # Rename: generated.pdf → generated_ieee.pdf (includes format type)
     base, ext = os.path.splitext(pdf_name)
     dest_name = f"{base}_{template_name}{ext}"
-    dest_pdf  = os.path.join(output_dir, dest_name)
+    dest_pdf = os.path.join(output_dir, dest_name)
     shutil.move(src_pdf, dest_pdf)
     log.info("PDF written to %s", dest_pdf)
     return dest_pdf
@@ -69,8 +70,10 @@ def compile(tex_path: str, output_dir: str, template_name: str) -> str:
 
 def _log_pdflatex_error(stdout: str):
     """Extract and log the most useful error lines from pdflatex output."""
-    error_lines = [l for l in (stdout or "").splitlines()
-                   if l.startswith("!") or "Error" in l or "error" in l]
+    error_lines = [
+        l for l in (stdout or "").splitlines()
+        if l.startswith("!") or "Error" in l or "error" in l
+    ]
     if error_lines:
         log.error("pdflatex errors:\n%s", "\n".join(error_lines[:20]))
     else:

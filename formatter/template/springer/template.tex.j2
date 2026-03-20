@@ -47,17 +47,30 @@
 \begin{abstract}
 \VAR{abstract | paras}
 %% if keywords
-\keywords{\VAR{keywords | join(' \\and ') | e}}
+\keywords{\VAR{keywords | map('e') | join(' \\and ')}}
 %% endif
 \end{abstract}
 %% endif
 
 %% for section in sections
-\section{\VAR{section.heading | e}}
+\VAR{section.depth | section_cmd}{\VAR{section.heading | e}}
 \VAR{section.body | paras}
 
 %% for table in section.tables
 \VAR{table | render_table}
+%% endfor
+
+%% for figure in section.figures
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{\VAR{figure.image_path}}
+%% if figure.caption
+\caption{\VAR{figure.caption | e}}
+%% endif
+%% if figure.label
+\label{\VAR{figure.label}}
+%% endif
+\end{figure}
 %% endfor
 
 %% endfor

@@ -15,7 +15,7 @@ EXTRACTED_TXT   = os.path.join(INTERMEDIATE_DIR, "extracted.txt")
 STRUCTURED_JSON = os.path.join(INTERMEDIATE_DIR, "structured.json")
 GENERATED_TEX   = os.path.join(INTERMEDIATE_DIR, "generated.tex")
 
-# Templates
+# Template registry — keys are CLI names, values are folder names under template/
 TEMPLATE_REGISTRY = {
     "ieee":     "ieee",
     "acm":      "acm",
@@ -31,10 +31,12 @@ SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".doc"}
 PDFLATEX_PASSES = 2
 PDFLATEX_FLAGS  = ["-interaction=nonstopmode", "-halt-on-error"]
 
-# .cls files that must sit next to the .tex during compilation
+# .cls files that must sit next to the .tex during compilation.
+# Keys match TEMPLATE_REGISTRY keys.  Value is the .cls filename inside
+# the corresponding template/ subfolder.
 CLS_FILES = {
     "ieee":     "IEEEtran.cls",
-    "springer": "llncs.cls",
     "acm":      "acmart.cls",
+    "springer": "llncs.cls",
     "elsevier": "elsarticle.cls",
 }

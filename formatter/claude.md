@@ -244,7 +244,7 @@ scikit-learn         # optional, for ML classifier (canon/classifier.py)
 
 ---
 
-## Known Issues (as of 2026-03-20)
+## Known Issues (as of 2026-03-21)
 
 1. **Overfull hbox** — wide tables overflow column width despite `\resizebox` for >5 columns
 2. **ACM .cls file** — needs verification that acmart-tagged.cls is correct version
@@ -254,6 +254,25 @@ scikit-learn         # optional, for ML classifier (canon/classifier.py)
 ---
 
 ## Changelog
+
+### 2026-03-21 — Equation separation, space recovery, author/ref fixes
+- `normalizer/cleaner.py`: Added `_separate_numbered_equations()` as step 6 in `_clean_with_math`
+  - Detects collapsed equation runs `(1)...(2)...(3)` in math-heavy paragraphs
+  - Splits into separate `\n\n`-separated paragraphs so each equation renders on its own line
+  - Safety guards: requires 3+ equation numbers AND `$...$` math present (avoids prose refs)
+  - Strips leading `$\cdot$` / `|` column-separator artifacts from split equation paragraphs
+- `extractor/pdf_extractor.py`: Added char-based space recovery for space-stripped fonts
+  - `_recover_spaces_from_chars(page)`: uses pdfplumber `page.chars` x-position gaps to
+    reconstruct word boundaries (gap > 40% avg char width = word boundary)
+  - `_fallback_blocks`: auto-detects space-stripped encoding (avg word length > 12) and
+    switches to char-based reconstruction
+- `parser/heuristic.py` — three fixes:
+  - **Title continuation**: when title doesn't end with terminal punctuation, checks if
+    next line is a subtitle fragment and appends it (handles 2-line titles)
+  - **Author false positives**: `_looks_like_author` now rejects words with hyphens
+    ("IEEE-Compliant") and all-caps acronyms ≥ 3 chars ("IEEE", "NLP")
+  - **`N.` reference style**: `_extract_refs_from_blocks` now detects `1. Author...`
+    in addition to `[1] Author...`; requires ≥ 20 chars after N. to avoid "202. Springer."
 
 ### 2026-03-20 — Canonical Structure Builder
 - Added `canon/` package: `models.py`, `builder.py`, `features.py`, `classifier.py`

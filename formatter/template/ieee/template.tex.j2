@@ -57,7 +57,7 @@
 %% endif
 
 %% for section in sections
-\section{\VAR{section.heading | e}}
+\VAR{section.depth | section_cmd}{\VAR{section.heading | e}}
 \VAR{section.body | paras}
 
 %% for table in section.tables
