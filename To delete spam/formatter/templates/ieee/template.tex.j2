@@ -1,0 +1,78 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{float}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{\VAR{title | e}}
+
+%% if authors
+\author{
+%% for author in authors
+\IEEEauthorblockN{\VAR{author.name | e}}
+\IEEEauthorblockA{%
+%% if author.department
+\textit{\VAR{author.department | e}} \\
+%% endif
+%% if author.organization
+\textit{\VAR{author.organization | e}} \\
+%% endif
+%% if author.city or author.country
+\VAR{([author.city, author.country] | select | list | join(", ") | e)} \\
+%% endif
+%% if author.email
+\VAR{author.email | e}%
+%% else
+~%
+%% endif
+}%
+%% if not loop.last
+\and
+%% endif
+%% endfor
+}
+%% else
+\author{\IEEEauthorblockN{Author Unknown}}
+%% endif
+
+\maketitle
+
+\begin{abstract}
+\VAR{abstract | e}
+\end{abstract}
+
+%% if keywords
+\begin{IEEEkeywords}
+\VAR{keywords | map("e") | join(", ")}
+\end{IEEEkeywords}
+%% endif
+
+%% for section in sections
+%% if section.heading.lower() in ["acknowledgment", "acknowledgements"]
+\section*{\VAR{section.heading | e}}
+%% else
+\section{\VAR{section.heading | e}}
+%% endif
+\VAR{section.body | paras}
+
+%% endfor
+
+%% if references
+\begin{thebibliography}{00}
+%% for ref in references
+\bibitem{b\VAR{loop.index}} \VAR{ref | e}
+%% endfor
+\end{thebibliography}
+%% endif
+
+\end{document}

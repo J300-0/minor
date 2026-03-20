@@ -1,85 +1,100 @@
-2026-03-19 17:57:11  INFO      pipeline                  ======================================================================
-2026-03-19 17:57:11  INFO      pipeline                  RUN START
-2026-03-19 17:57:11  INFO      pipeline                    input    = your_paper.pdf
-2026-03-19 17:57:11  INFO      pipeline                    template = ieee
-2026-03-19 17:57:11  INFO      pipeline                    parser   = heuristic
-2026-03-19 17:57:11  INFO      pipeline                  ======================================================================
-2026-03-19 17:57:11  INFO      pipeline                  [1/5] Extractor — PDF/DOCX → text + tables + images
-2026-03-19 17:57:20  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
-2026-03-19 17:57:24  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
-2026-03-19 17:57:35  INFO      extractor.pdf_extractor   Extracted 7 images from PDF
-2026-03-19 17:57:35  INFO      extractor.pdf_extractor   PDF extraction: 717 blocks, 97837 chars, 0 tables
-2026-03-19 17:57:35  INFO      pipeline                    extracted: 97837 chars | 0 tables | 7 images
-2026-03-19 17:57:35  INFO      pipeline                  [2/5] Parser — raw text → structured Document
-2026-03-19 17:57:35  INFO      parser.heuristic          Attached 7 image(s) to sections
-2026-03-19 17:57:35  INFO      parser.heuristic          Extracted 11 references
-2026-03-19 17:57:35  INFO      parser.heuristic          parse: title='1\u202f3'  authors=13  sections=54  refs=11
-2026-03-19 17:57:35  INFO      pipeline                    doc: title='1\u202f3'  authors=13  sections=54  tables=0  refs=11
-2026-03-19 17:57:35  INFO      pipeline                  [3/5] Normalizer — fix ligatures, unicode, math
-2026-03-19 17:57:35  INFO      pipeline                  [4/5] Renderer — Document → LaTeX [ieee]
-2026-03-19 17:57:35  INFO      pipeline                  [5/5] Compiler — .tex → PDF
-2026-03-19 17:57:36  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
-ines 989--990
-\T1/ptm/m/n/10 fund-ing from Huawei Canada un-der Grant Agree-ment
-[15 <./fig_6_p28.png> <./fig_7_p31.png>] [16]
-
-** Conference Paper **
-Before submitting the final camera ready copy, remember to:
-
- 1. Manually equalize the lengths of two columns on the last page
- of your paper;
-
- 2. Ensure that any PostScript and/or PDF output post-processing
- uses only Type 1 fonts and that every step in the generation
- process uses the appropriate paper size.
-
-[17] (generated.aux) )
-(see the transcript file for additional information)<C:/Users/janme/scoop/apps/
-latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/User
+2026-03-20 14:31:12  INFO      pipeline                  ======================================================================
+2026-03-20 14:31:12  INFO      pipeline                  RUN START
+2026-03-20 14:31:12  INFO      pipeline                    input    = your_paper.pdf
+2026-03-20 14:31:12  INFO      pipeline                    template = ieee
+2026-03-20 14:31:12  INFO      pipeline                    parser   = heuristic
+2026-03-20 14:31:12  INFO      pipeline                  ======================================================================
+2026-03-20 14:31:12  INFO      pipeline                  [1/5] Extractor — PDF/DOCX → text + tables + images
+2026-03-20 14:31:18  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
+2026-03-20 14:31:19  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
+2026-03-20 14:31:28  INFO      extractor.pdf_extractor   Extracted 7 images from PDF
+2026-03-20 14:31:28  INFO      extractor.pdf_extractor   PDF extraction: 717 blocks, 97837 chars, 0 tables
+2026-03-20 14:31:28  INFO      pipeline                    extracted: 97837 chars | 0 tables | 7 images
+2026-03-20 14:31:28  INFO      pipeline                  [2/5] Parser — raw text → structured Document
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 1 with 12 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 2 with 6 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 3 with 10 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 4 with 1 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 5 with 6 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 6 with 2 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 7 with 4 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 8 with 4 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 9 with 13 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 10 with 3 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Text-based table extraction: Table 11 with 4 rows
+2026-03-20 14:31:28  INFO      parser.heuristic          Extracted 11 tables from text
+2026-03-20 14:31:28  INFO      parser.heuristic          Attached 11 table(s) to sections
+2026-03-20 14:31:28  INFO      parser.heuristic          Attached 7 image(s) to sections
+2026-03-20 14:31:28  INFO      parser.heuristic          Extracted 11 references
+2026-03-20 14:31:28  INFO      parser.heuristic          parse: title='1\u202f3'  authors=13  sections=54  refs=11
+2026-03-20 14:31:28  INFO      pipeline                    doc: title='1\u202f3'  authors=13  sections=54  tables=11  refs=11
+2026-03-20 14:31:28  INFO      pipeline                  [3/5] Normalizer — fix ligatures, unicode, math
+2026-03-20 14:31:28  INFO      pipeline                  [2/5] Canon — validate + repair + score Document
+2026-03-20 14:31:28  DEBUG     canon.builder             [CANON REPAIR] title: used first section heading 'FedBNR: A Fully Global Federated Gaussian Process'
+2026-03-20 14:31:28  DEBUG     canon.builder             [CANON REPAIR] sections: 5 sections have very long headings (likely body text leak)
+2026-03-20 14:31:28  INFO      canon.builder             Canonical build complete:
+  overall_confidence : 0.7
+  title              : [0.30] 'FedBNR: A Fully Global Federated Gaussian Process'
+  authors            : [0.90] 13 authors
+  abstract           : [0.85] 1049 chars
+  keywords           : [0.85] ['Federated learning', 'Gaussian process', 'Random feature', 'Bayesian method']
+  sections           : [0.40] 54 sections
+  references         : [0.90] 11 refs
+  renderable         : True
+  repairs (2):
+    - title: used first section heading 'FedBNR: A Fully Global Federated Gaussian Process'
+    - sections: 5 sections have very long headings (likely body text leak)
+  warnings (2):
+    ⚠ authors with no affiliation: ['Risky Messages', 'Variance Adversarial Attack', 'FedBNR+DP: Sensitivities', 'Appendix B: Experiment Details', 'Appendix C: Additional Results', 'Generalization Setting', 'Differential Privacy', 'Personalization Setting', 'Appendix D: Unifying Random Kernel', 'Approximate Deep Stationary Kernels', '4 MiniMax, Beijing, China']
+    ⚠ title is identical to section heading 'FedBNR: A Fully Global Federated Gaussian Process' — may be wrong
+2026-03-20 14:31:28  WARNING   core.pipeline             [CANON] authors with no affiliation: ['Risky Messages', 'Variance Adversarial Attack', 'FedBNR+DP: Sensitivities', 'Appendix B: Experiment Details', 'Appendix C: Additional Results', 'Generalization Setting', 'Differential Privacy', 'Personalization Setting', 'Appendix D: Unifying Random Kernel', 'Approximate Deep Stationary Kernels', '4 MiniMax, Beijing, China']
+2026-03-20 14:31:28  WARNING   core.pipeline             [CANON] title is identical to section heading 'FedBNR: A Fully Global Federated Gaussian Process' — may be wrong
+2026-03-20 14:31:28  INFO      pipeline                  [4/5] Renderer — Document → LaTeX [ieee]
+2026-03-20 14:31:28  INFO      pipeline                  [5/5] Compiler — LaTeX → PDF
+2026-03-20 14:31:29  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
+ll/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/User
 s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/
 cmmi10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/
 public/amsfonts/cm/cmmi8.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/in
-stall/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/janme/scoop/apps/latex
-/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/jan
-me/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy7
-.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/ti
-mes/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/ty
-pe1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/insta
-ll/fonts/type1/urw/times/utmr8a.pfb>
-Output written on generated.pdf (17 pages, 479243 bytes).
+stall/fonts/type1/public/amsfonts/cm/cmmi9.pfb><C:/Users/janme/scoop/apps/latex
+/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/janm
+e/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr9.p
+fb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/a
+msfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/f
+onts/type1/public/amsfonts/cm/cmsy6.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Users/janme/scoop
+/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:
+/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfont
+s/cm/cmsy9.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/ty
+pe1/public/amsfonts/symbols/msam10.pfb><C:/Users/janme/scoop/apps/latex/current
+/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sco
+op/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb>
+Output written on generated.pdf (18 pages, 583053 bytes).
 Transcript written on generated.log.
 
-2026-03-19 17:57:37  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
-ines 989--990
-\T1/ptm/m/n/10 fund-ing from Huawei Canada un-der Grant Agree-ment
-[15 <./fig_6_p28.png> <./fig_7_p31.png>] [16]
-
-** Conference Paper **
-Before submitting the final camera ready copy, remember to:
-
- 1. Manually equalize the lengths of two columns on the last page
- of your paper;
-
- 2. Ensure that any PostScript and/or PDF output post-processing
- uses only Type 1 fonts and that every step in the generation
- process uses the appropriate paper size.
-
-[17] (generated.aux) )
-(see the transcript file for additional information)<C:/Users/janme/scoop/apps/
-latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/User
+2026-03-20 14:31:30  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+ll/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/User
 s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/
 cmmi10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/
 public/amsfonts/cm/cmmi8.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/in
-stall/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/janme/scoop/apps/latex
-/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/jan
-me/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy7
-.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/ti
-mes/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/ty
-pe1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/insta
-ll/fonts/type1/urw/times/utmr8a.pfb>
-Output written on generated.pdf (17 pages, 479243 bytes).
+stall/fonts/type1/public/amsfonts/cm/cmmi9.pfb><C:/Users/janme/scoop/apps/latex
+/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/janm
+e/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr9.p
+fb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/a
+msfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/f
+onts/type1/public/amsfonts/cm/cmsy6.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Users/janme/scoop
+/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:
+/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfont
+s/cm/cmsy9.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/ty
+pe1/public/amsfonts/symbols/msam10.pfb><C:/Users/janme/scoop/apps/latex/current
+/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sco
+op/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb>
+Output written on generated.pdf (18 pages, 597984 bytes).
 Transcript written on generated.log.
 
-2026-03-19 17:57:37  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
-2026-03-19 17:57:37  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (25.8s)
-2026-03-19 17:57:37  INFO      pipeline                  
+2026-03-20 14:31:30  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+2026-03-20 14:31:30  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (19.0s)
+2026-03-20 14:31:30  INFO      pipeline                  

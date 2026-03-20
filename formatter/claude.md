@@ -1,77 +1,151 @@
-# Paper Formatter - Project Context & Memory
-
-> **Last updated:** 2026-03-18
-> **Status:** Working MVP - pipeline runs end-to-end, produces PDF output
-> **Role:** You are a senior automation dev building a robust, scalable research paper formatting tool.
-> **Rule:** After every change, update this CLAUDE.md file. Read it before starting any work.
+# CLAUDE.md — ai-paper-formatter Project Memory
+> Read this file at the start of every session. Update it when structural changes are made.
+> Last updated: 2026-03-20 — Added Canonical Structure Builder (Stage 2.5)
 
 ---
 
 ## What This Project Does
 
-Takes semi-structured or unstructured academic papers (PDF/DOCX) and reformats them into properly structured LaTeX-compiled PDFs in standard academic formats (IEEE, ACM, Springer, Elsevier, APA, arXiv).
+Takes a research paper (PDF or DOCX) — often messy, semi-structured — and reformats
+it into a clean LaTeX PDF matching a target academic template (IEEE, ACM, Springer, etc.).
 
-**CLI usage:**
 ```
-python main.py input/paper.pdf
-python main.py input/paper.pdf --template acm
-python main.py input/paper.docx --template springer --output my_output/
+Input: any_paper.pdf + --template ieee
+Output: generated_ieee.pdf  (properly formatted LaTeX PDF)
+```
+
+**Run it:**
+```bash
+python main.py --input input/your_paper.pdf --template ieee
 ```
 
 ---
 
-## Architecture - 5-Stage Pipeline
+## Pipeline Stages (current architecture)
 
 ```
-Input (PDF/DOCX) -> Extract -> Parse -> Normalize -> Render (.tex) -> Compile (.pdf)
+1. Extract   →  2. Parse   →  3. Normalize  →  2.5. Canon  →  4. Render  →  5. Compile
+PDF/DOCX         raw text       fix unicode       validate +     Jinja2 →      pdflatex
+→ raw text    →  → Document  →  math symbols  →  repair doc  →  .tex file  →  .pdf file
 ```
 
 ### Stage 1: Extract (`extractor/`)
-- `pdf_extractor.py` - Uses pymupdf (fitz) for font-aware text blocks + pdfplumber for tables
-- `docx_extractor.py` - Uses python-docx for paragraphs + tables
-- Output: `{ raw_text, blocks[{text, font_size, bold, page}], tables, images }`
-- Fallback: if pymupdf unavailable, pdfplumber plain text extraction (no font info)
+- `pdf_extractor.py` — **PyMuPDF (fitz) is primary**. pdfplumber for tables only.
+- `docx_extractor.py` — python-docx
+- **Critical**: PyMuPDF handles CID/Adobe-Identity-UCS encoded PDFs (Springer). pdfplumber silently crashes on these → only use it for tables.
 
 ### Stage 2: Parse (`parser/`)
-- `heuristic.py` - Two modes:
-  - **Font-aware (Mode A):** Uses font_size median + threshold to detect headings, bold detection, title = largest font on page 1
-  - **Text-only (Mode B):** Regex-based heading detection (`1. Title`, `II. Title`, ALL CAPS), sequential line walking
-- Detects: title, authors (name/dept/org/city/email), abstract, keywords, sections, tables, references
-- Known section names in `_SECTION_NAMES` set
-- Reference extraction: splits on `[N]` markers after "References" heading
+- `heuristic.py` — font-aware + text-only heading detection
+- Detects: title, authors, abstract, keywords, sections, references
+- Uses `_is_metadata_line()` to filter page headers, DOIs, copyright lines
+- Uses `_is_heading_line()` to detect section boundaries
 
 ### Stage 3: Normalize (`normalizer/`)
-- `cleaner.py` - Pure local transforms, no external calls
-- Fixes: ligatures (fi/fl/ff), unicode quotes/dashes, math symbols -> LaTeX commands
-- Greek letters, math operators, arrows, set theory symbols, sub/superscripts
-- Safety net: catches remaining non-ASCII that pdflatex can't handle, decomposes or drops
+- `cleaner.py` — pure local transforms, no external calls
+- Fixes: ligatures (fi/fl/ff), unicode quotes/dashes, math symbols → LaTeX commands
+- Greek letters, math operators, arrows, sub/superscripts
+
+### Stage 2.5: Canonical Builder (`canon/`) ← NEW
+See full section below.
 
 ### Stage 4: Render (`renderer/`)
-- `jinja_renderer.py` - Jinja2 with LaTeX-safe delimiters (`\VAR{}`, `\BLOCK{}`)
-- Custom filters: `latex_escape` (preserves $math$), `latex_paragraphs`, `render_table`
+- `jinja_renderer.py` — Jinja2 with LaTeX-safe delimiters (`\VAR{}`, `\BLOCK{}`)
+- Custom filters: `latex_escape`, `latex_paragraphs`, `render_table`
 - Copies required .cls files alongside .tex
-- Sanitizes all Document fields to non-None strings before rendering
+- **Only receives documents that passed canon check**
 
 ### Stage 5: Compile (`compiler/`)
-- `latex_compiler.py` - Runs pdflatex 2 passes (for cross-references)
+- `latex_compiler.py` — pdflatex 2-pass (for cross-references)
 - Flags: `-interaction=nonstopmode -halt-on-error`
-- Copies .cls to work dir, outputs `generated_{template}.pdf`
+- Outputs `generated_{template}.pdf`
 
 ---
 
-## Data Model (`core/models.py`)
+## Stage 2.5 — Canonical Structure Builder (NEW)
 
+### Why it exists
+Templates were breaking silently because the parser could produce:
+- `None` in title/abstract fields
+- Empty section bodies
+- Sections with headings that were actually metadata
+- Abstracts that swallowed the first body section
+- References with publisher boilerplate mixed in
+
+The canonical builder sits between Parse and Render as a **validation + repair gate**.
+
+### Files
 ```
-Document
-  - title: str
-  - authors: List[Author]  (name, department, organization, city, country, email)
-  - abstract: str
-  - keywords: List[str]
-  - sections: List[Section]  (heading, body, tables: List[Table], figures: List[Figure])
-  - references: List[Reference]  (index, text)
+canon/
+  __init__.py       # exports build_canonical
+  models.py         # CanonicalDocument, FieldResult (value + confidence + source)
+  builder.py        # _CanonicalBuilder class — validate, repair, score, cross-validate
+  features.py       # 16-feature vector per line (foundation for ML)
+  classifier.py     # OPTIONAL sklearn ML classifier (see "ML Classifier" section)
 ```
 
-Supports JSON serialization (`to_json`, `from_json`, `to_dict`, `from_dict`).
+### How it works
+```python
+from canon.builder import build_canonical
+
+canon_doc = build_canonical(doc)   # takes Document, returns CanonicalDocument
+
+# Every field has: value, confidence (0-1), source ("parsed"|"repaired:..."|"default")
+print(canon_doc.title.confidence)   # e.g. 0.9
+print(canon_doc.repair_log)         # list of all repairs made
+
+# Gate: only render if document is good enough
+if not canon_doc.is_renderable():
+    raise RuntimeError("Document not renderable")
+
+doc = canon_doc.to_document()   # unwrap back to plain Document for Jinja2
+```
+
+### Repair chains (per field)
+Each field has a fallback chain. If primary parse fails, next fallback is tried:
+
+| Field      | Primary            | Fallback 1                  | Fallback 2          | Default         |
+|------------|--------------------|-----------------------------|---------------------|-----------------|
+| title      | parsed title       | first section heading        | body scan           | "Untitled Paper"|
+| authors    | parsed authors     | —                           | —                   | []              |
+| abstract   | parsed abstract    | "Abstract" section in list   | first body para     | ""              |
+| keywords   | parsed keywords    | regex from abstract text     | —                   | []              |
+| sections   | parsed sections    | (junk sections dropped)      | —                   | []              |
+| references | parsed refs        | (boilerplate dropped)        | —                   | []              |
+
+### Confidence scores
+- `0.9+` = high confidence, parsed cleanly
+- `0.5-0.9` = medium, some issues but usable
+- `0.0-0.5` = low, repaired from fallback — check logs
+- `0.0` = used default placeholder — extraction failed for this field
+
+### `is_renderable()` check
+Returns `True` only if:
+1. title exists (confidence > 0)
+2. at least 1 section with non-empty body
+3. No critical field is completely missing
+
+If `False`, pipeline raises `RuntimeError` and logs `canon_doc.summary()` — check `logs/pipeline_latest.log`.
+
+### ML Classifier (optional, future)
+`canon/classifier.py` provides a path to replace/augment heuristic parsing with a trained `sklearn LinearSVC`.
+
+**To build the training data:**
+```bash
+# Step 1: Auto-label lines from your extracted text
+python -m canon.classifier label --input intermediate/extracted.txt --output labels.csv
+
+# Step 2: Open labels.csv, correct the 'corrected_label' column
+# Labels: heading | title | author | abstract | body | reference | metadata
+
+# Step 3: Train
+python -m canon.classifier train --labels labels.csv --output canon/line_classifier.pkl
+
+# Step 4: Test a line
+python -m canon.classifier predict --line "2. Related Work"
+```
+
+**You need ~200-300 labeled lines from 5+ different papers for reliable results.**
+The model is automatically used by `LineClassifier()` once `line_classifier.pkl` exists.
 
 ---
 
@@ -79,26 +153,31 @@ Supports JSON serialization (`to_json`, `from_json`, `to_dict`, `from_dict`).
 
 ```
 formatter/
-  main.py                   # CLI entry point
-  requirements.txt          # pymupdf, pdfplumber, python-docx, jinja2, requests
-  workflow.mermaid           # Visual pipeline diagram
-  CLAUDE.md                 # THIS FILE - project memory, always read first
+  main.py                    # CLI entry point
+  requirements.txt           # pymupdf, pdfplumber, python-docx, jinja2, requests
+  CLAUDE.md                  # THIS FILE — read first every session
   core/
-    config.py               # Paths, constants, template registry, pdflatex settings
-    models.py               # Dataclasses: Document, Author, Section, Table, Figure, Reference
-    pipeline.py             # Orchestrator: run() calls all 5 stages
-    logger.py               # Rotating file + latest log, pipeline helpers
+    config.py                # Paths, constants, template registry
+    models.py                # Dataclasses: Document, Author, Section, Table, Figure, Reference
+    pipeline.py              # Orchestrator — 5 stages + canon gate
+    logger.py                # Rotating + latest log
   extractor/
-    pdf_extractor.py        # pymupdf + pdfplumber PDF extraction
-    docx_extractor.py       # python-docx DOCX extraction
+    pdf_extractor.py         # PyMuPDF primary, pdfplumber tables only
+    docx_extractor.py        # python-docx
   parser/
-    heuristic.py            # Font-aware + text-only heading/section detection
+    heuristic.py             # Font-aware + text-only heading/section detection
   normalizer/
-    cleaner.py              # Unicode cleanup, ligatures, math symbol LaTeX conversion
+    cleaner.py               # Unicode cleanup, ligatures, math → LaTeX
+  canon/                     # ← NEW Stage 2.5
+    __init__.py
+    models.py                # CanonicalDocument + FieldResult
+    builder.py               # Validate + repair + score
+    features.py              # 16 line features (ML foundation)
+    classifier.py            # Optional sklearn ML classifier
   renderer/
-    jinja_renderer.py       # Jinja2 -> LaTeX with escape filters
+    jinja_renderer.py        # Jinja2 → LaTeX
   compiler/
-    latex_compiler.py       # pdflatex 2-pass compilation
+    latex_compiler.py        # pdflatex 2-pass
   template/
     ieee/     (IEEEtran.cls + template.tex.j2)
     acm/      (acmart-tagged.cls + template.tex.j2)
@@ -106,15 +185,15 @@ formatter/
     elsevier/ (elsarticle.cls + template.tex.j2)
     apa/      (template.tex.j2)
     arxiv/    (template.tex.j2)
-  input/                    # Drop input PDFs/DOCX here
-  intermediate/             # extracted.txt, structured.json, generated.tex, .cls copies
-  output/                   # Final PDFs: generated_{template}.pdf
-  logs/                     # pipeline.log (rotating), pipeline_latest.log (per-run)
+  input/                     # Drop input PDFs/DOCX here
+  intermediate/              # extracted.txt, structured.json, generated.tex
+  output/                    # Final PDFs
+  logs/                      # pipeline.log (rotating), pipeline_latest.log
 ```
 
 ---
 
-## Templates Available
+## Templates
 
 | Template  | .cls file         | Notes                    |
 |-----------|-------------------|--------------------------|
@@ -125,100 +204,74 @@ formatter/
 | apa       | (none)            | APA style                |
 | arxiv     | (none)            | arXiv preprint format    |
 
-All templates use Jinja2 `.tex.j2` files with LaTeX-safe delimiters.
+---
+
+## Key Technical Rules (never violate these)
+
+1. **PyMuPDF is primary extractor.** pdfplumber is ONLY for table detection.
+   Springer PDFs use CID encoding that causes pdfplumber to silently fail.
+
+2. **Canon gate is mandatory.** Never call the renderer on a Document that hasn't
+   passed `build_canonical()`. The renderer expects clean, non-None fields.
+
+3. **pdfminer DEBUG logging** floods root logger — must be explicitly silenced:
+   ```python
+   logging.getLogger("pdfminer").setLevel(logging.WARNING)
+   ```
+
+4. **LM Studio streaming** (if re-added) requires `timeout=(60, None)` to avoid
+   per-read socket timeouts on long generations.
+
+5. **Template isolation**: never hardcode IEEE-specific logic in shared code.
+   Each template's Jinja2 template file handles its own structure.
+
+6. **Introduce one change at a time.** The 2025-03 breakage happened because LLM
+   integration and multi-template support were added simultaneously.
 
 ---
 
 ## Dependencies
 
-- `pymupdf>=1.23.0` (import as `fitz`) - PDF text + font extraction
-- `pdfplumber>=0.10.0` - PDF table extraction + fallback text
-- `python-docx>=1.1.0` - DOCX extraction
-- `jinja2>=3.1.0` - Template rendering
-- `requests>=2.31.0` - (optional, for future API integrations)
-- **System:** `pdflatex` (TeX Live / MiKTeX) must be on PATH
+```
+pymupdf>=1.23.0      # import as fitz — PDF extraction
+pdfplumber>=0.10.0   # tables only
+python-docx>=1.1.0   # DOCX extraction
+jinja2>=3.1.0        # template rendering
+requests>=2.31.0     # optional, future API use
+scikit-learn         # optional, for ML classifier (canon/classifier.py)
+```
+**System:** `pdflatex` (TeX Live / MiKTeX) must be on PATH.
 
 ---
 
-## Known Issues & Warnings (from latest run)
+## Known Issues (as of 2026-03-20)
 
-1. **Overfull hbox warning** - Table rendering at lines 61-75 produces `Overfull \hbox (49.83818pt too wide)` - wide tables overflow column width despite `\resizebox` for >5 columns
-2. **pdfTeX dest warnings** - `name{section*.1}` and `name{section.13}` referenced but don't exist - likely from hyperref bookmarks on unnumbered sections
-3. **~~References = 0 extracted~~ FIXED** - Now supports author-year style references (91 refs extracted from `your_paper.pdf`)
-4. **Image extraction not implemented** - `images` always returns `[]`, Figure model exists but no extraction logic
-5. **ACM .cls mismatch** - Config `CLS_FILES` says `acmart.cls` but template dir has `acmart-tagged.cls` - will fail if ACM template is selected
-6. **Table data heuristic too aggressive** - `_is_table_data_line()` has hardcoded benchmark names (Livermore, Clinpack, SPEC) that are specific to one paper type
+1. **Overfull hbox** — wide tables overflow column width despite `\resizebox` for >5 columns
+2. **ACM .cls file** — needs verification that acmart-tagged.cls is correct version
+3. **Multi-column extraction** — hyphenation artifacts from column layout in double-column PDFs
+4. **Reference cleaning** — incomplete; some entries still contain in-text citation noise
 
 ---
 
-## Changes Log
+## Changelog
 
-### 2026-03-19 (v2) - Second round of parser fixes (appendix, keywords, junk sections)
-- **Appendix stop**: Section collection now stops at `Appendix [A]:` pattern (colon-required). Prevents appendix content from leaking. Uses strict pattern to avoid false-positive on body sentences like "see Appendix A. We note..."
-- **Keywords extraction**: Abstract now consumes multi-line continuation before reaching keywords line — fixes the multi-line abstract issue that caused keywords to always be `[]`
-- **Sentence-fragment headings**: Numbered headings like `"2. We train pFedGP..."` rejected if heading text starts with sentence-starters (We, The, In, etc.)
-- **Junk ALL CAPS sections**: `)MES(`, `ESMR`, `PPCC` no longer detected as headings — ALL CAPS check now requires only letters+spaces (`^[A-Z][A-Z\s]+$`)
-- **CC BY license line**: `_is_metadata_line()` now catches Creative Commons lines; `"4.0 International (CC BY 4.0) license..."` no longer creates a spurious section
-- **Publisher boilerplate in refs**: Filters "Springer Nature or its licensor...", "Authors and Affiliations", "Open Access" from reference list
-- Result: 14 clean sections, 4 keywords correctly extracted, 82 clean refs on `your_paper.pdf`
+### 2026-03-20 — Canonical Structure Builder
+- Added `canon/` package: `models.py`, `builder.py`, `features.py`, `classifier.py`
+- `CanonicalDocument`: wraps every Document field with confidence score + source tag
+- `build_canonical()`: validate → repair (with fallback chains) → score → cross-validate
+- `is_renderable()` gate in `pipeline.py`: bad documents never reach Jinja2 renderer
+- `repair_log` on every run: visible in `logs/pipeline_latest.log`
+- Optional `classifier.py`: sklearn LinearSVC path for future ML-based line typing
+- Updated `pipeline.py`: inserted canon stage between Normalize and Render
 
-### 2026-03-19 - Major text-only parser fixes for Springer journal papers
-- **Title extraction**: No longer blindly takes first line; scans first 30 lines with scoring heuristic that penalizes author lists (commas, interpuncts, digits) and metadata lines
-- **Author extraction**: Now handles superscript digits (`Yu1,2`), interpunct-separated author lists (`A · B · C`), and cleans author names
-- **Page header filtering**: New `_is_metadata_line()` function catches journal headers like `"72 Page 2 of 36 Machine Learning (2026) 115:72"`, DOIs, copyright lines, Received/Accepted dates
-- **Math fragment filtering**: `_is_heading_line()` now rejects lines with <3 alphabetic chars (prevents `"?N ·"` from becoming sections)
-- **Reference extraction**: Added author-year citation support as fallback when `[N]` style not found (91 refs extracted from FedBNR paper)
-- **Metadata skip in body**: Section parsing loop now filters metadata lines so page headers don't appear in section text
-- Sections reduced from 54→20, references from 0→91 on `your_paper.pdf`
+### 2026-03-19 — Major text-only parser fixes
+- Title extraction: scoring heuristic, no longer blindly takes first line
+- Author extraction: handles superscript digits, interpunct-separated lists
+- Page header filtering: `_is_metadata_line()` catches journal headers, DOIs, copyright
+- Reference extraction: author-year citation fallback (91 refs on FedBNR paper)
+- Sections reduced 54→20, references 0→91 on test paper
 
-### 2026-03-18 - Initial project creation & MVP
-- Full 5-stage pipeline implemented and working end-to-end
-- 6 templates created (IEEE, ACM, Springer, Elsevier, APA, arXiv)
-- Successfully generated `generated_ieee.pdf` and `generated_springer.pdf` from `your_paper.pdf`
-- Font-aware and text-only parsing modes both functional
-- Comprehensive normalizer handles ligatures, math symbols, Unicode edge cases
-- Created this CLAUDE.md as project memory file
-
----
-
-## Next Steps / Planned Improvements
-
-### High Priority (Bugs)
-- [ ] Fix ACM .cls filename mismatch (`acmart.cls` in config vs `acmart-tagged.cls` on disk)
-- [ ] Fix hyperref bookmark warnings (section numbering mismatch)
-- [x] Improve reference extraction to handle non-`[N]` citation styles (author-year, numbered without brackets)
-
-### Medium Priority (Features)
-- [ ] Implement image extraction from PDFs (extract embedded images, associate with figures)
-- [ ] Add subsection support in templates (currently only `\section{}`, no `\subsection{}`)
-- [ ] Improve table-to-section attachment heuristic (use page numbers instead of keyword matching)
-- [ ] Add figure/image placement in LaTeX output
-- [x] Support multiple authors on a single line (interpunct/and separated)
-
-### Low Priority (Polish)
-- [ ] Remove hardcoded benchmark names from `_is_table_data_line()`
-- [ ] Add unit tests for each stage
-- [ ] Add `--verbose` flag for console debug output
-- [ ] Support `.doc` format (currently in SUPPORTED_EXTENSIONS but no extractor)
-- [ ] Add progress bar / rich console output
-- [ ] Consider LLM-assisted parsing for ambiguous structures
-
----
-
-## How to Debug
-
-1. Check `logs/pipeline_latest.log` for the most recent run
-2. Check `intermediate/extracted.txt` for raw extraction output
-3. Check `intermediate/structured.json` for parsed document model
-4. Check `intermediate/generated.tex` for the LaTeX source before compilation
-5. Check `intermediate/generated.log` for pdflatex compilation details
-
----
-
-## Configuration Quick Reference (`core/config.py`)
-
-- `DEFAULT_TEMPLATE = "ieee"`
-- `SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".doc"}`
-- `PDFLATEX_PASSES = 2`
-- `PDFLATEX_FLAGS = ["-interaction=nonstopmode", "-halt-on-error"]`
-- All paths are relative to project ROOT (auto-detected)
+### 2026-03-18 — Initial project + MVP
+- Full 5-stage pipeline, 6 templates, end-to-end working
+- Font-aware and text-only parsing modes
+- Created CLAUDE.md

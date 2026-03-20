@@ -160,7 +160,7 @@ def _parse_font_aware(blocks, tables, images, doc):
             cur_body.append(t)
 
     flush()
-    _attach_tables(doc, tables)
+    _attach_tables(doc, tables, blocks)
     _attach_images(doc, images, blocks)
     _extract_refs_from_blocks(blocks, doc)
 
@@ -307,10 +307,11 @@ def _parse_text_only(blocks, tables, images, doc):
             idx += 1
 
     # ── Sections: walk remaining lines ────────────────────────────────────────
-    cur_head  = None
-    cur_body  = []
-    in_refs   = False
+    cur_head    = None
+    cur_body    = []
+    in_refs     = False
     in_appendix = False  # once True, stop adding new sections
+    skip_until_heading = False  # used to skip table/fig caption + data blocks
 
     def flush():
         if cur_head and cur_body:
@@ -326,6 +327,7 @@ def _parse_text_only(blocks, tables, images, doc):
         if re.match(r"^references\.?\s*$", line, re.IGNORECASE):
             flush()
             in_refs = True
+            skip_until_heading = False
             continue
 
         if in_refs:
@@ -335,27 +337,44 @@ def _parse_text_only(blocks, tables, images, doc):
         if _is_metadata_line(line):
             continue
 
-        # Table caption or table data lines → skip (pdfplumber handles tables)
-        if re.match(r"^Table\s+\d+", line):
-            continue
-        if _is_table_data_line(line):
-            continue
-
-        # Detect appendix start — catches "Appendix A: Title", "Appendix B: ..."
-        # Must be a standalone heading, NOT a body sentence.
-        # Appendix section headers use a colon: "Appendix A: Privacy Risks..."
-        # Body references use a period: "Appendix A. We note that..."
-        # Require a colon after the letter, OR the word "Appendix" alone on the line.
+        # Detect appendix start early (before skip_until_heading check)
         if re.match(r"^Appendix\s+[A-Z]\s*:", line) or \
            re.match(r"^Appendix\s*$", line, re.IGNORECASE):
             flush()
             in_appendix = True
+            skip_until_heading = False
             cur_head = None
             cur_body = []
             continue
 
         # Skip everything past the appendix marker
         if in_appendix:
+            continue
+
+        # Table/figure caption → enter skip mode to swallow subsequent data rows
+        if re.match(r"^Table\s+\d+\b", line):
+            skip_until_heading = True
+            continue
+        if re.match(r"^(?:Fig\.?|Figure)\s+\d+\b", line, re.IGNORECASE):
+            skip_until_heading = True
+            continue
+
+        # In skip mode: swallow everything until a new numbered section heading
+        if skip_until_heading:
+            # Only a numbered heading clears the skip mode
+            if _is_heading_line(line) and _HEADING_RE.match(line.strip()):
+                skip_until_heading = False
+                flush()
+                cur_head = _strip_num(line)
+                cur_body = []
+            # else: stay in skip mode
+            continue
+
+        if _is_table_data_line(line):
+            continue
+        # Short orphan lines that are footnote continuations
+        # e.g. "Lab." appearing after "Huawei Noah's Ark Lab." was split
+        if re.match(r"^Lab\.$", line):
             continue
 
         # Is this line a section heading?
@@ -373,7 +392,7 @@ def _parse_text_only(blocks, tables, images, doc):
             pass
 
     flush()
-    _attach_tables(doc, tables)
+    _attach_tables(doc, tables, blocks)
     _attach_images(doc, images, blocks)
     _extract_refs_from_blocks(blocks, doc)
 
@@ -416,6 +435,29 @@ def _is_metadata_line(line: str) -> bool:
         return True
     # Lines starting with a small number then "Page" (e.g. "72 Page 2 of 36 ...")
     if re.match(r"^\d{1,4}\s+Page\s+\d+", line, re.IGNORECASE):
+        return True
+    # Springer two-column footer: just "1 3" on its own line (column page markers)
+    if re.match(r"^1\s+3$", line):
+        return True
+    # Editor note lines: "Editor: Gang Niu."
+    if re.match(r"^Editor\s*:", line, re.IGNORECASE):
+        return True
+    # Extended author / corresponding author footnote lines
+    if re.match(r"^Extended author information", line, re.IGNORECASE):
+        return True
+    if re.match(r"^Corresponding author", line, re.IGNORECASE):
+        return True
+    # Footnote: "Author A and Author B: The work was done at their previous affiliation"
+    if re.search(r":\s*The work was done at", line):
+        return True
+    # "Authors and Affiliations" section header at end of Springer papers
+    if re.match(r"^Authors and Affiliations", line, re.IGNORECASE):
+        return True
+    # Springer Nature rights/licensing boilerplate
+    if "Springer Nature" in line and ("licens" in line.lower() or "rights" in line.lower()):
+        return True
+    # "Publisher's Note" lines
+    if re.match(r"^Publisher'?s?\s+Note", line, re.IGNORECASE):
         return True
     return False
 
@@ -501,21 +543,84 @@ def _strip_num(text: str) -> str:
     return text.strip().rstrip(".")
 
 
+def _is_orphan_math_line(line: str) -> bool:
+    """Detect orphan math-symbol lines that should be joined with the previous line.
+
+    pdfplumber often splits math expressions, putting symbols like '∼N ·' or
+    '| · ∼N' on their own line. These should be merged back.
+    """
+    s = line.strip()
+    if not s or len(s) > 40:
+        return False
+    # Count alpha chars vs math/symbol chars
+    alpha = sum(1 for c in s if c.isalpha())
+    # Lines with very few alpha chars relative to length are likely math fragments
+    if len(s) >= 2 and alpha <= 3:
+        return True
+    # Lines that are just math operators/symbols and short identifiers
+    # e.g. "· ∼GP · ·", "∼N", "| ·", "− ·"
+    if re.match(r'^[·∼∈∃∀⊤⊥∼≤≥|−+×∪∩⊂⊃∝∞\s\.\,\(\)\{\}]+$', s):
+        return True
+    return False
+
+
+def _is_equation_line(line: str) -> bool:
+    """Detect lines that look like standalone equations.
+
+    These have equation numbers like (1), (2) at the end, and contain
+    math symbols, = signs, etc.
+    """
+    s = line.strip()
+    if not s:
+        return False
+    # Has trailing equation number like (1), (2), (15)
+    if re.search(r'\(\d{1,3}\)\s*$', s):
+        # And contains math-like content (=, greek, etc.)
+        if '=' in s or '(' in s or any(ord(c) > 127 for c in s):
+            return True
+    return False
+
+
 def _join_body_lines(lines: list) -> str:
     """
     Join consecutive body lines into paragraphs.
     Lines that end without sentence-ending punctuation are joined with a space
     (they were probably word-wrapped by the PDF extractor). Empty lines = paragraph break.
+
+    Also handles:
+    - Orphan math lines: merged with previous line
+    - Equation lines: preserved as separate paragraphs
     """
     if not lines:
         return ""
+
+    # First pass: merge orphan math lines with their predecessor
+    merged = []
+    for line in lines:
+        s = line.strip()
+        if not s:
+            merged.append("")
+            continue
+        if _is_orphan_math_line(s) and merged and merged[-1].strip():
+            # Append to previous line
+            merged[-1] = merged[-1].rstrip() + " " + s
+        else:
+            merged.append(s)
+
+    # Second pass: join into paragraphs, keeping equations separate
     paragraphs = []
     current = []
-    for line in lines:
+    for line in merged:
         if not line.strip():
             if current:
                 paragraphs.append(" ".join(current))
                 current = []
+        elif _is_equation_line(line):
+            # Flush current paragraph first
+            if current:
+                paragraphs.append(" ".join(current))
+                current = []
+            paragraphs.append(line)
         else:
             current.append(line.strip())
     if current:

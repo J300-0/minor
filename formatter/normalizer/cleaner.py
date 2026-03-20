@@ -75,6 +75,25 @@ _MATH = {
     "\u2083": r"$_{3}$",     "\u2084": r"$_{4}$",      "\u2085": r"$_{5}$",
     "\u2086": r"$_{6}$",     "\u2087": r"$_{7}$",      "\u2088": r"$_{8}$",
     "\u2089": r"$_{9}$",
+    # Additional math symbols common in academic PDFs
+    "\u22a4": r"$^\top$",     # ⊤ TOP / transpose
+    "\u22c6": r"$\star$",     # ⋆ star operator
+    "\u2217": r"$*$",         # ∗ asterisk operator
+    "\u223c": r"$\sim$",      # ∼ tilde operator (distribution ~)
+    "\u02dc": r"$\tilde{}$",  # ˜ small tilde
+    "\u00af": r"$\bar{}$",    # ¯ macron / overbar
+    "\u03d5": r"$\phi$",      # ϕ phi symbol variant
+    "\u03f5": r"$\epsilon$",  # ϵ lunate epsilon
+    "\u00b5": r"$\mu$",       # µ micro sign (= mu)
+    "\u226a": r"$\ll$",       # ≪ much less than
+    "\u226b": r"$\gg$",       # ≫ much greater than
+    "\u25cf": r"$\bullet$",   # ● black circle
+    "\u25a1": r"$\square$",   # □ white square
+    "\u00a9": r"\textcopyright{}",  # ©
+    "\u02c6": r"\^{}",        # ˆ modifier circumflex
+    "\u0338": "/",            # ̸ combining long solidus (used in ≠ decomposition)
+    "\u21d1": r"$\Uparrow$",  # ⇑ upwards double arrow
+    "\u21d3": r"$\Downarrow$", # ⇓ downwards double arrow
     # Fullwidth variants (common in Asian-extracted PDFs)
     "\uff0d": "-",            # fullwidth hyphen-minus
     "\ufe63": "-",            # small hyphen-minus
