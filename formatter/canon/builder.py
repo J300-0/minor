@@ -97,7 +97,7 @@ class _CanonicalBuilder:
 
     def _is_plausible_title(self, text: str) -> bool:
         words = text.split()
-        if not (3 <= len(words) <= 25):
+        if not (2 <= len(words) <= 25):
             return False
         if "@" in text or "http" in text.lower():
             return False
@@ -125,7 +125,16 @@ class _CanonicalBuilder:
 
     def _build_authors(self) -> FieldResult:
         authors = self.doc.authors or []
-        valid = [a for a in authors if (a.name or "").strip()]
+        valid = []
+
+        for a in authors:
+            name = (a.name or "").strip()
+            if not name:
+                continue
+            if self._is_bad_author_name(name):
+                self._repair(f"authors: rejected bad name {name!r}")
+                continue
+            valid.append(a)
 
         if valid:
             no_affil = [a.name for a in valid if not (a.organization or "").strip()]
@@ -139,6 +148,30 @@ class _CanonicalBuilder:
         self._repair("authors: no valid authors found, using empty list")
         self.canon.warnings.append("no authors could be extracted")
         return FieldResult([], confidence=0.0, source="default")
+
+    def _is_bad_author_name(self, name: str) -> bool:
+        """Reject names that are obviously not real person names."""
+        words = name.split()
+        if len(words) < 2:
+            return True
+        # Reject names starting with articles: "The IAU", "A Method"
+        if words[0].lower() in {"the", "a", "an"}:
+            return True
+        # Reject if any word is a common non-name word
+        _BAD_WORDS = {
+            "university", "institute", "department", "faculty", "journal",
+            "conference", "technical", "proceedings", "international",
+            "system", "method", "analysis", "review", "research",
+        }
+        if any(w.lower() in _BAD_WORDS for w in words):
+            return True
+        # Reject if name is too short (e.g. "J K")
+        if len(name.replace(" ", "")) < 4:
+            return True
+        # Reject all-caps acronym pairs like "IEEE ACM"
+        if all(w.isupper() and len(w) <= 5 for w in words):
+            return True
+        return False
 
     # ── Abstract ───────────────────────────────────────────────────────────
 

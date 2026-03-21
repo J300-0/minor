@@ -11,153 +11,107 @@
 
 \begin{document}
 
-\title{AI-Driven Intelligent Document Processing: A Hybrid Deep Learning Framework for Structured Content Extraction and IEEE-Compliant Reconstruction}
+\title{THE FORMULAS}
 
 \author{
-  \IEEEauthorblockN{Samaira Mittal}
+  \IEEEauthorblockN{Peter SZABÓ}
   \IEEEauthorblockA{
-    \textit{Department of Computer Science}\\
-    XYZ Institute of Technology\\
-    India\\
-    samaira.mittal@example.com
+    \textit{Department of Aviation Technical Studies, Rampová 7, 040 01 Košice, Slovak Republic}\\
+    Technical University of Košice, Faculty of Aeronautics\\
+    peter.szabo@tuke.sk
   }
   \and
-  \IEEEauthorblockN{Rahul Verma}
+  \IEEEauthorblockN{Miroslava FERENCOVÁ}
   \IEEEauthorblockA{
-    \textit{Department of Artificial Intelligence}\\
-    ABC University\\
-    India\\
-  }
-  \and
-  \IEEEauthorblockN{Priya Nair}
-  \IEEEauthorblockA{
-    \textit{Department of Data Science}\\
-    DEF Institute of Engineering\\
-    India\\
+    \textit{Department of Air Transport Management, Rampová 7, 040 01 Košice, Slovak Republic}\\
+    Technical University of Košice, Faculty of Aeronautics\\
   }
 }
 \maketitle
 
 \begin{abstract}
-The exponential growth of digital documents across academic, industrial, and governmental domains has necessitated the development of intelligent systems capable of extracting and restructuring complex information. Documents such as research papers, technical reports, and legal contracts often contain heterogeneous elements including multi-column text, tables, figures, and mathematical expressions, making automated processing a non-trivial task. Traditional rule-based and Optical Character Recognition (OCR)-centric approaches suffer from limited generalization and poor handling of structural complexity. This paper proposes a hybrid Artificial Intelligence (AI)-driven framework that integrates deep learning-based layout detection, advanced OCR techniques, Natural Language Processing (NLP), and symbolic recognition models to enable accurate extraction and reconstruction of structured document content. The system is specifically designed to convert unstructured or semi-structured documents into standardized IEEE-compliant formats. The proposed approach leverages convolutional neural networks (CNNs) for spatial layout understanding and transformer-based models for semantic interpretation. Extensive experiments demonstrate that the hybrid system significantly outperforms conventional pipelines in terms of structural accuracy, equation detection, and table reconstruction. The framework provides a scalable solution for automated document processing and has potential applications in academic publishing, enterprise automation, and digital archiving systems.
+The most effective way to express the mathematical and physical research results is by using the formulas. Our article contains the formulas that were the biggest contributors to the development of technical, physical, and mathematical sciences. The formulas can be applied in different research areas. In this article, we will show how to calculate an orbit of a miniature satellite based on the Law of Gravity. For calculations and online recording of results, we are using the MATLAB system. This article contains also a description of some formulas discovered by the authors.
 \end{abstract}
-\section{Introduction}
-The rapid digitization of information in the modern era has resulted in an overwhelming volume of documents that require automated processing, analysis, and restructuring. From academic research papers to financial reports and legal contracts, documents often contain complex layouts composed of text, tables, mathematical expressions, and graphical elements. Extracting meaningful and structured information from such documents remains a challenging problem due to variability in formatting, layout styles, and content representation.
+\begin{IEEEkeywords}
+mathematical formulas, physical formulas
+\end{IEEEkeywords}
+\section{INTRODUCTION}
+Science is the cornerstone of civilization. We capture the knowledge of the world around us; consequently, we pass this knowledge on to the next generation. Scientific knowledge present solved problems that we can express as procedures, methods, algorithms. There are diverse areas of knowledge; they vary from exploring the oceans to flying and discovering space, but there are also medical procedures that are used to cure diseases. Algorithms and procedures can be expressed most succinctly using formulas that contain mathematical operations and relationships between numbers that can be concrete or abstract.
 
-Traditional document processing systems primarily rely on rule-based heuristics and standard OCR techniques. While these methods perform adequately for simple, single-column text documents, they fail to handle complex layouts such as multi-column academic papers, embedded figures, nested tables, and mathematical equations. These limitations restrict their applicability in real-world scenarios, particularly in academic publishing workflows where precision and formatting compliance are critical.
+\section{NUMBERS}
+Numbers play a very important role in recording procedures. By using numbers, we can express counts, quantities, sizes and quantify the examined objects. Numbers can be both concrete and abstract. The concrete numbers are constants, e.g. $\pi$ = 3.1415.... is Ludolph's number - it is the ratio of the circumference of an arbitrary circle to its diameter. If we denote the circumference of the circle as O and the diameter as r, the constant $\pi$ can be expressed as (1) Numbers O, r are no longer concrete numbers. They are variables, symbols, abstract numbers for which we can place the values of an arbitrary circle. Relations of the type (1) are called formulas. A formula is an expression that contains mathematical operations and expresses relations between variables (O, r) and constants ($\pi$), that describe a given problem. Formulas express scientific knowledge in the most concise way. Formulas can be mathematical, physical, chemical, and biological. It is to be noted that in each field of science there are special constants. The system of constants used in astronomy can be found in the publication [3].
 
-Recent advancements in Artificial Intelligence, particularly in deep learning and natural language processing, have opened new avenues for intelligent document understanding. Convolutional Neural Networks (CNNs) have demonstrated strong capabilities in image-based layout detection, while transformer-based models have revolutionized contextual understanding of textual data. However, most existing systems address individual components of document processing rather than providing a unified solution.
+\section{FORMULAS}
+In this chapter, we will list some of the formulas that have had a major impact on the development of scientific knowledge and we may encounter them in the study of mathematics, physics but also in other scientific disciplines. The formulas can be found in publication [5]. This publication contains 17 of the most important formulas with a description of the historical background of their origin. In this article, we list 8 of them. Bc 560
 
-This paper presents a comprehensive hybrid framework that integrates multiple AI techniques to achieve end-to-end document processing. The proposed system not only extracts textual content but also identifies structural elements such as headings, tables, and equations, and reconstructs them into IEEE-compliant formats. The motivation behind this work stems from the need to automate academic formatting processes, reduce manual effort, and improve accuracy in document transformation tasks.
+\subsection{Mathematical formulas}
+Mathematical formulas contain mathematical constants, variables, and operations. All formulas contain only mathematical constants, variables. The number $\pi$ is a mathematical constant because it was formed using mathematical objects (the circle, the circumference of the circle, and the diameter). Mathematical formulas are universal, they have universal validity.
 
-\section{Related Work}
-Document processing has been an active area of research for several decades, evolving from simple OCR-based systems to sophisticated AI-driven frameworks. Early approaches primarily focused on text extraction using OCR engines, which convert scanned images into machine-readable text. While these systems laid the foundation for document digitization, they were limited in their ability to understand document structure.
+\subsection{Physical formulas}
+Formulas 4 and 8 are physical because the variables and some constants in relations are physical and we express those using physics. Such a constant is e.g. the gravitational constant G in relation 4, it is one of the fundamental constants of physics [3]. Each formula in the table has been registered in some way. Formula 3 which can be considered as the beginning and basic relation of the differential calculus can be found in [4].
 
-Subsequent research introduced layout analysis techniques that aimed to segment documents into regions such as paragraphs, images, and tables. These methods often relied on handcrafted features and geometric rules, which made them sensitive to variations in document design. As a result, their performance degraded significantly when applied to diverse datasets.
+\section{APPLICATION OF FORMULAS}
+The formulas listed in Table 1 have been and are being applied for calculations in various fields of science. In our example, there is an application of the Law of Gravity (formula 4) to calculate the orbit of a miniature satellite. The Law of Gravity was also expressed using Kepler's Laws, which originated in the early 17th century (around 1610). The final formulaic form of the Law of Gravity was developed after 200 years. Kepler's third law describes the relationship between the orbital period of the planets around the Sun and the longitude of the major semi-axis of their elliptical orbits. The generalized form of these laws we have applied to the calculation of the orbit of a miniature satellite around the Earth in [8]. Specific calculations and applications are contained in the program [7]. Figure 1 The orbit of a miniature satellite around the Earth - main parameters 5. THE AUTHOR'S FORMULAS The book [3] inspired us to write some of our scientific results using formulas. Of course, the meaning of these results is not comparable to the results described in the book [3]. Our results are less significant. For a simpler understanding of our formulas, individual chapters contain a brief description of the problems addressed.
 
-The introduction of deep learning brought a paradigm shift in document analysis. CNN-based models enabled automatic feature extraction and improved accuracy in layout detection tasks. Systems such as region-based detectors and semantic segmentation models have been successfully applied to identify document components. In parallel, NLP techniques have been used to enhance semantic understanding, enabling tasks such as entity recognition and summarization.
-
-More recent approaches leverage transformer architectures to jointly model visual and textual information. These models demonstrate improved performance in understanding complex relationships within documents. However, they often require large computational resources and extensive training data, which limits their practical deployment.
-
-Despite these advancements, existing solutions often lack integration across different processing stages. Many systems focus exclusively on either layout detection or text extraction, without addressing the complete pipeline required for structured reconstruction. This gap motivates the development of a hybrid framework that combines the strengths of multiple techniques to achieve robust and scalable document processing.
-
-\subsection{System Overview}
-The proposed framework is designed as a modular pipeline consisting of multiple interconnected components, each responsible for a specific stage of document processing. The system begins with input preprocessing, followed by layout detection, content extraction, semantic analysis, and finally, document reconstruction.
-
-The primary objective of the system is to transform unstructured documents into structured outputs that adhere to IEEE formatting standards. This involves not only extracting content but also preserving the hierarchical and spatial relationships between different elements.
+\begin{table}[htbp]
+\centering
+\caption{Table 1 Formulas - results of research knowledge}
+\begin{tabular}{|l|l|l|l|}
+\hline
+1 & $a^{2}$ + $b^{2}$ = $c^{2}$ & Pythagoras theorem & Pythagoras,
+Bc 560 \\
+2 & $\log(xy)$ = $\log(x)$+ $\log(y)$ & Logarithm & J. Napier, 1610 \\
+3 & ay = lim J(t+h) Fit Aon & Derivative, differential calculus & I. Newton, 1668 \\
+4 & Fk =Geye & Newton's Law of Gravity & I. Newton, 1687 \\
+5 & $i^{2} = -1$ & Complex numbers & L. Euler, 1750 \\
+6 & B(x) = eae & Normal distribution & C.F. Gauss, 1810 \\
+7 & fe) = [72 flale Pda & Fourier Transform & J. Fourier, 1822 \\
+8 & $E = mc^{2}$ & Relativity & A. Einstein, 1905 \\
+\hline
+\end{tabular}
+\end{table}
+\subsection{Strong linear independence in bottleneck algebra}
+The paper [1] deals with the solvability of the system of equations Ax = b in the Bottleneck algebra. By Bottleneck algebra, we mean an algebra in which the basic arithmetic operations of linear algebra (+, $\times$) are replaced by the operations ($\oplus$, $\otimes$) = (maximum, minimum). Here we have addressed the question: when does a system of equations A $\otimes$ x = b (2) has a unique solution or in other words, when the matrix A is strongly regular in the Bottleneck algebra. We find that in this algebra, the class of strongly regular matrices consist of trapezoidal matrices. The real square matrix A = (a ) of type n $\times$ n is trapezoidal when ij (3) for each i = 1,$\cdot\cdot\cdot$ ,n. This is the formula that describes the problem. The question of testing condition (3), where we can convert the input matrix to trapezoidal form, is a question of algorithms of complexity $O(n^{2} \log n)$. We have also presented such an algorithm in our work. This work is the result of the cooperation of three authors.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{fig_1_p3.png}
+\caption{The orbit of a miniature satellite around the Earth - main parameters}
 \label{fig:1}
 \end{figure}
+\subsection{Monge Matrices}
+Monge matrices were already mentioned in 1781. The square matrix A = (a ) of type n $\times$ n has the ij Monge's property when a + a $\leq$ a + a (4)
+
+ii jk ij ki for each i = 1,...,n and for every j, k > i. The problem of when it is possible to transform a matrix A into a matrix with the Monge's property has not been solved yet. The first solution to this problem is given in [2]. The solution to the problem, when we can transform ($\leftrightarrow$) an input matrix A into a matrix which has the Monge property is the existence of permutations $\sigma$, $\pi$ such that (5)
+
+for each i = 1,...,n and for every j, k > i. We can write this attribute as (6)
+
+This relationship allows us to apply an iterative algorithm to test the relation $\leftrightarrow$ (The relation means that we can transform the matrix A into a Monge matrix if and only if we know the matrix A and for the element $\alpha$ the following relation applies (5)
+
+). For testing this property of matrices we $\sigma$(1)
+
+$\pi$(1)
+
+can use an algorithm of complexity $O(n^{4})$. Therefore, it was not easy to find a testing algorithm or a solution to the problem. Note that even the more complicated polynomial matrix algorithms have a complexity no greater than $O(n^{3})$. This work is the result of the cooperation of two authors.
+
+\subsection{Goldbach's Conjecture in Max-Algebra}
+In max-algebra, the basic arithmetic operations of linear algebra (+, $\times$) are replaced by the operations ($\oplus$, $\otimes$) = (maximum, +). The well-known Goldbach conjecture states that every even integer greater than 2 can be expressed as the sum of two primes. So far, no one has proved this nearly 300-year-old conjecture. In max algebra, we can successfully solve some polynomially indecomposable linear algebra problems (e.g. the problem of computing an eigenvalue and an eigenvector). In [6] Goldbach's conjecture in max-algebra is pronounced. To the conjecture, we can associate the formula (7) Such formulas have a symbolic meaning. The exact mathematical meaning of each object needs to be defined; in our case, the matrix A, vector t and the eigenvalue $\lambda$(A). Detailed definitions, theorems, and proofs are found in the work [6]. To illustrate, we state that matrix A is of the form (8) where vector t = (t ,t ,...,t )T is defined such that t = 0 a t = 1 just when j is prime, for each i, j
+
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{fig_2_p3.png}
+\includegraphics[width=\columnwidth]{fig_2_p4.png}
 \label{fig:2}
 \end{figure}
-\subsection{Mathematical Representation}
-The document is modeled as a collection of elements:
-
-[ D = \{e\_1, e\_2, e\_3, ..., e\_n\} ]
-
-Each element is associated with spatial and semantic features:
-
-[ e\_i = (x\_i, y\_i, w\_i, h\_i, f\_i) ]
-
-Where:
-
-$\bullet$ (x\_i, y\_i) represent position
-
-$\bullet$ (w\_i, h\_i) represent dimensions
-
-$\bullet$ (f\_i) represents feature vector
-
-Classification is performed using:
-
-[ C(e\_i) = \textbackslash\{\}arg\textbackslash\{\}max\_\{k\} P(class\_k | f\_i) ]
-
-\subsection{Layout Detection}
-The layout detection module uses CNN-based object detection models to identify regions corresponding to text blocks, tables, images, and equations. The model is trained on annotated datasets containing labeled document layouts.
-
-The detection process involves generating bounding boxes around each element and assigning class labels. This spatial information is crucial for preserving the structural integrity of the document during reconstruction.
-
-\subsection{Text and Content Extraction}
-Text extraction is performed using advanced OCR techniques that combine image preprocessing with sequence recognition models. Preprocessing steps such as noise removal, binarization, and skew correction improve OCR accuracy.
-
-For tables, a combination of structural analysis and cell segmentation techniques is used to reconstruct tabular data. Mathematical equations are detected using specialized models trained on symbol datasets, enabling recognition of complex expressions.
-
-\subsection{Semantic Analysis}
-The extracted text is processed using NLP techniques to identify document structure, including headings, sections, and references. Transformer-based models are used to capture contextual relationships and improve classification accuracy.
-
-\subsection{Document Reconstruction}
-The final stage involves converting the extracted and structured data into an IEEE-compliant format using LaTeX templates. This includes formatting text into columns, aligning tables, and rendering equations.
-
-\section{Implementation}
-The system is implemented using Python and leverages multiple open-source libraries and frameworks. Deep learning models are developed using PyTorch, while document parsing is handled using tools such as pdfplumber.
-
-The modular design ensures flexibility and scalability, allowing individual components to be updated or replaced without affecting the overall system.
-
-\subsection{Experimental Setup}
-The system is evaluated on a dataset consisting of academic papers with varying layouts and complexity. Performance is measured using metrics such as accuracy, precision, and recall.
-
-\subsection{Performance Analysis}
-The proposed system achieves significant improvements over baseline methods. In particular, it demonstrates strong performance in handling multi-column layouts and detecting mathematical expressions.
-
-\subsection{Comparative Study}
-
-
-\begin{table}[htbp]
-\centering
-\caption{Comparison --- Comparative Study}
-\begin{tabular}{|l|l|l|l|}
-\hline
-Rule-Based & 65\% & Poor & Poor \\
-OCR Only & 75\% & Moderate & Very Poor \\
-Proposed System & 91\% & High & Good \\
-\hline
-\end{tabular}
-\end{table}
-\subsection{Discussion}
-The results highlight the effectiveness of integrating multiple AI techniques. The hybrid approach enables better generalization and robustness compared to standalone methods. However, challenges remain in handling highly complex tables and handwritten content.
-
-\section{Applications}
-The proposed framework has wide-ranging applications across multiple domains. In academic publishing, it can automate the formatting of research papers, reducing manual effort and improving consistency. In enterprise environments, it can be used for processing invoices, reports, and contracts. Additionally, it can support digital archiving initiatives by converting legacy documents into structured formats.
-
-\section{Limitations}
-Despite its advantages, the system has certain limitations. The reliance on deep learning models results in high computational requirements, which may not be suitable for resource-constrained environments. Furthermore, the system requires annotated training data, which can be expensive to obtain.
-
-\section{Future Work}
-Future research will focus on improving equation recognition and extending the system to support handwritten documents. Integration of vision-language models and real-time processing capabilities will further enhance the system's performance and usability.
-
-\section{Conclusion}
-This paper presents a comprehensive AI-driven framework for intelligent document processing. By combining deep learning, OCR, and NLP techniques, the system achieves high accuracy in extracting and reconstructing structured content. The results demonstrate the potential of AI in automating complex document workflows and highlight opportunities for further research in this domain.
+\section{CONCLUSIONS}
+In this paper, we wanted to highlight the importance of mathematical and physical formulas in engineering and mathematical sciences. The most important formulas in these fields can be found in the publication [5]. There are also special constants included in the formulas. Constants used in astronomy are found in publication [3]. These physical constants, like the number $\pi$, are probably irrational numbers. That is why the database of physical constants is occasionally updated. The paper also contains some formulas discovered by the authors (3, 6, 7).
 
 \begin{thebibliography}{99}
-\bibitem{ref1} Vaswani et al., ``Attention is All You Need,'' 2017
-\bibitem{ref2} He et al., ``Deep Residual Learning for Image Recognition,'' 2016
-\bibitem{ref3} Smith, R., ``An Overview of the Tesseract OCR Engine,'' 2007
-\bibitem{ref4} Devlin et al., ``BERT: Pre-training of Deep Bidirectional Transformers,'' 2019
-\bibitem{ref5} Zhong et al., ``PubLayNet: Dataset for Document Layout Analysis,'' 2019
+\bibitem{ref1} Peter Butkovič, Katarína Cechlárová, and Peter Szabó. Strong linear independence in bottleneck algebra. Linear Algebra and it's Applications, 94:133--155, 1987.
+\bibitem{ref2} Katarína Cechlárová and Peter Szabó. On the Monge property of matrices. Discrete Mathematics, 81(2):123--128, 1990.
+\bibitem{ref3} Brian Luzum, Nicole Capitaine, Agnès Fienga, William Folkner, Toshio Fukushima, James Hilton, Catherina Hohenkerk, George Krasinsky, Gérard Petit, Elena Pitjeva, Michael Soffel, and Patrick Wallace. The IAU 2009 system of astronomical constants:the report of the IAU working group on numerical standards for Fundamental Astronomy. Technical report, 2011.
+\bibitem{ref5} Ian Steart. In pursuit of the unknown. 17 equations that changed the world. Basic Books, New York, 2012.
+\bibitem{ref6} Peter Szabó. Goldbach's conjecture in max-algebra. Computational Management Science, 14:81-- 89, 2017.
+\bibitem{ref7} Peter Szabó and Katarína Gombíková. Keplerian Orbit. MATLAB Central File Exchange, 2019.
+\bibitem{ref8} Peter Szabó, Katarína Gombíková, Miroslava Ferencová, and Marek Košuda. Keplerian Orbit and Satellite skCUBE. In New Trends in Aviation Development (NTAD), pages 174--179. IEEE, 2019. Received 12, 2021, accepted 02, 2022 Article is licensed under a Creative Commons Attribution 4.0 International License ISSN 1339-9853 (online) http://acta-avionica.tuke.sk ISSN 1335-9479 (print)
 \end{thebibliography}
 \end{document}

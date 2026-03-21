@@ -143,8 +143,10 @@ def _parse_font_aware(blocks, tables, images, doc):
             score = fs * 2  # font size matters
             if 4 <= len(words) <= 25:
                 score += 5
-            if len(words) < 3:
-                score -= 10  # penalize very short
+            if len(words) == 1:
+                score -= 15  # single-word titles unlikely
+            elif len(words) == 2:
+                score -= 3   # 2-word titles are valid (e.g. "THE FORMULAS")
             if re.search(r"^\d+\s+\d+$", t):
                 score -= 50  # "1 3" type patterns
             if re.search(r"\b(page|vol|doi)\b", t, re.IGNORECASE):
@@ -154,6 +156,16 @@ def _parse_font_aware(blocks, tables, images, doc):
             # "Authors" heading is never the title
             if re.match(r"^authors?\s*$", t, re.IGNORECASE):
                 score -= 100
+            # Keywords/ISSN/Volume lines are never the title
+            if re.match(r"^keywords?\s*[:;]", t, re.IGNORECASE):
+                score -= 100
+            if re.search(r"\bISSN\b", t):
+                score -= 100
+            if re.match(r"^volume\b", t, re.IGNORECASE):
+                score -= 100
+            # Short ALL-CAPS titles are legitimate (e.g. "THE FORMULAS")
+            if len(words) >= 2 and all(w.isupper() for w in words):
+                score += 3  # small bonus, don't over-penalize short titles
             return score
 
         title_b = max(page1_clean, key=_title_score)
@@ -199,7 +211,20 @@ def _parse_font_aware(blocks, tables, images, doc):
             flush()
             in_refs = True
             continue
+        # "References" embedded at end of a paragraph — split it off
+        ref_tail = re.search(r"\bReferences\s*$", t, re.IGNORECASE)
+        if ref_tail and len(t) > 20:
+            body_part = t[:ref_tail.start()].strip()
+            if body_part and cur_head:
+                cur_body.append(body_part)
+            flush()
+            in_refs = True
+            continue
         if in_refs:
+            continue
+        # Skip reference entries that leaked past the "References" heading
+        # e.g. "[1] Author Name..." blocks
+        if re.match(r"^\[\d+\]\s+[A-Z]", t) and not cur_head:
             continue
         if _is_table_data_line(t):
             continue
@@ -329,6 +354,22 @@ def _parse_text_only(blocks, tables, images, doc):
             break
 
         line = lines[idx].strip()
+
+        # "Corresponding author. E-mail: x@y.z" — extract email and assign
+        # to the author whose original name had the '*' marker, or first author.
+        corr_m = re.match(
+            r"\*?\s*Corresponding author[^E]*E[\s.\-]*mail\s*[:\-]\s*([\w.+-]+@[\w.-]+\.\w+)",
+            line, re.IGNORECASE,
+        )
+        if corr_m:
+            email_addr = corr_m.group(1)
+            # Assign to first author (starred author is always first in this pattern)
+            target = doc.authors[0] if doc.authors else current_author
+            if target and not target.email:
+                target.email = email_addr
+            idx += 1
+            continue
+
         if _is_metadata_line(line):
             idx += 1
             continue
@@ -347,10 +388,19 @@ def _parse_text_only(blocks, tables, images, doc):
             current_author = Author(name=_clean_author_name(line))
             doc.authors.append(current_author)
         elif current_author:
-            if _looks_like_department(line):
-                current_author.department = line
-            elif _looks_like_organization(line):
-                current_author.organization = line
+            # Check organization BEFORE department: "Technical University of X,
+            # Faculty of Y" contains both "university" and "faculty".
+            # University = organization, Department of X = department.
+            if _looks_like_organization(line):
+                if not current_author.organization:
+                    current_author.organization = line
+                elif not current_author.department:
+                    current_author.department = line
+            elif _looks_like_department(line):
+                if not current_author.department:
+                    current_author.department = line
+                elif not current_author.organization:
+                    current_author.organization = line
             elif _looks_like_location(line):
                 current_author.city = line
             elif _looks_like_email(line):
@@ -414,6 +464,15 @@ def _parse_text_only(blocks, tables, images, doc):
         idx += 1
 
         if re.match(r"^references\.?\s*$", line, re.IGNORECASE):
+            flush()
+            in_refs = True
+            continue
+        # "References" embedded at end of a paragraph — split it off
+        ref_tail = re.search(r"\bReferences\s*$", line, re.IGNORECASE)
+        if ref_tail and len(line) > 20:
+            body_part = line[:ref_tail.start()].strip()
+            if body_part and cur_head is not None:
+                cur_body.append(body_part)
             flush()
             in_refs = True
             continue
@@ -608,6 +667,20 @@ def _is_metadata_line(line: str) -> bool:
     if re.match(r"^(Article|Paper)\s+\d+$", line, re.IGNORECASE):
         return True
 
+    # ISSN lines
+    if "ISSN" in line:
+        return True
+
+    # Running headers: "N AuthorName, AuthorName" (page number + author names)
+    if (re.match(r"^\d{1,3}\s+[A-Z]", line)
+            and re.search(r",\s*[A-Z]", line)
+            and len(line) < 80):
+        return True
+
+    # Running headers: "Title N ." (paper title + page number + period)
+    if re.match(r"^.{3,40}\s+\d{1,3}\s*\.\s*$", line):
+        return True
+
     return False
 
 
@@ -751,9 +824,13 @@ def _looks_like_author(text: str) -> bool:
         return False
     if all(w.isupper() for w in words):
         return False
-    # Reject if any word is an all-caps acronym (e.g. "IEEE", "AI", "NLP")
-    # Real author names don't normally contain all-caps acronyms of length ≥ 3.
-    if any(w.isupper() and len(w) >= 3 for w in words):
+    # Reject all-caps acronyms (e.g. "IEEE", "AI", "NLP") UNLESS the pattern
+    # looks like European-style "Firstname LASTNAME" (at least one mixed-case
+    # word alongside the all-caps word).
+    caps_words = [w for w in words if w.isupper() and len(w) >= 3]
+    mixed_words = [w for w in words if not w.isupper() and w[0].isupper()]
+    if caps_words and not mixed_words:
+        # All significant words are all-caps with no mixed-case first name → reject
         return False
     # Reject if any word contains a hyphen — title/technical phrases like
     # "IEEE-Compliant" or "Deep-Learning" are not author names.
@@ -773,6 +850,9 @@ def _looks_like_author(text: str) -> bool:
         "sensitivity", "sensitivities", "details", "additional",
         "generalization", "personalization", "differential",
         "adversarial", "variance", "kernel", "approximate",
+        "transform", "conjecture", "equation",
+        "distribution", "derivative", "logarithm", "relativity",
+        "gravity", "complex", "normal", "fourier",
         "stationary", "non-stationary", "unifying", "random",
         "federated", "regression", "bayesian", "theorem",
     ]
@@ -834,6 +914,19 @@ def _extract_author_from_concat_line(line: str):
 
     name_part = cleaned_line[:split_pos].strip().rstrip(",").strip()
     rest = cleaned_line[split_pos:].strip()
+
+    # Strip trailing affiliation-prefix words that got stuck to the name.
+    # e.g. "Miroslava FERENCOVÁ Technical" → name="Miroslava FERENCOVÁ",
+    #       rest="Technical University of Košice..."
+    _AFFIL_PREFIXES = {
+        "technical", "national", "central", "federal", "royal", "imperial",
+        "state", "regional", "international", "global", "municipal",
+    }
+    name_words = name_part.split()
+    if len(name_words) > 2 and name_words[-1].lower() in _AFFIL_PREFIXES:
+        stripped_word = name_words.pop()
+        name_part = " ".join(name_words)
+        rest = stripped_word + " " + rest
 
     if not _looks_like_author(name_part):
         return None, None
@@ -919,6 +1012,41 @@ def _extract_author_from_concat_line(line: str):
         author.city = location
 
     return author, rest
+
+
+def _scan_for_authors_in_block(text: str) -> list:
+    """Scan a long text block for embedded author names.
+
+    Handles blocks like:
+      "...Slovak Republic Miroslava FERENCOVÁ Technical University..."
+    Uses targeted patterns rather than sliding windows to avoid false positives.
+    Returns list of (author_name, start_pos) tuples found within text.
+    """
+    results = []
+
+    # Pattern 1: European-style "Firstname ALLLCAPS-LASTNAME" (with accented chars)
+    # Matches: "Miroslava FERENCOVÁ", "Peter SZABÓ"
+    euro_re = re.compile(
+        r'\b([A-Z][a-záéíóúüöčďňřšťžľ]+)'        # mixed-case first name
+        r'\s+'
+        r'([A-ZÁÉÍÓÚÜÖČĎŇŘŠŤŽĽ]{2,}\*?)'          # ALL-CAPS last name (opt *)
+        r'\b'
+    )
+    for m in euro_re.finditer(text):
+        full_name = m.group(0).rstrip("*")
+        # Quick sanity: reject if it matches reject keywords
+        if _looks_like_author(full_name):
+            results.append((full_name, m.start()))
+
+    # Deduplicate overlapping matches
+    if len(results) <= 1:
+        return results
+    deduped = [results[0]]
+    for name, pos in results[1:]:
+        prev_name, prev_pos = deduped[-1]
+        if pos >= prev_pos + len(prev_name):
+            deduped.append((name, pos))
+    return deduped
 
 
 def _has_multi_author_pattern(line: str) -> bool:
@@ -1048,6 +1176,14 @@ def _detect_authors_between_title_and_abstract(blocks, doc):
             continue
         if re.match(r"^abstract", t, re.IGNORECASE):
             break
+        # If "Abstract" appears mid-block, truncate to only process text before it
+        abs_mid = re.search(r"\bAbstract\s*[.:\s]", t)
+        hit_abstract_mid = False
+        if abs_mid:
+            t = t[:abs_mid.start()].strip()
+            if not t:
+                break
+            hit_abstract_mid = True
         # Skip standalone "Authors" / "Author" label
         if re.match(r"^authors?\s*$", t, re.IGNORECASE):
             continue
@@ -1071,6 +1207,35 @@ def _detect_authors_between_title_and_abstract(blocks, doc):
                 if concat_author:
                     current_author = concat_author
                     doc.authors.append(current_author)
+                elif len(line) > 100:
+                    # Long block — scan for embedded author names within
+                    # e.g. "...Slovak Republic Miroslava FERENCOVÁ Technical Univ..."
+                    embedded = _scan_for_authors_in_block(line)
+                    for ei, (author_name, pos) in enumerate(embedded):
+                        # Text before the first embedded name = affiliation
+                        # for the *previous* author (e.g. "Technical University
+                        # of Košice, ...Slovak Republic" belongs to Peter SZABÓ)
+                        if ei == 0 and current_author and pos > 10:
+                            before = line[:pos].strip().rstrip(",").strip()
+                            if before and not current_author.organization:
+                                ca_prev, _ = _extract_author_from_concat_line(
+                                    current_author.name + " " + before)
+                                if ca_prev:
+                                    current_author.department = ca_prev.department
+                                    current_author.organization = ca_prev.organization
+                                    current_author.city = ca_prev.city or current_author.city
+                                    current_author.email = ca_prev.email or current_author.email
+
+                        new_author = Author(name=_clean_author_name(author_name))
+                        # Try to extract affiliation from text after the name
+                        after = line[pos + len(author_name):].strip()
+                        if after:
+                            ca, _ = _extract_author_from_concat_line(
+                                author_name + " " + after)
+                            if ca:
+                                new_author = ca
+                        doc.authors.append(new_author)
+                        current_author = new_author
                 elif current_author:
                     if _looks_like_department(line):
                         current_author.department = line
@@ -1082,6 +1247,10 @@ def _detect_authors_between_title_and_abstract(blocks, doc):
                         m = re.search(r"[\w.+-]+@[\w.-]+\.\w+", line)
                         if m:
                             current_author.email = m.group(0)
+        # Stop scanning after the block that contained mid-block "Abstract"
+        # — everything after is body content, not author data.
+        if hit_abstract_mid:
+            break
 
     # ── Fallback: if block-walk found nothing, scan all page-1 blocks ────────
     if not doc.authors:
@@ -1325,7 +1494,11 @@ def _attach_tables(doc, tables_raw, blocks):
 
 
 def _attach_images(doc, images_raw, blocks):
-    """Attach extracted images to sections based on page proximity."""
+    """Attach extracted images to sections based on page proximity.
+
+    Images with is_equation=True (OCR'd equation images) are injected as
+    text into the nearest section body instead of being attached as figures.
+    """
     if not images_raw or not doc.sections:
         return
 
@@ -1349,15 +1522,40 @@ def _attach_images(doc, images_raw, blocks):
                 "page": b.get("page", 1),
             }
 
-    for idx, img in enumerate(images_raw):
+    fig_idx = 0
+    eq_injected = 0
+    for img in images_raw:
         img_page = img.get("page", 1)
-        fig_num = idx + 1
-        caption = fig_captions.get(fig_num, {}).get("caption", "")
+
+        # Equation images: inject OCR text into section body
+        if img.get("is_equation") and img.get("ocr_text"):
+            best_section = doc.sections[-1]
+            best_dist = float("inf")
+            for i, sec in enumerate(doc.sections):
+                sec_page = section_pages.get(i, 1)
+                dist = abs(sec_page - img_page)
+                if dist < best_dist:
+                    best_dist = dist
+                    best_section = sec
+            # Inject OCR text as a paragraph in the section body
+            ocr_text = img["ocr_text"].strip()
+            if best_section.body:
+                best_section.body += "\n\n" + ocr_text
+            else:
+                best_section.body = ocr_text
+            eq_injected += 1
+            log.debug("Injected OCR equation into section '%s': %s",
+                      best_section.heading, ocr_text[:50])
+            continue
+
+        # Regular figures
+        fig_idx += 1
+        caption = fig_captions.get(fig_idx, {}).get("caption", "")
 
         fig = Figure(
             caption=caption,
             image_path=img.get("path", ""),
-            label=f"fig:{fig_num}",
+            label=f"fig:{fig_idx}",
         )
 
         best_section = doc.sections[-1]
@@ -1371,7 +1569,8 @@ def _attach_images(doc, images_raw, blocks):
 
         best_section.figures.append(fig)
 
-    log.info("Attached %d image(s) to sections", len(images_raw))
+    log.info("Attached %d image(s) to sections, injected %d OCR equations",
+             fig_idx, eq_injected)
 
 
 def _extract_refs_from_blocks(blocks, doc):
@@ -1385,9 +1584,21 @@ def _extract_refs_from_blocks(blocks, doc):
         text = b["text"].strip()
         if not text:
             continue
+        # Standalone "References" heading
         if re.match(r"^references\.?\s*$", text, re.IGNORECASE):
             in_refs = True
             continue
+        # "References" merged at end of a paragraph (e.g. "...authors (3, 6, 7). References")
+        if not in_refs and re.search(r"\breferences\s*$", text, re.IGNORECASE):
+            in_refs = True
+            continue
+        # Block starts with [1] — likely refs even without explicit heading
+        if not in_refs and re.match(r"^\[1\]\s+", text):
+            # Only trigger if we're past the halfway point of the document
+            block_idx = blocks.index(b)
+            if block_idx > len(blocks) // 2:
+                in_refs = True
+                # Don't continue — process this block as a ref below
         if not in_refs:
             continue
 

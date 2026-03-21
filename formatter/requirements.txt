@@ -7,3 +7,7 @@ python-docx>=1.1.0       # DOCX extraction
 jinja2>=3.1.0            # LaTeX template rendering
 requests>=2.31.0         # (optional) future API integrations
 # scikit-learn           # (optional) for ML classifier in canon/classifier.py
+pix2tex                  # (optional) LaTeX OCR for equation images — primary
+nougat-ocr               # (optional) Meta's Nougat OCR — fallback after pix2tex
+# pytesseract            # (optional) Tesseract OCR fallback (needs tesseract binary)
+# Pillow                 # (already a dependency of pix2tex/nougat/pytesseract)

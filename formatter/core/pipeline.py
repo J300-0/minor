@@ -2,14 +2,15 @@
 core/pipeline.py — Orchestrates the 5-stage (+canon) formatting pipeline.
 
 Stage flow:
-  1.   Extract    PDF/DOCX -> raw text + tables + images
-  2.   Parse      raw text -> Document  (heuristic, font-aware)
-  3.   Normalize  Document -> Document  (ligatures, unicode, math)
-  2.5  Canon      Document -> CanonicalDocument  (validate + repair + score)
-  4.   Render     Document -> .tex      (Jinja2)
-  5.   Compile    .tex     -> PDF       (pdflatex)
+  1.  Extract    PDF/DOCX -> raw text + tables + images
+  2.  Parse      raw text -> Document  (heuristic, font-aware)
+  3.  Canon      Document -> CanonicalDocument  (validate + repair + score)
+  4.  Normalize  Document -> Document  (ligatures, unicode, math)
+  5.  Render     Document -> .tex      (Jinja2)
+  6.  Compile    .tex     -> PDF       (pdflatex)
 """
 import os
+import shutil
 import time
 
 from core import config
@@ -32,6 +33,7 @@ def run(input_file: str, template: str = None, output_dir: str = None) -> str:
     t0 = time.time()
 
     _validate(input_file, template)
+    _clean_intermediate()
     _ensure_dirs(out_dir)
     log_run_start(input_file, template)
     _banner(input_file, template)
@@ -50,16 +52,9 @@ def run(input_file: str, template: str = None, output_dir: str = None) -> str:
     log_doc_stats(doc)
     print(f"         sections={len(doc.sections)}  refs={len(doc.references)}")
 
-    # ── 3. Normalize ─────────────────────────────────────────────────────────
-    log_stage(3, "Normalizer", "fix ligatures, unicode, math")
-    _print_stage(3, "Normalize", "fix ligatures, unicode, math")
-    from normalizer.cleaner import normalize
-    doc = normalize(doc)
-    doc.to_json(config.STRUCTURED_JSON)
-
-    # ── 2.5. Canonical Builder (gate) ────────────────────────────────────────
-    log_stage("2.5", "Canon", "validate + repair + score Document")
-    _print_stage("2.5", "Canon", "validate + repair + score")
+    # ── 3. Canon (validate + repair gate) ─────────────────────────────────
+    log_stage(3, "Canon", "validate + repair + score Document")
+    _print_stage(3, "Canon", "validate + repair + score")
     from canon.builder import build_canonical
     canon_doc = build_canonical(doc)
 
@@ -81,18 +76,25 @@ def run(input_file: str, template: str = None, output_dir: str = None) -> str:
             f"Check logs for details."
         )
 
-    # Unwrap back to plain Document for renderer
+    # Unwrap back to plain Document for downstream stages
     doc = canon_doc.to_document()
     doc.to_json(config.STRUCTURED_JSON)
 
-    # ── 4. Render ────────────────────────────────────────────────────────────
-    log_stage(4, "Renderer", f"Document -> LaTeX [{template}]")
-    _print_stage(4, "Render", f"Document -> LaTeX [{template}]")
+    # ── 4. Normalize ─────────────────────────────────────────────────────────
+    log_stage(4, "Normalizer", "fix ligatures, unicode, math")
+    _print_stage(4, "Normalize", "fix ligatures, unicode, math")
+    from normalizer.cleaner import normalize
+    doc = normalize(doc)
+    doc.to_json(config.STRUCTURED_JSON)
+
+    # ── 5. Render ────────────────────────────────────────────────────────────
+    log_stage(5, "Renderer", f"Document -> LaTeX [{template}]")
+    _print_stage(5, "Render", f"Document -> LaTeX [{template}]")
     tex_path = _render(doc, template)
 
-    # ── 5. Compile ───────────────────────────────────────────────────────────
-    log_stage(5, "Compiler", "LaTeX -> PDF")
-    _print_stage(5, "Compile", "LaTeX -> PDF")
+    # ── 6. Compile ───────────────────────────────────────────────────────────
+    log_stage(6, "Compiler", "LaTeX -> PDF")
+    _print_stage(6, "Compile", "LaTeX -> PDF")
     pdf_path = _compile(tex_path, template, out_dir)
 
     elapsed = round(time.time() - t0, 1)
@@ -156,6 +158,19 @@ def _validate(input_file: str, template: str):
             f"Unknown template {template!r}. "
             f"Available: {list(config.TEMPLATE_REGISTRY.keys())}"
         )
+
+
+def _clean_intermediate():
+    """Remove all files from the intermediate directory before a new run.
+
+    Prevents stale artifacts (images, .tex, .json) from a previous paper
+    from bleeding into the current run.
+    """
+    idir = config.INTERMEDIATE_DIR
+    if os.path.isdir(idir):
+        shutil.rmtree(idir)
+        log.debug("Cleaned intermediate directory: %s", idir)
+    os.makedirs(idir, exist_ok=True)
 
 
 def _ensure_dirs(out_dir: str):

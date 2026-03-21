@@ -365,8 +365,8 @@ def normalize(doc: Document) -> Document:
             tables=[
                 Table(
                     caption=_clean(t.caption),
-                    headers=[_clean(h) for h in t.headers],
-                    rows=[[_clean(c) for c in row] for row in t.rows],
+                    headers=[_clean_with_math(h) for h in t.headers],
+                    rows=[[_clean_with_math(c) for c in row] for row in t.rows],
                     notes=_clean(t.notes),
                 )
                 for t in s.tables
@@ -386,15 +386,205 @@ def normalize(doc: Document) -> Document:
     return doc
 
 
+def _fix_decimal_spaces(text: str) -> str:
+    """Collapse spaces around decimal points in numbers.
+
+    PDF extraction sometimes inserts spaces: "3 . 1415" → "3.1415"
+    Only fires when both sides are digits (avoids prose like "e . g .").
+    """
+    return re.sub(r"(\d)\s*\.\s*(\d)", r"\1.\2", text)
+
+
+def _fix_inline_math_patterns(text: str) -> str:
+    """Fix common inline math artifacts from PDF extraction.
+
+    Each pattern is narrow and guarded to avoid corrupting prose.
+    Runs AFTER _clean() so Greek/operator unicode is already $\\cmd$.
+    """
+
+    # ── 1. Complexity notation: O(n2), O(n 2 logn), O(n4) ────────────────
+    #    Handles both with-space and no-space variants.
+    text = re.sub(
+        r"\bO\s*\(\s*n\s*(\d)\s*(log\s*n)?\s*\)",
+        lambda m: "$O(n^{" + m.group(1) + "}" +
+                  (r" \log n" if m.group(2) else "") + ")$",
+        text,
+    )
+
+    # ── 2. Matrix subscripts: "a ij", "a ii", "a jk" → "$a_{ij}$" ────────
+    #    Guard: exclude common English 2-letter words (in, is, it, if, on, or, an, at, be, by, do, go, he, me, my, no, of, so, to, up, us, we)
+    _ENGLISH_2 = {"in", "is", "it", "if", "on", "or", "an", "at", "be",
+                  "by", "do", "go", "he", "me", "my", "no", "of", "so",
+                  "to", "up", "us", "we"}
+    _IDX = r"[ijklmnpqrs]"
+
+    def _sub_matrix(m):
+        idx = m.group(2)
+        if idx in _ENGLISH_2:
+            return m.group(0)  # leave "b in" alone
+        return "$" + m.group(1) + "_{" + idx + "}$"
+
+    text = re.sub(
+        r"\b([a-z])\s+(" + _IDX + _IDX + r")\b",
+        _sub_matrix,
+        text,
+    )
+
+    # ── 3. Equation-line superscripts with spaces: "a 2 + b 2 = c 2" ─────
+    #    Single letter + space + single digit, when line has "=" and 2+ hits.
+    def _sup_in_equation(line: str) -> str:
+        if "=" not in line:
+            return line
+        hits = re.findall(r"\b([a-zA-Z])\s+(\d)\b", line)
+        if len(hits) < 2:
+            return line
+        return re.sub(r"\b([a-zA-Z])\s+(\d)\b", r"$\1^{\2}$", line)
+
+    text = "\n".join(_sup_in_equation(ln) for ln in text.split("\n"))
+
+    # ── 4. No-space superscripts in equations: "a2 + b2 = c2" ────────────
+    #    Letter immediately followed by digit (no space), when line has "="
+    #    and 2+ such pairs.  Excludes table labels like "Table 1".
+    def _sup_nospace_equation(line: str) -> str:
+        if "=" not in line:
+            return line
+        hits = re.findall(r"\b([a-zA-Z])(\d)\b", line)
+        if len(hits) < 2:
+            return line
+        # Skip if line has common prose patterns with letter+digit
+        if re.search(r"\b(?:Table|Figure|Section|Chapter|Step|page)\s*\d", line, re.IGNORECASE):
+            return line
+        return re.sub(r"\b([a-zA-Z])(\d)\b", r"$\1^{\2}$", line)
+
+    text = "\n".join(_sup_nospace_equation(ln) for ln in text.split("\n"))
+
+    # ── 5. Specific famous formulas ───────────────────────────────────────
+    # "E = mc2" or "E = mc 2"
+    text = re.sub(r"\bE\s*=\s*mc\s*2\b", r"$E = mc^{2}$", text)
+    # "i2 = −1" / "i2 = -1" / "i 2 = -1"
+    text = re.sub(r"\bi\s*2\s*=\s*[$\\{}\-\u2212]*1\b", r"$i^{2} = -1$", text)
+
+    # ── 6. log() notation → $\\log(...)$ ──────────────────────────────────
+    text = re.sub(
+        r"(?<!\$)\blog\s*\(\s*([^)]{1,20})\s*\)",
+        lambda m: r"$\log(" + m.group(1).strip() + ")$",
+        text,
+    )
+
+    # ── 7. "n x n" (lowercase x as multiplication) ───────────────────────
+    text = re.sub(r"\bn\s+x\s+n\b", r"$n \\times n$", text)
+
+    # ── 8. Variable subscripts near commas: "t 0, t 1, ..., t n" ─────────
+    text = re.sub(
+        r"\b([a-zA-Z])\s+(\d{1,2})\s*([,)])",
+        r"$\1_{\2}$\3",
+        text,
+    )
+
+    # ── 9. Derivative fractions: "df/dx", "dy/dt", "d2y/dx2" ──────────
+    #    Plain text derivatives → $\frac{d...}{d...}$
+    #    Also handles second-order: "d2f/dx2" → $\frac{d^{2}f}{dx^{2}}$
+    # Second order first (more specific)
+    text = re.sub(
+        r"\bd\s*2\s*([a-zA-Z])\s*/\s*d\s*([a-zA-Z])\s*2\b",
+        r"$\\frac{d^{2}\1}{d\2^{2}}$",
+        text,
+    )
+    # First order: df/dx, dy/dt, dP/dV, etc.
+    text = re.sub(
+        r"(?<![a-zA-Z])\bd([a-zA-Z])\s*/\s*d([a-zA-Z])\b",
+        r"$\\frac{d\1}{d\2}$",
+        text,
+    )
+    # Bare operator: d/dx, d/dt
+    text = re.sub(
+        r"(?<![a-zA-Z])\bd\s*/\s*d([a-zA-Z])\b",
+        r"$\\frac{d}{d\1}$",
+        text,
+    )
+
+    # ── 10. Partial derivatives: "∂f/∂x", "$\partial$f/$\partial$x" ───
+    #    After _clean(), ∂ becomes $\partial$ — handle both raw and cleaned
+    # Raw unicode ∂ (if somehow survived _clean)
+    text = re.sub(
+        r"\u2202\s*([a-zA-Z])\s*/\s*\u2202\s*([a-zA-Z])",
+        r"$\\frac{\\partial \1}{\\partial \2}$",
+        text,
+    )
+    # Post-_clean form: $\partial$f/$\partial$x
+    text = re.sub(
+        r"\$\\partial\$\s*([a-zA-Z])\s*/\s*\$\\partial\$\s*([a-zA-Z])",
+        r"$\\frac{\\partial \1}{\\partial \2}$",
+        text,
+    )
+    # Bare: $\partial$/$\partial$x
+    text = re.sub(
+        r"\$\\partial\$\s*/\s*\$\\partial\$\s*([a-zA-Z])",
+        r"$\\frac{\\partial}{\\partial \1}$",
+        text,
+    )
+
+    # ── 11. Integral expressions: "∫ f(x) dx", "$\int$ f(x) dx" ──────
+    #    After _clean(), ∫ becomes $\int$ — detect and wrap properly
+    # Post-_clean: "$\int$ ... dx" or "$\int$ ... dt"
+    text = re.sub(
+        r"\$\\int\$\s*(.{1,60}?)\s*d([a-zA-Z])\b",
+        lambda m: "$\\int " + m.group(1).replace("$", "").strip()
+                  + " \\, d" + m.group(2) + "$",
+        text,
+    )
+    # Raw unicode ∫ (if survived)
+    text = re.sub(
+        r"\u222b\s*(.{1,60}?)\s*d([a-zA-Z])\b",
+        lambda m: "$\\int " + m.group(1).replace("$", "").strip()
+                  + " \\, d" + m.group(2) + "$",
+        text,
+    )
+    # Definite integrals: "$\int$_a^b f(x) dx" or "$\int$ a b f(x) dx"
+    text = re.sub(
+        r"\$\\int\$\s*_?\s*([a-zA-Z0-9])\s*\^?\s*([a-zA-Z0-9])\s+(.{1,50}?)\s*d([a-zA-Z])\b",
+        lambda m: "$\\int_{" + m.group(1) + "}^{" + m.group(2) + "} "
+                  + m.group(3).replace("$", "").strip()
+                  + " \\, d" + m.group(4) + "$",
+        text,
+    )
+
+    # ── 12. Simple fractions in equation context: "a / b" near = ───────
+    #    Only fire on lines with "=" to avoid prose like "and/or"
+    def _frac_in_equation(line: str) -> str:
+        if "=" not in line:
+            return line
+        # "1 / 2", "a / b" — single token on each side of /
+        return re.sub(
+            r"(?<!\w)([a-zA-Z0-9]+)\s*/\s*([a-zA-Z0-9]+)(?!\w)",
+            lambda m: (
+                "$\\frac{" + m.group(1) + "}{" + m.group(2) + "}$"
+                if len(m.group(1)) <= 3 and len(m.group(2)) <= 3
+                else m.group(0)
+            ),
+            line,
+        )
+
+    text = "\n".join(_frac_in_equation(ln) for ln in text.split("\n"))
+
+    return text
+
+
 def _clean_with_math(text: str) -> str:
     """
-    Six-step pipeline for body/abstract:
+    Eight-step pipeline for body/abstract:
       1. _clean()                          — unicode -> $\\cmd$ fragments
       2. _merge_adjacent_math()            — $a$$b$ -> $ab$
       3. _fix_superscript_space()          — "$\\sigma$ 2" -> "$\\sigma^{2}$"
       4. _consolidate_math_lines()         — heavy math lines -> single $...$
       5. _compact_equation_lines()         — remove pdfplumber spacing in eq lines
       6. _separate_numbered_equations()    — split collapsed eq runs into paragraphs
+      7. _fix_decimal_spaces()             — "3 . 1415" -> "3.1415"
+      8. _fix_inline_math_patterns()       — superscripts, subscripts, log(), O()
+         9.  derivatives:  df/dx -> $\\frac{df}{dx}$
+         10. partials:     ∂f/∂x -> $\\frac{\\partial f}{\\partial x}$
+         11. integrals:    ∫f(x)dx -> $\\int f(x) \\, dx$
+         12. fractions:    a/b (in equations) -> $\\frac{a}{b}$
     """
     if not text:
         return ""
@@ -404,6 +594,8 @@ def _clean_with_math(text: str) -> str:
     text = _consolidate_math_lines(text)
     text = _compact_equation_lines(text)
     text = _separate_numbered_equations(text)
+    text = _fix_decimal_spaces(text)
+    text = _fix_inline_math_patterns(text)
     return text
 
 
