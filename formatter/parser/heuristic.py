@@ -151,6 +151,9 @@ def _parse_font_aware(blocks, tables, images, doc):
                 score -= 50
             if "@" in t or "http" in t.lower():
                 score -= 50
+            # "Authors" heading is never the title
+            if re.match(r"^authors?\s*$", t, re.IGNORECASE):
+                score -= 100
             return score
 
         title_b = max(page1_clean, key=_title_score)
@@ -229,6 +232,7 @@ def _parse_font_aware(blocks, tables, images, doc):
 
     flush()
     _attach_tables(doc, tables, blocks)
+    _extract_inline_tables(doc)
     _attach_images(doc, images, blocks)
     _extract_refs_from_blocks(blocks, doc)
 
@@ -448,6 +452,7 @@ def _parse_text_only(blocks, tables, images, doc):
 
     flush()
     _attach_tables(doc, tables, blocks)
+    _extract_inline_tables(doc)
     _attach_images(doc, images, blocks)
     _extract_refs_from_blocks(blocks, doc)
 
@@ -790,6 +795,132 @@ def _clean_author_name(text: str) -> str:
     return clean.strip()
 
 
+def _extract_author_from_concat_line(line: str):
+    """Extract author name + affiliation from a single concatenated line.
+
+    PyMuPDF sometimes produces blocks like:
+      "Samaira Mittal Department of Computer Science XYZ Institute, India email@x.com"
+      "Arjun Mehta, Student Member, IEEE Department of Computer Science, ..."
+    This splits at the first affiliation keyword and checks if the prefix is
+    a valid author name.
+
+    Returns (Author, remaining_text) or (None, None).
+    """
+    # Strip IEEE membership designations before processing
+    # e.g. ", Student Member, IEEE", ", Senior Member, IEEE", ", Fellow, IEEE"
+    _IEEE_MEMBER_RE = re.compile(
+        r",?\s*(?:Student\s+|Senior\s+|Life\s+|Fellow\s*,?\s*)?Member,?\s*IEEE",
+        re.IGNORECASE,
+    )
+    cleaned_line = _IEEE_MEMBER_RE.sub("", line).strip()
+    # Also handle standalone ", IEEE" or ", IEEE," fragments
+    cleaned_line = re.sub(r",?\s*IEEE\b,?", "", cleaned_line).strip()
+
+    # Split at the first occurrence of an affiliation keyword
+    split_kws = [
+        "department", "dept", "faculty", "school of", "division of",
+        "university", "institute", "college", "laboratory",
+        "inc.", "corp", "ltd", "research center", "polytechnic",
+    ]
+    low = cleaned_line.lower()
+    split_pos = len(cleaned_line)
+    for kw in split_kws:
+        idx = low.find(kw)
+        if idx > 0 and idx < split_pos:
+            split_pos = idx
+
+    if split_pos == len(cleaned_line):
+        return None, None
+
+    name_part = cleaned_line[:split_pos].strip().rstrip(",").strip()
+    rest = cleaned_line[split_pos:].strip()
+
+    if not _looks_like_author(name_part):
+        return None, None
+
+    author = Author(name=_clean_author_name(name_part))
+
+    # Parse the remaining text for department, organization, location, email
+    # Remove email first
+    email_m = re.search(r"[\w.+-]+@[\w.-]+\.\w+", rest)
+    if email_m:
+        author.email = email_m.group(0)
+        rest = rest[:email_m.start()] + rest[email_m.end():]
+
+    rest = rest.strip().rstrip(",").strip()
+    if not rest:
+        return author, ""
+
+    # Split affiliation into department, organization, and location.
+    # Pattern: "Department of Computer Science XYZ Institute of Technology, India"
+    #   → dept="Department of Computer Science"
+    #   → org="XYZ Institute of Technology"
+    #   → city="India"
+    rest_low = rest.lower()
+
+    # Extract location: text after last comma (e.g. ", India")
+    last_comma = rest.rfind(",")
+    location = ""
+    if last_comma > 0:
+        candidate = rest[last_comma + 1:].strip()
+        # Only treat as location if it's short (country/city name)
+        if len(candidate.split()) <= 4 and not any(
+            kw in candidate.lower() for kw in ["department", "university", "institute"]
+        ):
+            location = candidate
+            rest = rest[:last_comma].strip()
+            rest_low = rest.lower()
+
+    # Split department from organization.
+    # Strategy 1: comma-separated — "Department of CS, Global Tech University"
+    # Strategy 2: all-caps abbreviation — "Department of CS XYZ Institute of Tech"
+    # Strategy 3: fallback — everything as organization
+
+    # Check for comma split between dept and org keywords
+    comma_idx = rest.find(",")
+    if comma_idx > 0:
+        before = rest[:comma_idx].strip()
+        after = rest[comma_idx + 1:].strip()
+        before_low = before.lower()
+        after_low = after.lower()
+        # If "before" has dept keywords and "after" has org keywords, split there
+        has_dept = any(kw in before_low for kw in ["department", "dept", "faculty", "school", "division"])
+        has_org = any(kw in after_low for kw in ["university", "institute", "college", "polytechnic"])
+        if has_dept and has_org:
+            author.department = before
+            author.organization = after
+            if location:
+                author.city = location
+            return author, ""
+
+    # Look for all-caps abbreviation (org name prefix like "XYZ", "ABC", "MIT")
+    # followed eventually by an org keyword
+    org_kws = ["university", "institute", "college", "polytechnic", "laboratory"]
+    has_org_kw = any(kw in rest_low for kw in org_kws)
+    if has_org_kw:
+        # Find an all-caps word (2+ chars) that precedes an org keyword
+        abbrev_m = re.search(r"\b([A-Z]{2,})\s", rest)
+        if abbrev_m:
+            org_start = abbrev_m.start()
+            dept_part = rest[:org_start].strip().rstrip(",").strip()
+            org_part = rest[org_start:].strip().rstrip(",").strip()
+            if dept_part:
+                author.department = dept_part
+                author.organization = org_part
+            else:
+                author.organization = rest.strip()
+        else:
+            # No abbreviation — put it all in organization
+            author.organization = rest.strip()
+    else:
+        author.organization = rest.strip()
+
+    if location:
+        author.city = location
+
+    return author, rest
+
+
 def _has_multi_author_pattern(line: str) -> bool:
     parts = re.split(r"\s+and\s+", line)
     return (len(parts) >= 2
@@ -888,15 +1019,32 @@ def _detect_authors_between_title_and_abstract(blocks, doc):
     Handles:
     - "Authors" label blocks (skipped)
     - Multi-line PyMuPDF blocks (split on newlines and process each line)
+    - Title text that differs slightly from doc.title (whitespace, linebreaks)
     """
+    if not doc.title:
+        return
+
     found_title = False
     current_author = None
+
+    # Normalize helper: collapse whitespace for robust comparison
+    def _norm(s: str) -> str:
+        return " ".join(s.split()).lower()
+
+    title_norm = _norm(doc.title)
+
     for b in blocks:
         t = b["text"].strip()
-        if t == doc.title:
-            found_title = True
-            continue
         if not found_title:
+            t_norm = _norm(t)
+            # Match: exact, containment, or significant overlap
+            if (t_norm == title_norm
+                    or title_norm in t_norm
+                    or t_norm in title_norm
+                    or (len(title_norm) > 20
+                        and title_norm[:20] == t_norm[:20])):
+                found_title = True
+                continue
             continue
         if re.match(r"^abstract", t, re.IGNORECASE):
             break
@@ -916,17 +1064,192 @@ def _detect_authors_between_title_and_abstract(blocks, doc):
             if _looks_like_author(line):
                 current_author = Author(name=_clean_author_name(line))
                 doc.authors.append(current_author)
-            elif current_author:
-                if _looks_like_department(line):
-                    current_author.department = line
-                elif _looks_like_organization(line):
-                    current_author.organization = line
-                elif _looks_like_location(line):
-                    current_author.city = line
-                elif _looks_like_email(line):
-                    m = re.search(r"[\w.+-]+@[\w.-]+\.\w+", line)
-                    if m:
-                        current_author.email = m.group(0)
+            else:
+                # Try extracting author from concatenated line
+                # e.g. "Samaira Mittal Department of CS XYZ Univ, India email@x.com"
+                concat_author, _ = _extract_author_from_concat_line(line)
+                if concat_author:
+                    current_author = concat_author
+                    doc.authors.append(current_author)
+                elif current_author:
+                    if _looks_like_department(line):
+                        current_author.department = line
+                    elif _looks_like_organization(line):
+                        current_author.organization = line
+                    elif _looks_like_location(line):
+                        current_author.city = line
+                    elif _looks_like_email(line):
+                        m = re.search(r"[\w.+-]+@[\w.-]+\.\w+", line)
+                        if m:
+                            current_author.email = m.group(0)
+
+    # ── Fallback: if block-walk found nothing, scan all page-1 blocks ────────
+    if not doc.authors:
+        log.debug("author block-walk found nothing; trying page-1 scan fallback")
+        for b in blocks:
+            if b.get("page", 0) > 1:
+                break
+            t = b["text"].strip()
+            if _norm(t) == title_norm or re.match(r"^abstract", t, re.IGNORECASE):
+                continue
+            if re.match(r"^authors?\s*$", t, re.IGNORECASE):
+                continue
+            if _is_metadata_line(t):
+                continue
+            for line in t.split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                if _looks_like_author(line):
+                    current_author = Author(name=_clean_author_name(line))
+                    doc.authors.append(current_author)
+                else:
+                    concat_author, _ = _extract_author_from_concat_line(line)
+                    if concat_author:
+                        current_author = concat_author
+                        doc.authors.append(current_author)
+                    elif current_author:
+                        if _looks_like_department(line):
+                            current_author.department = line
+                        elif _looks_like_organization(line):
+                            current_author.organization = line
+                        elif _looks_like_email(line):
+                            m = re.search(r"[\w.+-]+@[\w.-]+\.\w+", line)
+                            if m:
+                                current_author.email = m.group(0)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Inline table extraction from section bodies
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _smart_table_split(line: str) -> list:
+    """Split a table row line into columns using number/percentage boundaries.
+
+    "OCR Only 75% Moderate Very Poor" → ["OCR Only", "75%", "Moderate", "Very Poor"]
+    "Rule-Based 65% Poor Poor" → ["Rule-Based", "65%", "Poor", "Poor"]
+
+    Strategy: find percentage/number tokens and use them as column anchors.
+    Text before the first number is column 1, each subsequent word group
+    between numbers is a column.
+    """
+    # Split on spaces first
+    words = line.split()
+    if len(words) < 2:
+        return [line]
+
+    # Find indices of "number" tokens (contain digits, possibly %)
+    num_indices = [i for i, w in enumerate(words) if re.match(r"^\d+%?$", w)]
+
+    if not num_indices:
+        return [line]  # no numbers found, can't smart-split
+
+    columns = []
+
+    # Everything before the first number = first column
+    if num_indices[0] > 0:
+        columns.append(" ".join(words[:num_indices[0]]))
+
+    # Each number is its own column
+    prev_end = num_indices[0]
+    for ni in range(len(num_indices)):
+        idx = num_indices[ni]
+        # If there's a text gap between previous number and this one, add it
+        if idx > prev_end:
+            columns.append(" ".join(words[prev_end:idx]))
+        columns.append(words[idx])
+        prev_end = idx + 1
+
+    # Remaining words after last number: split into individual word-group columns
+    if prev_end < len(words):
+        remaining = words[prev_end:]
+        # Group consecutive capitalized words as one column each
+        # "Moderate Very Poor" → one approach: each single word is a column
+        # unless they form a known multi-word like "Very Poor"
+        # Simple heuristic: look for "Very/Not/Quite" + adjective combos
+        i = 0
+        while i < len(remaining):
+            if (i + 1 < len(remaining)
+                    and remaining[i].lower() in ("very", "not", "quite", "no")):
+                columns.append(remaining[i] + " " + remaining[i + 1])
+                i += 2
+            else:
+                columns.append(remaining[i])
+                i += 1
+
+    return columns if len(columns) >= 2 else [line]
+
+
+def _extract_inline_tables(doc):
+    """Detect table-like rows embedded in section bodies and extract as Table objects.
+
+    Looks for paragraphs where multiple consecutive short lines share a
+    consistent column count (space/tab separated) and contain numbers or
+    percentage values.  Extracts them as a Table and removes from body text.
+    """
+    for section in doc.sections:
+        if section.tables:
+            continue  # already has tables, skip
+        body = section.body
+        if not body:
+            continue
+
+        paragraphs = body.split("\n\n")
+        table_rows = []
+        table_para_indices = []
+        non_table_paras = []
+
+        for pi, para in enumerate(paragraphs):
+            para = para.strip()
+            if not para:
+                non_table_paras.append(para)
+                continue
+
+            # A "table row" candidate: short line (<150 chars), contains a
+            # number or percentage, and has 2+ whitespace-separated tokens.
+            lines = [l.strip() for l in para.split("\n") if l.strip()]
+            is_table_block = True
+            block_rows = []
+            for line in lines:
+                # Try multi-space/tab split first
+                tokens = re.split(r"\s{2,}|\t", line)
+                if len(tokens) < 2:
+                    # Smart split: use percentage/number boundaries
+                    # "OCR Only 75% Moderate Very Poor"
+                    # → ["OCR Only", "75%", "Moderate", "Very Poor"]
+                    tokens = _smart_table_split(line)
+                has_number = bool(re.search(r"\d", line))
+                if len(tokens) >= 2 and has_number and len(line) < 150:
+                    block_rows.append(tokens)
+                else:
+                    is_table_block = False
+                    break
+
+            if is_table_block and len(block_rows) >= 1:
+                table_rows.extend(block_rows)
+                table_para_indices.append(pi)
+            else:
+                non_table_paras.append(para)
+
+        if len(table_rows) >= 2:
+            # Check column consistency: all rows should have similar col count
+            col_counts = [len(r) for r in table_rows]
+            median_cols = sorted(col_counts)[len(col_counts) // 2]
+            consistent = all(abs(c - median_cols) <= 1 for c in col_counts)
+
+            if consistent:
+                # Use section heading as caption
+                caption = f"Comparison — {section.heading}"
+                tbl = Table(
+                    caption=caption,
+                    headers=[],
+                    rows=table_rows,
+                )
+                section.tables.append(tbl)
+                # Remove table text from body
+                section.body = "\n\n".join(non_table_paras).strip()
+                log.debug("Extracted inline table (%d rows) from section '%s'",
+                           len(table_rows), section.heading)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1068,22 +1391,37 @@ def _extract_refs_from_blocks(blocks, doc):
         if not in_refs:
             continue
 
-        # [N] bracket marker  → "[1] Author..."
-        m = re.match(r"^\[(\d+)\]\s*(.*)", text)
-        # N. period marker    → "1. Author..." (common in many IEEE/NeurIPS papers)
-        # Require the text after "N." to be ≥ 20 chars to avoid matching
-        # stray page-number lines like "202. Springer."
-        if not m:
-            m2 = re.match(r"^(\d+)\.\s+(.*)", text)
-            if m2 and len(m2.group(2)) >= 20:
-                m = m2
-        if m:
-            if current_ref_parts and current_idx:
-                ref_texts.append((current_idx, " ".join(current_ref_parts)))
-            current_idx = int(m.group(1))
-            current_ref_parts = [m.group(2).strip()] if m.group(2).strip() else []
-        else:
-            current_ref_parts.append(text)
+        # Split lines that contain multiple [N] markers on one line.
+        # e.g. "[1] Ref text 1. [2] Ref text 2. [3] Ref text 3."
+        # → ["[1] Ref text 1.", "[2] Ref text 2.", "[3] Ref text 3."]
+        lines = re.split(r"(?=\[\d+\]\s)", text)
+        if len(lines) <= 1:
+            # Also try splitting on "N. " style markers mid-text
+            lines = re.split(r"(?<=\.)\s+(?=\d+\.\s)", text)
+        if len(lines) <= 1:
+            lines = [text]
+
+        for ref_line in lines:
+            ref_line = ref_line.strip()
+            if not ref_line:
+                continue
+
+            # [N] bracket marker  → "[1] Author..."
+            m = re.match(r"^\[(\d+)\]\s*(.*)", ref_line)
+            # N. period marker    → "1. Author..." (common in many IEEE/NeurIPS papers)
+            # Require the text after "N." to be ≥ 20 chars to avoid matching
+            # stray page-number lines like "202. Springer."
+            if not m:
+                m2 = re.match(r"^(\d+)\.\s+(.*)", ref_line)
+                if m2 and len(m2.group(2)) >= 20:
+                    m = m2
+            if m:
+                if current_ref_parts and current_idx:
+                    ref_texts.append((current_idx, " ".join(current_ref_parts)))
+                current_idx = int(m.group(1))
+                current_ref_parts = [m.group(2).strip()] if m.group(2).strip() else []
+            else:
+                current_ref_parts.append(ref_line)
 
     if current_ref_parts and current_idx:
         ref_texts.append((current_idx, " ".join(current_ref_parts)))

@@ -1,56 +1,47 @@
-2026-03-21 01:59:05  INFO      pipeline                  ======================================================================
-2026-03-21 01:59:05  INFO      pipeline                  RUN START
-2026-03-21 01:59:05  INFO      pipeline                    input    = paper.pdf
-2026-03-21 01:59:05  INFO      pipeline                    template = ieee
-2026-03-21 01:59:05  INFO      pipeline                    parser   = heuristic
-2026-03-21 01:59:05  INFO      pipeline                  ======================================================================
-2026-03-21 01:59:05  INFO      pipeline                  [1] Extractor — PDF/DOCX -> text + tables + images
-2026-03-21 01:59:06  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
-2026-03-21 01:59:07  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
-2026-03-21 01:59:07  INFO      extractor.pdf_extractor   Extracted 2 images from PDF
-2026-03-21 01:59:07  INFO      extractor.pdf_extractor   PDF extraction: 76 blocks, 11818 chars, 0 tables, 2 images
-2026-03-21 01:59:07  INFO      pipeline                    extracted: 11818 chars | 0 tables | 2 images
-2026-03-21 01:59:07  INFO      pipeline                  [2] Parser — raw text -> structured Document
-2026-03-21 01:59:07  INFO      parser.heuristic          Attached 2 image(s) to sections
-2026-03-21 01:59:07  INFO      parser.heuristic          Extracted 5 references
-2026-03-21 01:59:07  INFO      parser.heuristic          parse: title='AI-Driven Intelligent Document Processin'  authors=0  sections=17  refs=5
-2026-03-21 01:59:07  INFO      pipeline                    doc: title='AI-Driven Intelligent Document Processing: A Hybri'  authors=0  sections=17  tables=0  refs=5
-2026-03-21 01:59:07  INFO      pipeline                  [3] Normalizer — fix ligatures, unicode, math
-2026-03-21 01:59:07  INFO      pipeline                  [2.5] Canon — validate + repair + score Document
-2026-03-21 01:59:07  DEBUG     canon.builder             [CANON REPAIR] authors: no valid authors found, using empty list
-2026-03-21 01:59:07  DEBUG     canon.builder             [CANON REPAIR] keywords: none found
-2026-03-21 01:59:07  INFO      canon.builder             Canonical build complete:
-  overall_confidence : 0.592
+2026-03-21 09:53:42  INFO      pipeline                  ======================================================================
+2026-03-21 09:53:42  INFO      pipeline                  RUN START
+2026-03-21 09:53:42  INFO      pipeline                    input    = paper.pdf
+2026-03-21 09:53:42  INFO      pipeline                    template = ieee
+2026-03-21 09:53:42  INFO      pipeline                    parser   = heuristic
+2026-03-21 09:53:42  INFO      pipeline                  ======================================================================
+2026-03-21 09:53:42  INFO      pipeline                  [1] Extractor — PDF/DOCX -> text + tables + images
+2026-03-21 09:53:42  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
+2026-03-21 09:53:43  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
+2026-03-21 09:53:43  INFO      extractor.pdf_extractor   Extracted 2 images from PDF
+2026-03-21 09:53:43  INFO      extractor.pdf_extractor   PDF extraction: 76 blocks, 11818 chars, 0 tables, 2 images
+2026-03-21 09:53:43  INFO      pipeline                    extracted: 11818 chars | 0 tables | 2 images
+2026-03-21 09:53:43  INFO      pipeline                  [2] Parser — raw text -> structured Document
+2026-03-21 09:53:43  DEBUG     parser.heuristic          Extracted inline table (3 rows) from section 'Comparative Study'
+2026-03-21 09:53:43  INFO      parser.heuristic          Attached 2 image(s) to sections
+2026-03-21 09:53:43  INFO      parser.heuristic          Extracted 5 references
+2026-03-21 09:53:43  INFO      parser.heuristic          parse: title='AI-Driven Intelligent Document Processin'  authors=3  sections=17  refs=5
+2026-03-21 09:53:43  INFO      pipeline                    doc: title='AI-Driven Intelligent Document Processing: A Hybri'  authors=3  sections=17  tables=1  refs=5
+2026-03-21 09:53:43  INFO      pipeline                  [3] Normalizer — fix ligatures, unicode, math
+2026-03-21 09:53:43  INFO      pipeline                  [2.5] Canon — validate + repair + score Document
+2026-03-21 09:53:43  DEBUG     canon.builder             [CANON REPAIR] keywords: none found
+2026-03-21 09:53:43  INFO      canon.builder             Canonical build complete:
+  overall_confidence : 0.742
   title              : [0.90] 'AI-Driven Intelligent Document Processing: A Hybrid Deep Learning Fram'
-  authors            : [0.00] 0 authors
+  authors            : [0.90] 3 authors
   abstract           : [0.85] 1574 chars
   keywords           : [0.00] []
   sections           : [0.90] 17 sections
   references         : [0.90] 5 refs
   renderable         : True
-  repairs (2):
-    - authors: no valid authors found, using empty list
+  repairs (1):
     - keywords: none found
   warnings (1):
-    ! no authors could be extracted
-2026-03-21 01:59:07  WARNING   core.pipeline             [CANON] no authors could be extracted
-2026-03-21 01:59:07  INFO      pipeline                  [4] Renderer — Document -> LaTeX [ieee]
-2026-03-21 01:59:07  INFO      pipeline                  [5] Compiler — LaTeX -> PDF
-2026-03-21 01:59:08  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
-/00miktex\epst
-opdf-sys.cfg)) (generated.out) (generated.out)
-
-LaTeX Warning: No \author given.
-
-
-LaTeX Warning: No \author given.
-
-
-LaTeX Warning: No \author given.
-
-[1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdftex.
-map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/bas
-e/8r.enc}]
+    ! section 'Comparative Study' has empty body
+2026-03-21 09:53:43  WARNING   core.pipeline             [CANON] section 'Comparative Study' has empty body
+2026-03-21 09:53:43  INFO      pipeline                  [4] Renderer — Document -> LaTeX [ieee]
+2026-03-21 09:53:43  INFO      pipeline                  [5] Compiler — LaTeX -> PDF
+2026-03-21 09:53:44  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
+stall\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}]
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
 .fd)
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
@@ -73,24 +64,16 @@ tex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sc
 oop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/User
 s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.p
 fb>
-Output written on generated.pdf (3 pages, 147328 bytes).
+Output written on generated.pdf (3 pages, 149617 bytes).
 Transcript written on generated.log.
 
-2026-03-21 01:59:08  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
-/00miktex\epst
-opdf-sys.cfg)) (generated.out) (generated.out)
-
-LaTeX Warning: No \author given.
-
-
-LaTeX Warning: No \author given.
-
-
-LaTeX Warning: No \author given.
-
-[1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdftex.
-map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/bas
-e/8r.enc}]
+2026-03-21 09:53:45  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+stall\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}]
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
 .fd)
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
@@ -113,9 +96,9 @@ tex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sc
 oop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/User
 s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.p
 fb>
-Output written on generated.pdf (3 pages, 147328 bytes).
+Output written on generated.pdf (3 pages, 149617 bytes).
 Transcript written on generated.log.
 
-2026-03-21 01:59:08  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
-2026-03-21 01:59:08  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (2.9s)
-2026-03-21 01:59:08  INFO      pipeline                  
+2026-03-21 09:53:45  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+2026-03-21 09:53:45  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (3.1s)
+2026-03-21 09:53:45  INFO      pipeline                  

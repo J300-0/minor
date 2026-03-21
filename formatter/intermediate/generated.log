@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12 Portable) (preloaded format=pdflatex 2026.3.16)  21 MAR 2026 01:59
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12 Portable) (preloaded format=pdflatex 2026.3.16)  21 MAR 2026 09:53
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -493,40 +493,30 @@ Package hyperref Info: Link coloring OFF on input line 12.
 \@outlinefile=\write3
 \openout3 = `generated.out'.
 
-
-
-LaTeX Warning: No \author given.
-
-
-LaTeX Warning: No \author given.
-
-
-LaTeX Warning: No \author given.
-
-[1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdftex.
-map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/bas
-e/8r.enc}
+ [1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdftex
+.map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/ba
+se/8r.enc}
 
 
 ]
-<fig_1_p3.png, id=83, 365.6862pt x 190.7928pt>
+<fig_1_p3.png, id=84, 365.6862pt x 190.7928pt>
 File: fig_1_p3.png Graphic file (type png)
 <use fig_1_p3.png>
-Package pdftex.def Info: fig_1_p3.png  used on input line 48.
+Package pdftex.def Info: fig_1_p3.png  used on input line 71.
 (pdftex.def)             Requested size: 252.0pt x 131.48122pt.
-<fig_2_p3.png, id=84, 364.60216pt x 196.21304pt>
+<fig_2_p3.png, id=85, 364.60216pt x 196.21304pt>
 File: fig_2_p3.png Graphic file (type png)
 <use fig_2_p3.png>
-Package pdftex.def Info: fig_2_p3.png  used on input line 53.
+Package pdftex.def Info: fig_2_p3.png  used on input line 76.
 (pdftex.def)             Requested size: 252.0pt x 135.61768pt.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 67.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 90.
 
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
 .fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 67.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 90.
 
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
@@ -553,11 +543,11 @@ Package rerunfilecheck Info: File `generated.out' has not changed.
 (rerunfilecheck)             Checksum: 53119AA1665AE1F7AA0318C330DCE614;2373.
  ) 
 Here is how much of TeX's memory you used:
- 11374 strings out of 467871
- 177480 string characters out of 5413518
- 605796 words of memory out of 5000000
- 40099 multiletter control sequences out of 15000+600000
- 728441 words of font info for 135 fonts, out of 8000000 for 9000
+ 11402 strings out of 467871
+ 177822 string characters out of 5413518
+ 606796 words of memory out of 5000000
+ 40117 multiletter control sequences out of 15000+600000
+ 737835 words of font info for 150 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,8n,79p,1592b,446s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/am
@@ -566,9 +556,9 @@ nts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/
 install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/curr
 ent/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/Users/janme/scoop/apps/
 latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.pfb>
-Output written on generated.pdf (3 pages, 147328 bytes).
+Output written on generated.pdf (3 pages, 149617 bytes).
 PDF statistics:
- 132 PDF objects out of 1000 (max. 8388607)
- 27 named destinations out of 1000 (max. 500000)
+ 133 PDF objects out of 1000 (max. 8388607)
+ 28 named destinations out of 1000 (max. 500000)
  155 words of extra memory for PDF output out of 10000 (max. 10000000)
 

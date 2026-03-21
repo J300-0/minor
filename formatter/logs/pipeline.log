@@ -10606,3 +10606,807 @@ Transcript written on generated.log.
 2026-03-21 01:59:08  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
 2026-03-21 01:59:08  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (2.9s)
 2026-03-21 01:59:08  INFO      pipeline                  
+2026-03-21 09:24:42  INFO      pipeline                  ======================================================================
+2026-03-21 09:24:42  INFO      pipeline                  RUN START
+2026-03-21 09:24:42  INFO      pipeline                    input    = paper.pdf
+2026-03-21 09:24:42  INFO      pipeline                    template = ieee
+2026-03-21 09:24:42  INFO      pipeline                    parser   = heuristic
+2026-03-21 09:24:42  INFO      pipeline                  ======================================================================
+2026-03-21 09:24:42  INFO      pipeline                  [1] Extractor — PDF/DOCX -> text + tables + images
+2026-03-21 09:24:43  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
+2026-03-21 09:24:43  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
+2026-03-21 09:24:43  INFO      extractor.pdf_extractor   Extracted 2 images from PDF
+2026-03-21 09:24:43  INFO      extractor.pdf_extractor   PDF extraction: 76 blocks, 11818 chars, 0 tables, 2 images
+2026-03-21 09:24:43  INFO      pipeline                    extracted: 11818 chars | 0 tables | 2 images
+2026-03-21 09:24:43  INFO      pipeline                  [2] Parser — raw text -> structured Document
+2026-03-21 09:24:43  DEBUG     parser.heuristic          author block-walk found nothing; trying page-1 scan fallback
+2026-03-21 09:24:43  INFO      parser.heuristic          Attached 2 image(s) to sections
+2026-03-21 09:24:43  INFO      parser.heuristic          Extracted 5 references
+2026-03-21 09:24:43  INFO      parser.heuristic          parse: title='AI-Driven Intelligent Document Processin'  authors=0  sections=17  refs=5
+2026-03-21 09:24:43  INFO      pipeline                    doc: title='AI-Driven Intelligent Document Processing: A Hybri'  authors=0  sections=17  tables=0  refs=5
+2026-03-21 09:24:43  INFO      pipeline                  [3] Normalizer — fix ligatures, unicode, math
+2026-03-21 09:24:43  INFO      pipeline                  [2.5] Canon — validate + repair + score Document
+2026-03-21 09:24:43  DEBUG     canon.builder             [CANON REPAIR] authors: no valid authors found, using empty list
+2026-03-21 09:24:43  DEBUG     canon.builder             [CANON REPAIR] keywords: none found
+2026-03-21 09:24:43  INFO      canon.builder             Canonical build complete:
+  overall_confidence : 0.592
+  title              : [0.90] 'AI-Driven Intelligent Document Processing: A Hybrid Deep Learning Fram'
+  authors            : [0.00] 0 authors
+  abstract           : [0.85] 1574 chars
+  keywords           : [0.00] []
+  sections           : [0.90] 17 sections
+  references         : [0.90] 5 refs
+  renderable         : True
+  repairs (2):
+    - authors: no valid authors found, using empty list
+    - keywords: none found
+  warnings (1):
+    ! no authors could be extracted
+2026-03-21 09:24:43  WARNING   core.pipeline             [CANON] no authors could be extracted
+2026-03-21 09:24:43  INFO      pipeline                  [4] Renderer — Document -> LaTeX [ieee]
+2026-03-21 09:24:43  INFO      pipeline                  [5] Compiler — LaTeX -> PDF
+2026-03-21 09:24:44  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
+/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out)
+
+LaTeX Warning: No \author given.
+
+
+LaTeX Warning: No \author given.
+
+
+LaTeX Warning: No \author given.
+
+[1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdftex.
+map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/bas
+e/8r.enc}]
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
+.fd)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
+.fd) [2 <./fig_1_p3.png> <./fig_2_p3.png>]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[3] (generated.aux) )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/la
+tex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sc
+oop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/User
+s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.p
+fb>
+Output written on generated.pdf (3 pages, 147328 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:24:45  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out)
+
+LaTeX Warning: No \author given.
+
+
+LaTeX Warning: No \author given.
+
+
+LaTeX Warning: No \author given.
+
+[1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdftex.
+map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/bas
+e/8r.enc}]
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
+.fd)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
+.fd) [2 <./fig_1_p3.png> <./fig_2_p3.png>]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[3] (generated.aux) )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/la
+tex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sc
+oop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/User
+s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.p
+fb>
+Output written on generated.pdf (3 pages, 147328 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:24:45  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+2026-03-21 09:24:45  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (3.1s)
+2026-03-21 09:24:45  INFO      pipeline                  
+2026-03-21 09:29:17  INFO      pipeline                  ======================================================================
+2026-03-21 09:29:17  INFO      pipeline                  RUN START
+2026-03-21 09:29:17  INFO      pipeline                    input    = 10pages.pdf
+2026-03-21 09:29:17  INFO      pipeline                    template = ieee
+2026-03-21 09:29:17  INFO      pipeline                    parser   = heuristic
+2026-03-21 09:29:17  INFO      pipeline                  ======================================================================
+2026-03-21 09:29:17  INFO      pipeline                  [1] Extractor — PDF/DOCX -> text + tables + images
+2026-03-21 09:29:18  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
+2026-03-21 09:29:18  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
+2026-03-21 09:29:19  INFO      extractor.pdf_extractor   Extracted 2 images from PDF
+2026-03-21 09:29:19  INFO      extractor.pdf_extractor   PDF extraction: 60 blocks, 65966 chars, 0 tables, 2 images
+2026-03-21 09:29:19  INFO      pipeline                    extracted: 65966 chars | 0 tables | 2 images
+2026-03-21 09:29:19  INFO      pipeline                  [2] Parser — raw text -> structured Document
+2026-03-21 09:29:19  DEBUG     parser.heuristic          author block-walk found nothing; trying page-1 scan fallback
+2026-03-21 09:29:19  INFO      parser.heuristic          Attached 2 image(s) to sections
+2026-03-21 09:29:19  INFO      parser.heuristic          Extracted 1 references
+2026-03-21 09:29:19  INFO      parser.heuristic          parse: title='Artificial Intelligence in Healthcare: T'  authors=0  sections=10  refs=1
+2026-03-21 09:29:19  INFO      pipeline                    doc: title='Artificial Intelligence in Healthcare: Transformin'  authors=0  sections=10  tables=0  refs=1
+2026-03-21 09:29:19  INFO      pipeline                  [3] Normalizer — fix ligatures, unicode, math
+2026-03-21 09:29:19  INFO      pipeline                  [2.5] Canon — validate + repair + score Document
+2026-03-21 09:29:19  DEBUG     canon.builder             [CANON REPAIR] authors: no valid authors found, using empty list
+2026-03-21 09:29:19  DEBUG     canon.builder             [CANON REPAIR] abstract: unusually long (5909 chars), may contain body text
+2026-03-21 09:29:19  DEBUG     canon.builder             [CANON REPAIR] keywords: none found
+2026-03-21 09:29:19  INFO      canon.builder             Canonical build complete:
+  overall_confidence : 0.467
+  title              : [0.90] 'Artificial Intelligence in Healthcare: Transforming Modern Medicine'
+  authors            : [0.00] 0 authors
+  abstract           : [0.50] 5909 chars
+  keywords           : [0.00] []
+  sections           : [0.90] 10 sections
+  references         : [0.50] 1 refs
+  renderable         : True
+  repairs (3):
+    - authors: no valid authors found, using empty list
+    - abstract: unusually long (5909 chars), may contain body text
+    - keywords: none found
+  warnings (2):
+    ! no authors could be extracted
+    ! abstract is unusually long — may include body text
+2026-03-21 09:29:19  WARNING   core.pipeline             [CANON] no authors could be extracted
+2026-03-21 09:29:19  WARNING   core.pipeline             [CANON] abstract is unusually long — may include body text
+2026-03-21 09:29:19  INFO      pipeline                  [4] Renderer — Document -> LaTeX [ieee]
+2026-03-21 09:29:19  INFO      pipeline                  [5] Compiler — LaTeX -> PDF
+2026-03-21 09:29:20  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
+t): name{subsection.3.4} has been referenced but does not ex
+ist, replaced by a fixed one
+
+
+pdfTeX warning (dest): name{subsection.3.3} has been referenced but does not ex
+ist, replaced by a fixed one
+
+
+pdfTeX warning (dest): name{subsection.3.2} has been referenced but does not ex
+ist, replaced by a fixed one
+
+
+pdfTeX warning (dest): name{subsection.3.1} has been referenced but does not ex
+ist, replaced by a fixed one
+
+
+pdfTeX warning (dest): name{subsection.2.6} has been referenced but does not ex
+ist, replaced by a fixed one
+
+
+pdfTeX warning (dest): name{subsection.2.5} has been referenced but does not ex
+ist, replaced by a fixed one
+
+
+pdfTeX warning (dest): name{subsection.2.4} has been referenced but does not ex
+ist, replaced by a fixed one
+
+
+pdfTeX warning (dest): name{subsection.2.3} has been referenced but does not ex
+ist, replaced by a fixed one
+
+
+pdfTeX warning (dest): name{subsection.2.2} has been referenced but does not ex
+ist, replaced by a fixed one
+
+
+pdfTeX warning (dest): name{subsection.2.1} has been referenced but does not ex
+ist, replaced by a fixed one
+
+<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/u
+tmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/u
+rw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/urw/times/utmr8a.pfb>
+Output written on generated.pdf (5 pages, 63982 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:29:20  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out)
+
+LaTeX Warning: No \author given.
+
+
+LaTeX Warning: No \author given.
+
+
+LaTeX Warning: No \author given.
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active [1{C:/User
+s/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Us
+ers/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}]
+[2 <./fig_1_p6.png>] [3 <./fig_2_p12.png>] [4]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[5] (generated.aux) )
+(see the transcript file for additional information)<C:/Users/janme/scoop/apps/
+latex/current/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/s
+coop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Us
+ers/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.
+pfb>
+Output written on generated.pdf (5 pages, 60692 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:29:20  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+2026-03-21 09:29:20  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (3.6s)
+2026-03-21 09:29:20  INFO      pipeline                  
+2026-03-21 09:33:35  INFO      pipeline                  ======================================================================
+2026-03-21 09:33:35  INFO      pipeline                  RUN START
+2026-03-21 09:33:35  INFO      pipeline                    input    = 10pages.pdf
+2026-03-21 09:33:35  INFO      pipeline                    template = ieee
+2026-03-21 09:33:35  INFO      pipeline                    parser   = heuristic
+2026-03-21 09:33:35  INFO      pipeline                  ======================================================================
+2026-03-21 09:33:35  INFO      pipeline                  [1] Extractor — PDF/DOCX -> text + tables + images
+2026-03-21 09:33:36  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
+2026-03-21 09:33:36  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
+2026-03-21 09:33:37  INFO      extractor.pdf_extractor   Extracted 2 images from PDF
+2026-03-21 09:33:37  INFO      extractor.pdf_extractor   PDF extraction: 60 blocks, 65966 chars, 0 tables, 2 images
+2026-03-21 09:33:37  INFO      pipeline                    extracted: 65966 chars | 0 tables | 2 images
+2026-03-21 09:33:37  INFO      pipeline                  [2] Parser — raw text -> structured Document
+2026-03-21 09:33:37  INFO      parser.heuristic          Attached 2 image(s) to sections
+2026-03-21 09:33:37  INFO      parser.heuristic          Extracted 1 references
+2026-03-21 09:33:37  INFO      parser.heuristic          parse: title='Artificial Intelligence in Healthcare: T'  authors=1  sections=10  refs=1
+2026-03-21 09:33:37  INFO      pipeline                    doc: title='Artificial Intelligence in Healthcare: Transformin'  authors=1  sections=10  tables=0  refs=1
+2026-03-21 09:33:37  INFO      pipeline                  [3] Normalizer — fix ligatures, unicode, math
+2026-03-21 09:33:37  INFO      pipeline                  [2.5] Canon — validate + repair + score Document
+2026-03-21 09:33:37  DEBUG     canon.builder             [CANON REPAIR] abstract: unusually long (5909 chars), may contain body text
+2026-03-21 09:33:37  DEBUG     canon.builder             [CANON REPAIR] keywords: none found
+2026-03-21 09:33:37  INFO      canon.builder             Canonical build complete:
+  overall_confidence : 0.617
+  title              : [0.90] 'Artificial Intelligence in Healthcare: Transforming Modern Medicine'
+  authors            : [0.90] 1 authors
+  abstract           : [0.50] 5909 chars
+  keywords           : [0.00] []
+  sections           : [0.90] 10 sections
+  references         : [0.50] 1 refs
+  renderable         : True
+  repairs (2):
+    - abstract: unusually long (5909 chars), may contain body text
+    - keywords: none found
+  warnings (1):
+    ! abstract is unusually long — may include body text
+2026-03-21 09:33:37  WARNING   core.pipeline             [CANON] abstract is unusually long — may include body text
+2026-03-21 09:33:37  INFO      pipeline                  [4] Renderer — Document -> LaTeX [ieee]
+2026-03-21 09:33:37  INFO      pipeline                  [5] Compiler — LaTeX -> PDF
+2026-03-21 09:33:38  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
+))
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/l3backend\l3b
+ackend-pdftex.def) (generated.aux)
+-- Lines per column: 56 (exact).
+
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/context/base/mkii\s
+upp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}] [2 <./fig_1_p6.png>]
+[3 <./fig_2_p12.png>] [4]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[5] (generated.aux) )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/
+install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/curr
+ent/texmfs/install/fonts/type1/urw/times/utmr8a.pfb>
+Output written on generated.pdf (5 pages, 61036 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:33:38  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+))
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/l3backend\l3b
+ackend-pdftex.def) (generated.aux)
+-- Lines per column: 56 (exact).
+
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/context/base/mkii\s
+upp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}] [2 <./fig_1_p6.png>]
+[3 <./fig_2_p12.png>] [4]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[5] (generated.aux) )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/
+install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/curr
+ent/texmfs/install/fonts/type1/urw/times/utmr8a.pfb>
+Output written on generated.pdf (5 pages, 61036 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:33:38  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+2026-03-21 09:33:38  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (3.4s)
+2026-03-21 09:33:38  INFO      pipeline                  
+2026-03-21 09:37:33  INFO      parser.heuristic          Extracted 10 references
+2026-03-21 09:37:41  DEBUG     parser.heuristic          Extracted inline table (3 rows) from section 'Comparative Study'
+2026-03-21 09:38:18  DEBUG     parser.heuristic          Extracted inline table (3 rows) from section 'Comparative Study'
+2026-03-21 09:38:49  INFO      pipeline                  ======================================================================
+2026-03-21 09:38:49  INFO      pipeline                  RUN START
+2026-03-21 09:38:49  INFO      pipeline                    input    = 10pages.pdf
+2026-03-21 09:38:49  INFO      pipeline                    template = ieee
+2026-03-21 09:38:49  INFO      pipeline                    parser   = heuristic
+2026-03-21 09:38:49  INFO      pipeline                  ======================================================================
+2026-03-21 09:38:49  INFO      pipeline                  [1] Extractor — PDF/DOCX -> text + tables + images
+2026-03-21 09:38:51  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
+2026-03-21 09:38:52  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
+2026-03-21 09:38:53  INFO      extractor.pdf_extractor   Extracted 2 images from PDF
+2026-03-21 09:38:53  INFO      extractor.pdf_extractor   PDF extraction: 60 blocks, 65966 chars, 0 tables, 2 images
+2026-03-21 09:38:53  INFO      pipeline                    extracted: 65966 chars | 0 tables | 2 images
+2026-03-21 09:38:53  INFO      pipeline                  [2] Parser — raw text -> structured Document
+2026-03-21 09:38:53  INFO      parser.heuristic          Attached 2 image(s) to sections
+2026-03-21 09:38:53  INFO      parser.heuristic          Extracted 10 references
+2026-03-21 09:38:53  INFO      parser.heuristic          parse: title='Artificial Intelligence in Healthcare: T'  authors=1  sections=10  refs=10
+2026-03-21 09:38:53  INFO      pipeline                    doc: title='Artificial Intelligence in Healthcare: Transformin'  authors=1  sections=10  tables=0  refs=10
+2026-03-21 09:38:53  INFO      pipeline                  [3] Normalizer — fix ligatures, unicode, math
+2026-03-21 09:38:53  INFO      pipeline                  [2.5] Canon — validate + repair + score Document
+2026-03-21 09:38:53  DEBUG     canon.builder             [CANON REPAIR] abstract: unusually long (5909 chars), may contain body text
+2026-03-21 09:38:53  DEBUG     canon.builder             [CANON REPAIR] keywords: none found
+2026-03-21 09:38:53  INFO      canon.builder             Canonical build complete:
+  overall_confidence : 0.683
+  title              : [0.90] 'Artificial Intelligence in Healthcare: Transforming Modern Medicine'
+  authors            : [0.90] 1 authors
+  abstract           : [0.50] 5909 chars
+  keywords           : [0.00] []
+  sections           : [0.90] 10 sections
+  references         : [0.90] 10 refs
+  renderable         : True
+  repairs (2):
+    - abstract: unusually long (5909 chars), may contain body text
+    - keywords: none found
+  warnings (1):
+    ! abstract is unusually long — may include body text
+2026-03-21 09:38:53  WARNING   core.pipeline             [CANON] abstract is unusually long — may include body text
+2026-03-21 09:38:53  INFO      pipeline                  [4] Renderer — Document -> LaTeX [ieee]
+2026-03-21 09:38:53  INFO      pipeline                  [5] Compiler — LaTeX -> PDF
+2026-03-21 09:38:55  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
+ckend-pdftex.def) (generated.aux)
+-- Lines per column: 56 (exact).
+
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/context/base/mkii\s
+upp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}] [2 <./fig_1_p6.png>]
+[3 <./fig_2_p12.png>] [4]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[5] (generated.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times
+/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1
+/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/
+fonts/type1/urw/times/utmr8a.pfb>
+Output written on generated.pdf (5 pages, 61885 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:38:55  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+))
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/l3backend\l3b
+ackend-pdftex.def) (generated.aux)
+-- Lines per column: 56 (exact).
+
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/context/base/mkii\s
+upp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}] [2 <./fig_1_p6.png>]
+[3 <./fig_2_p12.png>] [4]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[5] (generated.aux) )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/
+install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/curr
+ent/texmfs/install/fonts/type1/urw/times/utmr8a.pfb>
+Output written on generated.pdf (5 pages, 61885 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:38:55  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+2026-03-21 09:38:55  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (6.0s)
+2026-03-21 09:38:55  INFO      pipeline                  
+2026-03-21 09:45:55  INFO      pipeline                  ======================================================================
+2026-03-21 09:45:55  INFO      pipeline                  RUN START
+2026-03-21 09:45:55  INFO      pipeline                    input    = paper.pdf
+2026-03-21 09:45:55  INFO      pipeline                    template = ieee
+2026-03-21 09:45:55  INFO      pipeline                    parser   = heuristic
+2026-03-21 09:45:55  INFO      pipeline                  ======================================================================
+2026-03-21 09:45:55  INFO      pipeline                  [1] Extractor — PDF/DOCX -> text + tables + images
+2026-03-21 09:45:56  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
+2026-03-21 09:45:56  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
+2026-03-21 09:45:56  INFO      extractor.pdf_extractor   Extracted 2 images from PDF
+2026-03-21 09:45:56  INFO      extractor.pdf_extractor   PDF extraction: 76 blocks, 11818 chars, 0 tables, 2 images
+2026-03-21 09:45:56  INFO      pipeline                    extracted: 11818 chars | 0 tables | 2 images
+2026-03-21 09:45:56  INFO      pipeline                  [2] Parser — raw text -> structured Document
+2026-03-21 09:45:56  DEBUG     parser.heuristic          Extracted inline table (3 rows) from section 'Comparative Study'
+2026-03-21 09:45:56  INFO      parser.heuristic          Attached 2 image(s) to sections
+2026-03-21 09:45:56  INFO      parser.heuristic          Extracted 5 references
+2026-03-21 09:45:56  INFO      parser.heuristic          parse: title='AI-Driven Intelligent Document Processin'  authors=3  sections=17  refs=5
+2026-03-21 09:45:56  INFO      pipeline                    doc: title='AI-Driven Intelligent Document Processing: A Hybri'  authors=3  sections=17  tables=1  refs=5
+2026-03-21 09:45:56  INFO      pipeline                  [3] Normalizer — fix ligatures, unicode, math
+2026-03-21 09:45:56  INFO      pipeline                  [2.5] Canon — validate + repair + score Document
+2026-03-21 09:45:56  DEBUG     canon.builder             [CANON REPAIR] keywords: none found
+2026-03-21 09:45:56  INFO      canon.builder             Canonical build complete:
+  overall_confidence : 0.742
+  title              : [0.90] 'AI-Driven Intelligent Document Processing: A Hybrid Deep Learning Fram'
+  authors            : [0.90] 3 authors
+  abstract           : [0.85] 1574 chars
+  keywords           : [0.00] []
+  sections           : [0.90] 17 sections
+  references         : [0.90] 5 refs
+  renderable         : True
+  repairs (1):
+    - keywords: none found
+  warnings (1):
+    ! section 'Comparative Study' has empty body
+2026-03-21 09:45:56  WARNING   core.pipeline             [CANON] section 'Comparative Study' has empty body
+2026-03-21 09:45:56  INFO      pipeline                  [4] Renderer — Document -> LaTeX [ieee]
+2026-03-21 09:45:56  INFO      pipeline                  [5] Compiler — LaTeX -> PDF
+2026-03-21 09:45:57  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
+ the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[3] (generated.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `generated.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+ )
+pdfTeX warning (dest): name{section.10} has been referenced but does not exist,
+ replaced by a fixed one
+
+
+pdfTeX warning (dest): name{section.9} has been referenced but does not exist, 
+replaced by a fixed one
+
+
+pdfTeX warning (dest): name{section.8} has been referenced but does not exist, 
+replaced by a fixed one
+
+<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsf
+onts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/font
+s/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/in
+stall/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/Users/janme/scoop/apps/la
+tex/current/texmfs/install/fonts/type1/urw/times/utmri8a.pfb>
+Output written on generated.pdf (3 pages, 146277 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:45:58  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+stall\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}]
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
+.fd)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
+.fd) [2 <./fig_1_p3.png> <./fig_2_p3.png>]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[3] (generated.aux) )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/la
+tex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sc
+oop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/User
+s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.p
+fb>
+Output written on generated.pdf (3 pages, 148378 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:45:58  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+2026-03-21 09:45:58  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (3.0s)
+2026-03-21 09:45:58  INFO      pipeline                  
+2026-03-21 09:52:13  INFO      pipeline                  ======================================================================
+2026-03-21 09:52:13  INFO      pipeline                  RUN START
+2026-03-21 09:52:13  INFO      pipeline                    input    = paper.pdf
+2026-03-21 09:52:13  INFO      pipeline                    template = ieee
+2026-03-21 09:52:13  INFO      pipeline                    parser   = heuristic
+2026-03-21 09:52:13  INFO      pipeline                  ======================================================================
+2026-03-21 09:52:13  INFO      pipeline                  [1] Extractor — PDF/DOCX -> text + tables + images
+2026-03-21 09:52:14  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
+2026-03-21 09:52:14  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
+2026-03-21 09:52:15  INFO      extractor.pdf_extractor   Extracted 2 images from PDF
+2026-03-21 09:52:15  INFO      extractor.pdf_extractor   PDF extraction: 76 blocks, 11818 chars, 0 tables, 2 images
+2026-03-21 09:52:15  INFO      pipeline                    extracted: 11818 chars | 0 tables | 2 images
+2026-03-21 09:52:15  INFO      pipeline                  [2] Parser — raw text -> structured Document
+2026-03-21 09:52:15  DEBUG     parser.heuristic          Extracted inline table (3 rows) from section 'Comparative Study'
+2026-03-21 09:52:15  INFO      parser.heuristic          Attached 2 image(s) to sections
+2026-03-21 09:52:15  INFO      parser.heuristic          Extracted 5 references
+2026-03-21 09:52:15  INFO      parser.heuristic          parse: title='AI-Driven Intelligent Document Processin'  authors=3  sections=17  refs=5
+2026-03-21 09:52:15  INFO      pipeline                    doc: title='AI-Driven Intelligent Document Processing: A Hybri'  authors=3  sections=17  tables=1  refs=5
+2026-03-21 09:52:15  INFO      pipeline                  [3] Normalizer — fix ligatures, unicode, math
+2026-03-21 09:52:15  INFO      pipeline                  [2.5] Canon — validate + repair + score Document
+2026-03-21 09:52:15  DEBUG     canon.builder             [CANON REPAIR] keywords: none found
+2026-03-21 09:52:15  INFO      canon.builder             Canonical build complete:
+  overall_confidence : 0.742
+  title              : [0.90] 'AI-Driven Intelligent Document Processing: A Hybrid Deep Learning Fram'
+  authors            : [0.90] 3 authors
+  abstract           : [0.85] 1574 chars
+  keywords           : [0.00] []
+  sections           : [0.90] 17 sections
+  references         : [0.90] 5 refs
+  renderable         : True
+  repairs (1):
+    - keywords: none found
+  warnings (1):
+    ! section 'Comparative Study' has empty body
+2026-03-21 09:52:15  WARNING   core.pipeline             [CANON] section 'Comparative Study' has empty body
+2026-03-21 09:52:15  INFO      pipeline                  [4] Renderer — Document -> LaTeX [ieee]
+2026-03-21 09:52:15  INFO      pipeline                  [5] Compiler — LaTeX -> PDF
+2026-03-21 09:52:16  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
+stall\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}]
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
+.fd)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
+.fd) [2 <./fig_1_p3.png> <./fig_2_p3.png>]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[3] (generated.aux) )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/la
+tex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sc
+oop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/User
+s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.p
+fb>
+Output written on generated.pdf (3 pages, 149617 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:52:16  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+stall\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}]
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
+.fd)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
+.fd) [2 <./fig_1_p3.png> <./fig_2_p3.png>]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[3] (generated.aux) )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/la
+tex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sc
+oop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/User
+s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.p
+fb>
+Output written on generated.pdf (3 pages, 149617 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:52:16  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+2026-03-21 09:52:16  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (3.0s)
+2026-03-21 09:52:16  INFO      pipeline                  
+2026-03-21 09:53:42  INFO      pipeline                  ======================================================================
+2026-03-21 09:53:42  INFO      pipeline                  RUN START
+2026-03-21 09:53:42  INFO      pipeline                    input    = paper.pdf
+2026-03-21 09:53:42  INFO      pipeline                    template = ieee
+2026-03-21 09:53:42  INFO      pipeline                    parser   = heuristic
+2026-03-21 09:53:42  INFO      pipeline                  ======================================================================
+2026-03-21 09:53:42  INFO      pipeline                  [1] Extractor — PDF/DOCX -> text + tables + images
+2026-03-21 09:53:42  INFO      extractor.pdf_extractor   Extracted 0 tables from PDF
+2026-03-21 09:53:43  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
+2026-03-21 09:53:43  INFO      extractor.pdf_extractor   Extracted 2 images from PDF
+2026-03-21 09:53:43  INFO      extractor.pdf_extractor   PDF extraction: 76 blocks, 11818 chars, 0 tables, 2 images
+2026-03-21 09:53:43  INFO      pipeline                    extracted: 11818 chars | 0 tables | 2 images
+2026-03-21 09:53:43  INFO      pipeline                  [2] Parser — raw text -> structured Document
+2026-03-21 09:53:43  DEBUG     parser.heuristic          Extracted inline table (3 rows) from section 'Comparative Study'
+2026-03-21 09:53:43  INFO      parser.heuristic          Attached 2 image(s) to sections
+2026-03-21 09:53:43  INFO      parser.heuristic          Extracted 5 references
+2026-03-21 09:53:43  INFO      parser.heuristic          parse: title='AI-Driven Intelligent Document Processin'  authors=3  sections=17  refs=5
+2026-03-21 09:53:43  INFO      pipeline                    doc: title='AI-Driven Intelligent Document Processing: A Hybri'  authors=3  sections=17  tables=1  refs=5
+2026-03-21 09:53:43  INFO      pipeline                  [3] Normalizer — fix ligatures, unicode, math
+2026-03-21 09:53:43  INFO      pipeline                  [2.5] Canon — validate + repair + score Document
+2026-03-21 09:53:43  DEBUG     canon.builder             [CANON REPAIR] keywords: none found
+2026-03-21 09:53:43  INFO      canon.builder             Canonical build complete:
+  overall_confidence : 0.742
+  title              : [0.90] 'AI-Driven Intelligent Document Processing: A Hybrid Deep Learning Fram'
+  authors            : [0.90] 3 authors
+  abstract           : [0.85] 1574 chars
+  keywords           : [0.00] []
+  sections           : [0.90] 17 sections
+  references         : [0.90] 5 refs
+  renderable         : True
+  repairs (1):
+    - keywords: none found
+  warnings (1):
+    ! section 'Comparative Study' has empty body
+2026-03-21 09:53:43  WARNING   core.pipeline             [CANON] section 'Comparative Study' has empty body
+2026-03-21 09:53:43  INFO      pipeline                  [4] Renderer — Document -> LaTeX [ieee]
+2026-03-21 09:53:43  INFO      pipeline                  [5] Compiler — LaTeX -> PDF
+2026-03-21 09:53:44  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
+stall\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}]
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
+.fd)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
+.fd) [2 <./fig_1_p3.png> <./fig_2_p3.png>]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[3] (generated.aux) )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/la
+tex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sc
+oop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/User
+s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.p
+fb>
+Output written on generated.pdf (3 pages, 149617 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:53:45  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
+stall\tex/latex/epstopdf-pkg\
+epstopdf-base.sty
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
+opdf-sys.cfg)) (generated.out) (generated.out) [1{C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/data/fonts/map/pdftex/pdftex.map}{C:/Users/janme/scoop/apps/l
+atex/current/texmfs/install/fonts/enc/dvips/base/8r.enc}]
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
+.fd)
+(C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
+.fd) [2 <./fig_1_p3.png> <./fig_2_p3.png>]
+
+** Conference Paper **
+Before submitting the final camera ready copy, remember to:
+
+ 1. Manually equalize the lengths of two columns on the last page
+ of your paper;
+
+ 2. Ensure that any PostScript and/or PDF output post-processing
+ uses only Type 1 fonts and that every step in the generation
+ process uses the appropriate paper size.
+
+[3] (generated.aux) )<C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/la
+tex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/sc
+oop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/User
+s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.p
+fb>
+Output written on generated.pdf (3 pages, 149617 bytes).
+Transcript written on generated.log.
+
+2026-03-21 09:53:45  INFO      compiler.latex_compiler   PDF written to C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+2026-03-21 09:53:45  INFO      pipeline                  RUN END — C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf  (3.1s)
+2026-03-21 09:53:45  INFO      pipeline                  

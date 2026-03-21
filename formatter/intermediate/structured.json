@@ -1,6 +1,31 @@
 {
   "title": "AI-Driven Intelligent Document Processing: A Hybrid Deep Learning Framework for Structured Content Extraction and IEEE-Compliant Reconstruction",
-  "authors": [],
+  "authors": [
+    {
+      "name": "Samaira Mittal",
+      "department": "Department of Computer Science",
+      "organization": "XYZ Institute of Technology",
+      "city": "India",
+      "country": "",
+      "email": "samaira.mittal@example.com"
+    },
+    {
+      "name": "Rahul Verma",
+      "department": "Department of Artificial Intelligence",
+      "organization": "ABC University",
+      "city": "India",
+      "country": "",
+      "email": ""
+    },
+    {
+      "name": "Priya Nair",
+      "department": "Department of Data Science",
+      "organization": "DEF Institute of Engineering",
+      "city": "India",
+      "country": "",
+      "email": ""
+    }
+  ],
   "abstract": "The exponential growth of digital documents across academic, industrial, and governmental domains has necessitated the development of intelligent systems capable of extracting and restructuring complex information. Documents such as research papers, technical reports, and legal contracts often contain heterogeneous elements including multi-column text, tables, figures, and mathematical expressions, making automated processing a non-trivial task. Traditional rule-based and Optical Character Recognition (OCR)-centric approaches suffer from limited generalization and poor handling of structural complexity. This paper proposes a hybrid Artificial Intelligence (AI)-driven framework that integrates deep learning-based layout detection, advanced OCR techniques, Natural Language Processing (NLP), and symbolic recognition models to enable accurate extraction and reconstruction of structured document content. The system is specifically designed to convert unstructured or semi-structured documents into standardized IEEE-compliant formats. The proposed approach leverages convolutional neural networks (CNNs) for spatial layout understanding and transformer-based models for semantic interpretation. Extensive experiments demonstrate that the hybrid system significantly outperforms conventional pipelines in terms of structural accuracy, equation detection, and table reconstruction. The framework provides a scalable solution for automated document processing and has potential applications in academic publishing, enterprise automation, and digital archiving systems.",
   "keywords": [],
   "sections": [
@@ -94,8 +119,34 @@
     },
     {
       "heading": "Comparative Study",
-      "body": "Rule-Based 65% Poor Poor\n\nOCR Only 75% Moderate Very Poor\n\nProposed System 91% High Good",
-      "tables": [],
+      "body": "",
+      "tables": [
+        {
+          "caption": "Comparison --- Comparative Study",
+          "headers": [],
+          "rows": [
+            [
+              "Rule-Based",
+              "65%",
+              "Poor",
+              "Poor"
+            ],
+            [
+              "OCR Only",
+              "75%",
+              "Moderate",
+              "Very Poor"
+            ],
+            [
+              "Proposed System",
+              "91%",
+              "High",
+              "Good"
+            ]
+          ],
+          "notes": ""
+        }
+      ],
       "figures": [],
       "depth": 2
     },
