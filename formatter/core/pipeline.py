@@ -12,6 +12,7 @@ Stage flow:
 import os
 import shutil
 import time
+from core.models import FormulaBlock
 
 from core import config
 from core.models import Document
@@ -121,13 +122,17 @@ def _extract(input_file: str) -> dict:
         return {"raw_text": "", "blocks": [], "tables": [], "images": []}
 
 
-def _parse(rich: dict) -> Document:
+def _parse(rich: dict) -> Document:    
     raw = rich.get("raw_text", "")
     os.makedirs(config.INTERMEDIATE_DIR, exist_ok=True)
     with open(config.EXTRACTED_TXT, "w", encoding="utf-8") as f:
         f.write(raw)
     from parser.heuristic import parse
     return parse(rich)
+    doc.formula_blocks = [
+        FormulaBlock(**fb) for fb in rich.get("formula_blocks", [])
+    ]
+
 
 
 def _render(doc: Document, template: str) -> str:

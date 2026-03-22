@@ -307,7 +307,68 @@ OCR fallback chain: pix2tex → nougat → Tesseract. All run in subprocesses.
 pix2tex is preferred — outputs LaTeX like `\frac{df}{dx}` directly.
 nougat is designed for full scientific pages; small crops are padded to page size.
 First run of each downloads models (~300 MB for pix2tex, ~350 MB for nougat).
+## CLAUDE.md UPDATE — 2026-03-22: pix2tex math_extractor integration
 
+Paste this section into claude.md under "Changelog" and update the File Structure table.
+
+─────────────────────────────────────────────────────────────────────
+CHANGELOG ENTRY (add to top of changelog section):
+─────────────────────────────────────────────────────────────────────
+
+### 2026-03-22 — pix2tex Math Region Extractor
+
+**Problem diagnosed**: 6 structural flaws prevented pix2tex from working:
+  1. Math regions never isolated as images (image extractor only gets raster figures)
+  2. No math-region detector in the codebase
+  3. PyMuPDF extracts formula characters as text, not images — normalizer then garbles complex formulas
+  4. Normalizer produces fragile adjacent `$...$` fragments instead of clean LaTeX
+  5. No pipeline hook where pix2tex could be called
+  6. No `FormulaBlock` model to carry pix2tex results through to the renderer
+
+**Fix**:
+- Added `FormulaBlock` dataclass to `core/models.py`
+- Added `formula_blocks: List[FormulaBlock]` field to `Document`
+- Created `extractor/math_extractor.py` — new module that:
+    - Uses PyMuPDF block analysis to detect formula bounding boxes
+      (by math-Unicode char count, equation-number pattern, or math font name)
+    - Renders each region as a PNG via `page.get_pixmap(clip=bbox)` at 200 DPI
+    - Runs pix2tex on each crop
+    - Filters out results below confidence 0.45
+    - Returns list of dicts, one per formula
+- `pdf_extractor.py`: call `extract_formula_blocks()` at end of Stage 1, add to return dict
+- `pipeline.py`: attach `formula_blocks` to `Document` after `_parse()`
+- `renderer/jinja_renderer.py`: pass `formula_blocks` to template context
+- Templates: render formulas as `\begin{equation}...\end{equation}` blocks
+
+**Graceful degradation**: if `pix2tex` not installed → `[]` returned, pipeline unchanged.
+Install: `pip install pix2tex`
+
+─────────────────────────────────────────────────────────────────────
+FILE STRUCTURE UPDATE (update the tree in claude.md):
+─────────────────────────────────────────────────────────────────────
+
+Under extractor/, add:
+    math_extractor.py    # NEW: detect formula regions → crop → pix2tex → FormulaBlock list
+
+Under core/models.py description, update to:
+    models.py            # Dataclasses: Document, Author, Section, Table, Figure,
+                         #              FormulaBlock (NEW), Reference
+
+─────────────────────────────────────────────────────────────────────
+KNOWN ISSUES UPDATE (update the todo list in claude.md):
+─────────────────────────────────────────────────────────────────────
+
+Add to HIGH priority:
+- [ ] Test pix2tex on FedBNR paper — verify confidence scores + formula quality
+- [ ] Embed formula blocks at source location (by page proximity to sections)
+      Currently all formulas go to a Key Equations block at end of document
+
+─────────────────────────────────────────────────────────────────────
+KEY TECHNICAL RULES (add rule 4 to the rules section in claude.md):
+─────────────────────────────────────────────────────────────────────
+
+4. **pix2tex confidence filter**: always discard FormulaBlocks with confidence < 0.45.
+   Bad OCR output inserted verbatim into LaTeX is worse than no formula at all.
 ---
 
 ## Known Issues (as of 2026-03-21)

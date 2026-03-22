@@ -12,10 +12,10 @@ OCR:  pix2tex (LatexOCR) is the PRIMARY equation OCR — outputs LaTeX directly.
 """
 import os
 import re
-
+from extractor.math_extractor import extract_formuls_blocks 
 from core.logger import get_logger
 
-log = get_logger(__name__)
+log = get_logger(__name__) 
 
 # ── Equation OCR (pix2tex → nougat → Tesseract, all subprocess) ──────────────
 #
@@ -502,6 +502,7 @@ def extract(pdf_path: str, inter_dir: str) -> dict:
         "blocks":   blocks,
         "tables":   tables,
         "images":   images,
+        "formula_blocks": formula_blocks, 
     }
 
 

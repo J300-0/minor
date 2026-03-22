@@ -210,6 +210,7 @@ def _sanitize(doc: Document) -> Document:
     doc.title = str(doc.title or "Untitled")
     doc.abstract = str(doc.abstract or "")
     doc.keywords = [str(k) for k in (doc.keywords or []) if k]
+    
     for a in doc.authors:
         a.name         = str(a.name or "")
         a.department   = str(a.department or "")
