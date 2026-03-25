@@ -1,1 +1,1 @@
-# normalizer/ — Stage 3: Unicode cleanup, ligatures, math -> LaTeX.
+# normalizer — unicode cleanup, ligatures, math → LaTeX

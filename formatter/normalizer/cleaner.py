@@ -1,656 +1,467 @@
 """
-normalizer/cleaner.py — Stage 3: Fix ligatures, unicode, math symbols, whitespace.
-Pure local transforms — no external calls.
+normalizer/cleaner.py — Pure local text transforms, no external calls.
 
-Formula handling strategy:
-  PROBLEM: per-char substitution turns "f(x) = ax^2" into
-           "f(x) = $\\alpha$x$^{2}$" — a chain of single-symbol $...$ fragments.
-           Then latex_escape() corrupts them and pdflatex chokes.
-
-  FIX: After per-char substitution, run _merge_adjacent_math() which collapses
-       "$\\alpha$$\\beta$" -> "$\\alpha\\beta$" repeatedly until stable.
-       For lines that are almost entirely math fragments, _consolidate_math_lines()
-       strips all $ delimiters and wraps the whole line in one $...$
-
-  RULE: We deliberately do NOT use \\[...\\] display math blocks — they require
-  precise paragraph boundary placement in .tex which Jinja2 templating makes
-  unreliable and causes "Display math should end with $$" fatal errors.
+Fixes: ligatures, unicode quotes/dashes, math symbols → LaTeX commands,
+Greek letters, operators, arrows, sub/superscripts.
 """
-import logging
 import re
-import unicodedata
-from copy import deepcopy
+import logging
+from core.models import Document
 
-from core.models import Document, Section, Author, Reference, Table, Figure
+log = logging.getLogger("paper_formatter")
 
-log = logging.getLogger(__name__)
+# ── Unicode → LaTeX replacements ─────────────────────────────────
 
-
-# ── Ligature and quote replacements ──────────────────────────────────────────
-
-_LIGATURES = {
-    "\ufb01": "fi",  "\ufb02": "fl",
-    "\ufb00": "ff",  "\ufb03": "ffi", "\ufb04": "ffl",
-    "\u2018": "`",   "\u2019": "'",
-    "\u201c": "``",  "\u201d": "''",
-    "\u2013": "--",  "\u2014": "---",
-    "\u00ad": "",    # soft hyphen
-    "\u2010": "-",   "\u2011": "-",   "\u2012": "-",
-    "\u2015": "---",
+LIGATURES = {
+    "\ufb01": "fi", "\ufb02": "fl", "\ufb00": "ff",
+    "\ufb03": "ffi", "\ufb04": "ffl",
 }
 
-# ── Math symbols -> LaTeX command strings (WITHOUT $ wrappers) ───────────────
-
-_MATH = {
-    # Greek lowercase
-    "\u03b1": r"\alpha",   "\u03b2": r"\beta",    "\u03b3": r"\gamma",
-    "\u03b4": r"\delta",   "\u03b5": r"\epsilon",  "\u03b6": r"\zeta",
-    "\u03b7": r"\eta",     "\u03b8": r"\theta",    "\u03b9": r"\iota",
-    "\u03ba": r"\kappa",   "\u03bb": r"\lambda",   "\u03bc": r"\mu",
-    "\u03bd": r"\nu",      "\u03be": r"\xi",       "\u03c0": r"\pi",
-    "\u03c1": r"\rho",     "\u03c3": r"\sigma",    "\u03c4": r"\tau",
-    "\u03c5": r"\upsilon", "\u03c6": r"\phi",      "\u03c7": r"\chi",
-    "\u03c8": r"\psi",     "\u03c9": r"\omega",
-    # Greek uppercase
-    "\u0393": r"\Gamma",   "\u0394": r"\Delta",    "\u0398": r"\Theta",
-    "\u039b": r"\Lambda",  "\u039e": r"\Xi",       "\u03a0": r"\Pi",
-    "\u03a3": r"\Sigma",   "\u03a6": r"\Phi",
-    "\u03a8": r"\Psi",     "\u03a9": r"\Omega",
-    # Math operators & relations
-    "\u2212": "-",
-    "\u00b1": r"\pm",      "\u00d7": r"\times",    "\u00f7": r"\div",
-    "\u00b7": r"\cdot",    "\u2219": r"\cdot",
-    "\u221e": r"\infty",   "\u2211": r"\sum",      "\u220f": r"\prod",
-    "\u222b": r"\int",     "\u2202": r"\partial",
-    "\u2264": r"\leq",     "\u2265": r"\geq",
-    "\u2260": r"\neq",     "\u2248": r"\approx",   "\u2261": r"\equiv",
-    "\u221d": r"\propto",
-    # Arrows
-    "\u2190": r"\leftarrow",    "\u2192": r"\rightarrow",
-    "\u2191": r"\uparrow",      "\u2193": r"\downarrow",
-    "\u2194": r"\leftrightarrow",
-    "\u21d0": r"\Leftarrow",    "\u21d2": r"\Rightarrow",
-    "\u21d4": r"\Leftrightarrow",
-    "\u21d1": r"\Uparrow",      "\u21d3": r"\Downarrow",
-    # Set theory & logic
-    "\u2208": r"\in",      "\u2209": r"\notin",
-    "\u2282": r"\subset",  "\u2283": r"\supset",
-    "\u2286": r"\subseteq","\u2287": r"\supseteq",
-    "\u222a": r"\cup",     "\u2229": r"\cap",
-    "\u2205": r"\emptyset",
-    "\u2200": r"\forall",  "\u2203": r"\exists",
-    "\u2227": r"\wedge",   "\u2228": r"\vee",
-    "\u00ac": r"\neg",
-    # Circled operators
-    "\u2295": r"\oplus",   "\u2297": r"\otimes",   "\u2296": r"\ominus",
-    "\u2299": r"\odot",
-    # Misc math
-    "\u221a": r"\sqrt{}",  "\u2207": r"\nabla",
-    "\u00b0": r"^\circ",   "\u2032": r"^{\prime}",  "\u2033": r"^{\prime\prime}",
-    "\u22a4": r"\top",     "\u22a5": r"\bot",
-    "\u22c6": r"\star",    "\u2217": r"\ast",
-    "\u03d5": r"\phi",     "\u03f5": r"\epsilon",
-    "\u00b5": r"\mu",      "\u00af": r"\bar{}",
-    "\u02dc": r"\tilde{}",  "\u02c6": r"\hat{}",
-    "\u25cf": r"\bullet",  "\u25a0": r"\blacksquare", "\u25a1": r"\square",
-    "\u226a": r"\ll",      "\u226b": r"\gg",
-    # Tilde / sim variants
-    "\u223c": r"\sim",     "\u223d": r"\backsim",
-    "\uff5e": r"\sim",     "\u2243": r"\simeq",   "\u2245": r"\cong",
-    # Dots
-    "\u22ee": r"\vdots",   "\u22ef": r"\cdots",
-    "\u22f1": r"\ddots",   "\u22c5": r"\cdot",
-    # Vertical bars / norms
-    "\u2223": r"\mid",     "\u2225": r"\|",
-    # Subscript/superscript digits
-    "\u2070": r"^{0}",     "\u00b9": r"^{1}",      "\u00b2": r"^{2}",
-    "\u00b3": r"^{3}",     "\u2074": r"^{4}",      "\u2075": r"^{5}",
-    "\u2076": r"^{6}",     "\u2077": r"^{7}",      "\u2078": r"^{8}",
-    "\u2079": r"^{9}",     "\u207a": r"^{+}",      "\u207b": r"^{-}",
-    "\u2080": r"_{0}",     "\u2081": r"_{1}",      "\u2082": r"_{2}",
-    "\u2083": r"_{3}",     "\u2084": r"_{4}",      "\u2085": r"_{5}",
-    "\u2086": r"_{6}",     "\u2087": r"_{7}",      "\u2088": r"_{8}",
-    "\u2089": r"_{9}",
-    # Fullwidth variants
-    "\uff0d": "-",
-    "\ufe63": "-",
+UNICODE_FIXES = {
+    "\u2018": "`",    "\u2019": "'",     # smart single quotes
+    "\u201C": "``",   "\u201D": "''",    # smart double quotes
+    "\u2013": "--",   "\u2014": "---",   # en-dash, em-dash
+    "\u2026": "...",                      # ellipsis
+    "\u00A0": " ",                        # non-breaking space
+    "\u200B": "",                         # zero-width space
+    "\u00AD": "",                         # soft hyphen
+    "\uF0B7": "-",                        # Symbol font bullet
+    "\uF0A7": "-",                        # Symbol font section mark
+    "\uF0D8": "-",                        # Symbol font arrow
+    "\u2022": "-",                        # bullet
+    "\u2023": "-",                        # triangular bullet
+    "\u25CF": "-",                        # black circle
+    "\u25CB": "o",                        # white circle
+    "\u25AA": "-",                        # black small square
+    "\u25A0": "-",                        # black square
 }
 
-# Text-mode commands — do NOT wrap in $...$
-_TEXT_MATH = {
-    "\u2026": r"\ldots{}",
-    "\u00a9": r"\textcopyright{}",
-    "\u00ae": r"\textregistered{}",
-    "\u2122": r"\texttrademark{}",
+GREEK_TO_LATEX = {
+    "α": r"\alpha", "β": r"\beta", "γ": r"\gamma", "δ": r"\delta",
+    "ε": r"\epsilon", "ζ": r"\zeta", "η": r"\eta", "θ": r"\theta",
+    "ι": r"\iota", "κ": r"\kappa", "λ": r"\lambda", "μ": r"\mu",
+    "ν": r"\nu", "ξ": r"\xi", "π": r"\pi", "ρ": r"\rho",
+    "σ": r"\sigma", "τ": r"\tau", "υ": r"\upsilon", "φ": r"\phi",
+    "χ": r"\chi", "ψ": r"\psi", "ω": r"\omega",
+    "Γ": r"\Gamma", "Δ": r"\Delta", "Θ": r"\Theta", "Λ": r"\Lambda",
+    "Ξ": r"\Xi", "Π": r"\Pi", "Σ": r"\Sigma", "Φ": r"\Phi",
+    "Ψ": r"\Psi", "Ω": r"\Omega",
 }
 
-# Bullet-like chars → $\bullet$ (math mode so latex_escape preserves them)
-_BULLETS = {
-    "\u2022",  # • standard bullet
-    "\u2023",  # ‣ triangular bullet
-    "\u2043",  # ⁃ hyphen bullet
-    "\u25E6",  # ◦ white bullet
-    "\u25CB",  # ○ white circle
-    "\u25AA",  # ▪ small black square
-    "\u25AB",  # ▫ small white square
-    "\uF0B7",  # PUA bullet (MS Office fonts)
-    "\uF0A7",  # PUA section bullet
-    "\uF076",  # PUA bullet variant
+MATH_SYMBOLS = {
+    "±": r"\pm", "∓": r"\mp", "×": r"\times", "÷": r"\div",
+    "·": r"\cdot", "∞": r"\infty", "≈": r"\approx", "≠": r"\neq",
+    "≤": r"\leq", "≥": r"\geq", "∈": r"\in", "∉": r"\notin",
+    "⊂": r"\subset", "⊃": r"\supset", "∪": r"\cup", "∩": r"\cap",
+    "∧": r"\wedge", "∨": r"\vee", "¬": r"\neg",
+    "∀": r"\forall", "∃": r"\exists", "∅": r"\emptyset",
+    "∇": r"\nabla", "∂": r"\partial", "√": r"\sqrt",
+    "∫": r"\int", "∑": r"\sum", "∏": r"\prod",
+    "→": r"\rightarrow", "←": r"\leftarrow",
+    "⇒": r"\Rightarrow", "⇐": r"\Leftarrow",
+    "↔": r"\leftrightarrow", "⇔": r"\Leftrightarrow",
+    "°": r"\degree",
 }
 
-_UNICODE_SPACES = {
-    "\u00a0", "\u2002", "\u2003", "\u2004", "\u2005",
-    "\u2006", "\u2007", "\u2008", "\u2009", "\u200a",
-    "\u202f", "\u205f",
+# Superscript/subscript digits
+SUPERSCRIPTS = {
+    "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4",
+    "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
+    "⁺": "+", "⁻": "-", "⁼": "=", "ⁿ": "n",
 }
 
-_STRIP_CHARS = {
-    "\u0008", "\u001b", "\u200b", "\uf8ee", "\uf8ef",
-    "\uf8f0", "\uf8f9", "\uf8fa", "\uf8fb",
-    "\ufeff",
-    "\u200c", "\u200d",
-    "\u0338",   # combining long solidus overlay
-    "\ufffd",   # unicode replacement character
+SUBSCRIPTS = {
+    "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4",
+    "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9",
+    "₊": "+", "₋": "-", "₌": "=",
 }
 
-_SAFE_RANGES = (
-    (0x00C0, 0x024F),   # Latin Extended-A & B
-    (0x0020, 0x007E),   # Basic ASCII
-)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Math fragment post-processing (runs AFTER _clean)
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _merge_adjacent_math(text: str) -> str:
-    """Merge adjacent inline math fragments: $a$$b$ -> $ab$."""
-    prev = None
-    while prev != text:
-        prev = text
-        text = re.sub(r"\$([^$]+)\$\$([^$]+)\$", r"$\1\2$", text)
-    return text
-
-
-def _brace_safe(inner: str) -> bool:
-    """Return True if curly braces are balanced and never go negative."""
-    depth = 0
-    for ch in inner:
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth < 0:
-                return False
-    return depth == 0
-
-
-def _consolidate_math_lines(text: str) -> str:
-    """
-    If >60% of a line's non-space content is inside $...$,
-    strip all $ and re-wrap as a single $...$ expression.
-    Pure prose lines are never touched.
-    """
-    lines = text.split("\n")
-    result = []
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            result.append(line)
-            continue
-
-        math_chars = sum(len(m) for m in re.findall(r"\$([^$]+)\$", stripped))
-        total_nonspace = sum(1 for c in stripped if c != " ")
-
-        if total_nonspace > 0 and math_chars / total_nonspace > 0.60:
-            inner = re.sub(r"\$([^$]+)\$", r"\1", stripped).strip()
-            if _brace_safe(inner):
-                result.append(f"${inner}$")
-            else:
-                result.append(line)
-        else:
-            result.append(line)
-
-    return "\n".join(result)
-
-
-def _fix_superscript_space(text: str) -> str:
-    """
-    Collapse pdfplumber's "sigma space 2" artefact into proper superscript.
-    "$\\sigma$ 2" -> "$\\sigma^{2}$"
-    Safety: skip if fragment already has ^.
-    """
-    def _replace_pos(m):
-        inner, digit = m.group(1), m.group(2)
-        if "^" in inner:
-            return m.group(0)
-        return f"${inner}^{{{digit}}}$"
-
-    def _replace_neg(m):
-        inner, digit = m.group(1), m.group(2)
-        if "^" in inner:
-            return m.group(0)
-        return f"${inner}^{{-{digit}}}$"
-
-    text = re.sub(r'\$([^$]+)\$ (\d)(?=[\s\W]|$)', _replace_pos, text)
-    text = re.sub(r'\$([^$]+)\$ -(\d)(?=[\s\W]|$)', _replace_neg, text)
-    return text
-
-
-def _compact_equation_lines(text: str) -> str:
-    """
-    Remove pdfplumber's intra-formula spaces on equation-numbered lines.
-    Only runs on lines ending with (N).
-    """
-    lines_out = []
-    for line in text.split("\n"):
-        stripped = line.strip()
-        if re.search(r"\(\d+\)\s*$", stripped):
-            stripped = re.sub(r"(\w)\s+\(", r"\1(", stripped)
-            stripped = re.sub(r"\(\s+", "(", stripped)
-            stripped = re.sub(r"\s+\)", ")", stripped)
-            lines_out.append(stripped)
-        else:
-            lines_out.append(line)
-    return "\n".join(lines_out)
-
-
-# Matches a standalone equation number like (1), (12), (123).
-# Negative lookbehind: must NOT be preceded by letter, digit, or comma.
-# Negative lookahead:  must NOT be followed by letter, digit, or comma.
-# This distinguishes "(3)" (equation label) from "(f(X),σ²I)" or "(2019)".
-_EQ_NUM_RE = re.compile(r"(?<![,a-zA-Z0-9])\((\d{1,3})\)(?![,a-zA-Z0-9])")
-
-
-def _separate_numbered_equations(text: str) -> str:
-    """
-    Split collapsed equation runs into separate paragraphs.
-
-    PDFs often extract numbered display equations as a single line/paragraph:
-        'Prior: f() (0,k(,)) (1) ... Likelihood: ... (2) ... Posterior: ... (3)'
-
-    This function detects 3+ consecutive equation numbers in a math-heavy
-    paragraph and splits them, giving each equation its own paragraph.
-    Equations are separated by double newlines so latex_paragraphs() renders
-    a blank line between them.
-
-    Safety guards:
-    - Only triggers if 3+ equation-number matches are found.
-    - Only triggers if the paragraph contains inline math ($...$), confirming
-      it is a math-heavy block rather than prose referencing equations.
-    - Years like (2019) are excluded by the 1-3 digit limit.
-    - Expressions like (f(X),σ²I) are excluded by the letter/comma guards.
-    """
-    paragraphs = text.split("\n\n")
-    result_paras = []
-
-    for para in paragraphs:
-        matches = list(_EQ_NUM_RE.finditer(para))
-
-        # Require at least 3 equation numbers to avoid splitting prose refs
-        if len(matches) < 3:
-            result_paras.append(para)
-            continue
-
-        # Require inline math in the paragraph (confirms math-heavy context)
-        if "$" not in para:
-            result_paras.append(para)
-            continue
-
-        # Split: each piece runs from after the previous equation number up
-        # to (and including) the current equation number.
-        pieces = []
-        prev_end = 0
-        for m in matches:
-            piece = para[prev_end:m.end()].strip()
-            if piece:
-                pieces.append(piece)
-            prev_end = m.end()
-
-        # Any trailing text after the last equation number (next prose paragraph)
-        tail = para[prev_end:].strip()
-        if tail:
-            pieces.append(tail)
-
-        if len(pieces) > 1:
-            # Strip leading column-separator artifacts ($\cdot$, |, ·) from
-            # pieces 2+ — these are two-column PDF layout artefacts that appear
-            # between equations but have no semantic value.
-            cleaned = [pieces[0]]
-            _LEAD_JUNK = re.compile(
-                r"^(?:\$\\cdot\$\s*|\$\\cdot\\cdot\$\s*|\|\s*|\$\\\|\$\s*)+",
-            )
-            for piece in pieces[1:]:
-                cleaned.append(_LEAD_JUNK.sub("", piece).strip())
-            result_paras.append("\n\n".join(p for p in cleaned if p))
-        else:
-            result_paras.append(para)
-
-    return "\n\n".join(result_paras)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Public API
-# ══════════════════════════════════════════════════════════════════════════════
 
 def normalize(doc: Document) -> Document:
-    """Apply all text normalizations to a Document (returns a new copy)."""
-    doc = deepcopy(doc)
+    """Apply all text normalization transforms to a Document."""
+    log.info("  Cleaning title, abstract, section bodies...")
 
     doc.title = _clean(doc.title)
-    doc.keywords = [_clean(k) for k in doc.keywords]
-    doc.authors = [
-        Author(
-            name=_clean(a.name),
-            department=_clean(a.department),
-            organization=_clean(a.organization),
-            city=_clean(a.city),
-            country=_clean(a.country),
-            email=_clean(a.email),
-        )
-        for a in doc.authors
-    ]
-    doc.references = [
-        Reference(index=r.index, text=_clean(r.text)) for r in doc.references
-    ]
-
-    # Abstract and section bodies get full math post-processing
     doc.abstract = _clean_with_math(doc.abstract)
 
-    doc.sections = [
-        Section(
-            heading=_clean(s.heading),
-            body=_clean_with_math(s.body),
-            depth=s.depth,
-            tables=[
-                Table(
-                    caption=_clean(t.caption),
-                    headers=[_clean_with_math(h) for h in t.headers],
-                    rows=[[_clean_with_math(c) for c in row] for row in t.rows],
-                    notes=_clean(t.notes),
-                )
-                for t in s.tables
-            ],
-            figures=[
-                Figure(
-                    caption=_clean(f.caption) if f.caption else "",
-                    image_path=f.image_path,
-                    label=f.label,
-                )
-                for f in s.figures
-            ],
-        )
-        for s in doc.sections
-    ]
+    for section in doc.sections:
+        section.heading = _clean(section.heading)
+        section.body = _clean_with_math(section.body)
+
+        # Clean table cells — use _clean_with_math for formula-heavy tables
+        for table in section.tables:
+            table.headers = [_clean(h) for h in table.headers]
+            table.rows = [[_clean_table_cell(c) for c in row] for row in table.rows]
+            table.caption = _clean(table.caption)
+
+    for ref in doc.references:
+        ref.text = _clean(ref.text)
 
     return doc
 
 
-def _fix_decimal_spaces(text: str) -> str:
-    """Collapse spaces around decimal points in numbers.
+def _clean(text: str) -> str:
+    """Basic cleanup: ligatures, unicode, whitespace."""
+    if not text:
+        return ""
 
-    PDF extraction sometimes inserts spaces: "3 . 1415" → "3.1415"
-    Only fires when both sides are digits (avoids prose like "e . g .").
-    """
-    return re.sub(r"(\d)\s*\.\s*(\d)", r"\1.\2", text)
+    # Step 1: Fix ligatures
+    for old, new in LIGATURES.items():
+        text = text.replace(old, new)
 
+    # Step 2: Fix unicode quotes/dashes
+    for old, new in UNICODE_FIXES.items():
+        text = text.replace(old, new)
 
-def _fix_inline_math_patterns(text: str) -> str:
-    """Fix common inline math artifacts from PDF extraction.
-
-    Each pattern is narrow and guarded to avoid corrupting prose.
-    Runs AFTER _clean() so Greek/operator unicode is already $\\cmd$.
-    """
-
-    # ── 1. Complexity notation: O(n2), O(n 2 logn), O(n4) ────────────────
-    #    Handles both with-space and no-space variants.
-    text = re.sub(
-        r"\bO\s*\(\s*n\s*(\d)\s*(log\s*n)?\s*\)",
-        lambda m: "$O(n^{" + m.group(1) + "}" +
-                  (r" \log n" if m.group(2) else "") + ")$",
-        text,
-    )
-
-    # ── 2. Matrix subscripts: "a ij", "a ii", "a jk" → "$a_{ij}$" ────────
-    #    Guard: exclude common English 2-letter words (in, is, it, if, on, or, an, at, be, by, do, go, he, me, my, no, of, so, to, up, us, we)
-    _ENGLISH_2 = {"in", "is", "it", "if", "on", "or", "an", "at", "be",
-                  "by", "do", "go", "he", "me", "my", "no", "of", "so",
-                  "to", "up", "us", "we"}
-    _IDX = r"[ijklmnpqrs]"
-
-    def _sub_matrix(m):
-        idx = m.group(2)
-        if idx in _ENGLISH_2:
-            return m.group(0)  # leave "b in" alone
-        return "$" + m.group(1) + "_{" + idx + "}$"
-
-    text = re.sub(
-        r"\b([a-z])\s+(" + _IDX + _IDX + r")\b",
-        _sub_matrix,
-        text,
-    )
-
-    # ── 3. Equation-line superscripts with spaces: "a 2 + b 2 = c 2" ─────
-    #    Single letter + space + single digit, when line has "=" and 2+ hits.
-    def _sup_in_equation(line: str) -> str:
-        if "=" not in line:
-            return line
-        hits = re.findall(r"\b([a-zA-Z])\s+(\d)\b", line)
-        if len(hits) < 2:
-            return line
-        return re.sub(r"\b([a-zA-Z])\s+(\d)\b", r"$\1^{\2}$", line)
-
-    text = "\n".join(_sup_in_equation(ln) for ln in text.split("\n"))
-
-    # ── 4. No-space superscripts in equations: "a2 + b2 = c2" ────────────
-    #    Letter immediately followed by digit (no space), when line has "="
-    #    and 2+ such pairs.  Excludes table labels like "Table 1".
-    def _sup_nospace_equation(line: str) -> str:
-        if "=" not in line:
-            return line
-        hits = re.findall(r"\b([a-zA-Z])(\d)\b", line)
-        if len(hits) < 2:
-            return line
-        # Skip if line has common prose patterns with letter+digit
-        if re.search(r"\b(?:Table|Figure|Section|Chapter|Step|page)\s*\d", line, re.IGNORECASE):
-            return line
-        return re.sub(r"\b([a-zA-Z])(\d)\b", r"$\1^{\2}$", line)
-
-    text = "\n".join(_sup_nospace_equation(ln) for ln in text.split("\n"))
-
-    # ── 5. Specific famous formulas ───────────────────────────────────────
-    # "E = mc2" or "E = mc 2"
-    text = re.sub(r"\bE\s*=\s*mc\s*2\b", r"$E = mc^{2}$", text)
-    # "i2 = −1" / "i2 = -1" / "i 2 = -1"
-    text = re.sub(r"\bi\s*2\s*=\s*[$\\{}\-\u2212]*1\b", r"$i^{2} = -1$", text)
-
-    # ── 6. log() notation → $\\log(...)$ ──────────────────────────────────
-    text = re.sub(
-        r"(?<!\$)\blog\s*\(\s*([^)]{1,20})\s*\)",
-        lambda m: r"$\log(" + m.group(1).strip() + ")$",
-        text,
-    )
-
-    # ── 7. "n x n" (lowercase x as multiplication) ───────────────────────
-    text = re.sub(r"\bn\s+x\s+n\b", r"$n \\times n$", text)
-
-    # ── 8. Variable subscripts near commas: "t 0, t 1, ..., t n" ─────────
-    text = re.sub(
-        r"\b([a-zA-Z])\s+(\d{1,2})\s*([,)])",
-        r"$\1_{\2}$\3",
-        text,
-    )
-
-    # ── 9. Derivative fractions: "df/dx", "dy/dt", "d2y/dx2" ──────────
-    #    Plain text derivatives → $\frac{d...}{d...}$
-    #    Also handles second-order: "d2f/dx2" → $\frac{d^{2}f}{dx^{2}}$
-    # Second order first (more specific)
-    text = re.sub(
-        r"\bd\s*2\s*([a-zA-Z])\s*/\s*d\s*([a-zA-Z])\s*2\b",
-        r"$\\frac{d^{2}\1}{d\2^{2}}$",
-        text,
-    )
-    # First order: df/dx, dy/dt, dP/dV, etc.
-    text = re.sub(
-        r"(?<![a-zA-Z])\bd([a-zA-Z])\s*/\s*d([a-zA-Z])\b",
-        r"$\\frac{d\1}{d\2}$",
-        text,
-    )
-    # Bare operator: d/dx, d/dt
-    text = re.sub(
-        r"(?<![a-zA-Z])\bd\s*/\s*d([a-zA-Z])\b",
-        r"$\\frac{d}{d\1}$",
-        text,
-    )
-
-    # ── 10. Partial derivatives: "∂f/∂x", "$\partial$f/$\partial$x" ───
-    #    After _clean(), ∂ becomes $\partial$ — handle both raw and cleaned
-    # Raw unicode ∂ (if somehow survived _clean)
-    text = re.sub(
-        r"\u2202\s*([a-zA-Z])\s*/\s*\u2202\s*([a-zA-Z])",
-        r"$\\frac{\\partial \1}{\\partial \2}$",
-        text,
-    )
-    # Post-_clean form: $\partial$f/$\partial$x
-    text = re.sub(
-        r"\$\\partial\$\s*([a-zA-Z])\s*/\s*\$\\partial\$\s*([a-zA-Z])",
-        r"$\\frac{\\partial \1}{\\partial \2}$",
-        text,
-    )
-    # Bare: $\partial$/$\partial$x
-    text = re.sub(
-        r"\$\\partial\$\s*/\s*\$\\partial\$\s*([a-zA-Z])",
-        r"$\\frac{\\partial}{\\partial \1}$",
-        text,
-    )
-
-    # ── 11. Integral expressions: "∫ f(x) dx", "$\int$ f(x) dx" ──────
-    #    After _clean(), ∫ becomes $\int$ — detect and wrap properly
-    # Post-_clean: "$\int$ ... dx" or "$\int$ ... dt"
-    text = re.sub(
-        r"\$\\int\$\s*(.{1,60}?)\s*d([a-zA-Z])\b",
-        lambda m: "$\\int " + m.group(1).replace("$", "").strip()
-                  + " \\, d" + m.group(2) + "$",
-        text,
-    )
-    # Raw unicode ∫ (if survived)
-    text = re.sub(
-        r"\u222b\s*(.{1,60}?)\s*d([a-zA-Z])\b",
-        lambda m: "$\\int " + m.group(1).replace("$", "").strip()
-                  + " \\, d" + m.group(2) + "$",
-        text,
-    )
-    # Definite integrals: "$\int$_a^b f(x) dx" or "$\int$ a b f(x) dx"
-    text = re.sub(
-        r"\$\\int\$\s*_?\s*([a-zA-Z0-9])\s*\^?\s*([a-zA-Z0-9])\s+(.{1,50}?)\s*d([a-zA-Z])\b",
-        lambda m: "$\\int_{" + m.group(1) + "}^{" + m.group(2) + "} "
-                  + m.group(3).replace("$", "").strip()
-                  + " \\, d" + m.group(4) + "$",
-        text,
-    )
-
-    # ── 12. Simple fractions in equation context: "a / b" near = ───────
-    #    Only fire on lines with "=" to avoid prose like "and/or"
-    def _frac_in_equation(line: str) -> str:
-        if "=" not in line:
-            return line
-        # "1 / 2", "a / b" — single token on each side of /
-        return re.sub(
-            r"(?<!\w)([a-zA-Z0-9]+)\s*/\s*([a-zA-Z0-9]+)(?!\w)",
-            lambda m: (
-                "$\\frac{" + m.group(1) + "}{" + m.group(2) + "}$"
-                if len(m.group(1)) <= 3 and len(m.group(2)) <= 3
-                else m.group(0)
-            ),
-            line,
-        )
-
-    text = "\n".join(_frac_in_equation(ln) for ln in text.split("\n"))
+    # Step 3: Normalize whitespace
+    text = re.sub(r"[ \t]+", " ", text)
+    text = text.strip()
 
     return text
 
 
 def _clean_with_math(text: str) -> str:
-    """
-    Eight-step pipeline for body/abstract:
-      1. _clean()                          — unicode -> $\\cmd$ fragments
-      2. _merge_adjacent_math()            — $a$$b$ -> $ab$
-      3. _fix_superscript_space()          — "$\\sigma$ 2" -> "$\\sigma^{2}$"
-      4. _consolidate_math_lines()         — heavy math lines -> single $...$
-      5. _compact_equation_lines()         — remove pdfplumber spacing in eq lines
-      6. _separate_numbered_equations()    — split collapsed eq runs into paragraphs
-      7. _fix_decimal_spaces()             — "3 . 1415" -> "3.1415"
-      8. _fix_inline_math_patterns()       — superscripts, subscripts, log(), O()
-         9.  derivatives:  df/dx -> $\\frac{df}{dx}$
-         10. partials:     ∂f/∂x -> $\\frac{\\partial f}{\\partial x}$
-         11. integrals:    ∫f(x)dx -> $\\int f(x) \\, dx$
-         12. fractions:    a/b (in equations) -> $\\frac{a}{b}$
-    """
+    """Full cleanup including math symbol conversion."""
     if not text:
         return ""
+
     text = _clean(text)
-    text = _merge_adjacent_math(text)
-    text = _fix_superscript_space(text)
-    text = _consolidate_math_lines(text)
-    text = _compact_equation_lines(text)
-    text = _separate_numbered_equations(text)
+
+    # Step 4: Greek letters → $\alpha$ etc.
+    for char, cmd in GREEK_TO_LATEX.items():
+        if char in text:
+            text = text.replace(char, f"${cmd}$")
+
+    # Step 5: Math symbols → LaTeX
+    for char, cmd in MATH_SYMBOLS.items():
+        if char in text:
+            text = text.replace(char, f"${cmd}$")
+
+    # Step 6: Super/subscript unicode chars — attached-aware conversion
+    # x² → $x^{2}$  (NOT  x$^{2}$)
+    # H₂O → $H_{2}$O  (NOT  H$_{2}$O)
+    text = _fix_unicode_scripts(text)
+
+    # Step 7: Wrap short ASCII subscript patterns: x_i → $x_i$, a_1 → $a_1$
+    text = _wrap_ascii_subscripts(text)
+
+    # Step 8: Fix decimal spaces: "3 . 14" → "3.14"
     text = _fix_decimal_spaces(text)
-    text = _fix_inline_math_patterns(text)
+
+    # Step 9: Merge adjacent $...$ fragments
+    text = _merge_adjacent_math(text)
+
+    # Step 10: Strip remaining non-ASCII that pdflatex can't handle
+    text = _strip_unsafe_unicode(text)
+
     return text
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Core character-level cleaner
-# ══════════════════════════════════════════════════════════════════════════════
+def _fix_unicode_scripts(text: str) -> str:
+    """
+    Convert unicode super/subscript chars to LaTeX math, handling the attached case.
 
-def _clean(text: str) -> str:
-    """Character-level cleaning: ligatures, unicode spaces, math symbols."""
-    if not text:
-        return ""
-    if not isinstance(text, str):
-        text = str(text)
+    Attached:   x² → $x^{2}$   (base letter pulled into math, not left outside)
+                H₂  → $H_{2}$
+    Standalone: ²   → $^{2}$
+                ₁   → $_{1}$
 
-    for bad, good in _LIGATURES.items():
-        text = text.replace(bad, good)
-    for ch in _UNICODE_SPACES:
-        text = text.replace(ch, " ")
-    for ch in _STRIP_CHARS:
-        text = text.replace(ch, "")
+    The old naïve replace produced `x$^{2}$` which is broken LaTeX
+    (superscript with no base in math mode).
+    """
+    result = []
+    i = 0
+    n = len(text)
 
-    # Text-mode commands (no $ wrapper)
-    for sym, lat in _TEXT_MATH.items():
-        text = text.replace(sym, lat)
+    while i < n:
+        ch = text[i]
 
-    # Bullet chars → $\bullet$ (math mode survives latex_escape)
-    for ch in _BULLETS:
-        if ch in text:
-            text = text.replace(ch, r"$\bullet$")
+        # ── Superscript: check if current char has superscript following it ──
+        if i + 1 < n and text[i + 1] in SUPERSCRIPTS and ch not in SUPERSCRIPTS:
+            # Collect all consecutive superscript chars
+            j = i + 1
+            sup_digits = ""
+            while j < n and text[j] in SUPERSCRIPTS:
+                sup_digits += SUPERSCRIPTS[text[j]]
+                j += 1
 
-    # Math symbols — wrap each in $...$
-    for sym, lat in _MATH.items():
-        if sym in text:
-            text = text.replace(sym, f"${lat}$")
+            if ch.isalnum():
+                # Attached: pull base char into math → $x^{2}$
+                result.append(f"${ch}^{{{sup_digits}}}$")
+            else:
+                # Not a valid base — emit base char as-is, superscript standalone
+                result.append(ch)
+                result.append(f"$^{{{sup_digits}}}$")
+            i = j
+            continue
 
-    # De-hyphenation
-    text = re.sub(r"(\w)\u00ad?\s*-\s*\n\s*(\w)", r"\1\2", text)
-    text = re.sub(r"\r\n|\r", "\n", text)
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
+        # ── Subscript: check if current char has subscript following it ──
+        if i + 1 < n and text[i + 1] in SUBSCRIPTS and ch not in SUBSCRIPTS:
+            j = i + 1
+            sub_digits = ""
+            while j < n and text[j] in SUBSCRIPTS:
+                sub_digits += SUBSCRIPTS[text[j]]
+                j += 1
 
-    # Safety net: remaining non-ASCII that pdflatex can't handle
-    cleaned = []
+            if ch.isalnum():
+                # Attached: pull base char into math → $H_{2}$
+                result.append(f"${ch}_{{{sub_digits}}}$")
+            else:
+                result.append(ch)
+                result.append(f"$_{{{sub_digits}}}$")
+            i = j
+            continue
+
+        # ── Standalone superscript (no valid base before it) ──
+        if ch in SUPERSCRIPTS:
+            result.append(f"$^{{{SUPERSCRIPTS[ch]}}}$")
+            i += 1
+            continue
+
+        # ── Standalone subscript ──
+        if ch in SUBSCRIPTS:
+            result.append(f"$_{{{SUBSCRIPTS[ch]}}}$")
+            i += 1
+            continue
+
+        result.append(ch)
+        i += 1
+
+    return "".join(result)
+
+
+# Inline ASCII subscript pattern: single-letter base + _ + 1-2 char subscript
+# Matches: x_i, a_1, H_2, n_k   but NOT: file_path, http_request, some_word
+_ASCII_SUB_RE = re.compile(
+    r"(?<![a-zA-Z\$])"        # not preceded by 3+ letters or already in math
+    r"([a-zA-Z]{1,2})"        # 1-2 letter base
+    r"_"
+    r"([a-zA-Z0-9]{1,2})"     # 1-2 char subscript (single digit or letter)
+    r"(?![a-zA-Z0-9_])"       # not followed by more word chars (avoids file_path)
+)
+
+
+def _wrap_ascii_subscripts(text: str) -> str:
+    """
+    Wrap short ASCII subscript patterns in math mode so the renderer
+    doesn't escape the underscore to \\_ in a context where it should be math.
+
+    x_i  → $x_i$
+    a_1  → $a_1$
+    H_2  → $H_2$
+
+    NOT wrapped (too long = English words, not math):
+    file_path, http_get, some_var
+    """
+    def _replace(m):
+        # Don't double-wrap if already inside $...$
+        return f"${m.group(1)}_{{{m.group(2)}}}$"
+
+    # Only apply outside existing $...$ regions
+    return _apply_outside_math(text, _ASCII_SUB_RE, _replace)
+
+
+def _apply_outside_math(text: str, pattern: re.Pattern, replacement) -> str:
+    """
+    Apply a regex substitution only to text that is outside $...$ math regions.
+    Prevents double-wrapping already-converted expressions.
+    """
+    result = []
+    last = 0
+    # Find all $...$ regions (both inline and display)
+    math_spans = []
+    depth = 0
+    start = None
+
+    i = 0
+    while i < len(text):
+        if text[i] == "$" and (i == 0 or text[i - 1] != "\\"):
+            if depth == 0:
+                start = i
+                depth = 1
+            else:
+                depth = 0
+                if start is not None:
+                    math_spans.append((start, i + 1))
+                    start = None
+        i += 1
+
+    # Rebuild text, applying pattern only to non-math segments
+    last_end = 0
+    for ms, me in math_spans:
+        # Apply to text before this math span
+        segment = text[last_end:ms]
+        result.append(pattern.sub(replacement, segment))
+        # Keep math span unchanged
+        result.append(text[ms:me])
+        last_end = me
+
+    # Apply to remaining text after last math span
+    result.append(pattern.sub(replacement, text[last_end:]))
+    return "".join(result)
+
+
+def _fix_decimal_spaces(text: str) -> str:
+    """Fix OCR artifacts: '3 . 14' → '3.14'"""
+    return re.sub(r"(\d)\s*\.\s*(\d)", r"\1.\2", text)
+
+
+def _merge_adjacent_math(text: str) -> str:
+    """
+    Merge adjacent $...$<op>$...$ into single $...<op>...$ so LaTeX renders
+    one continuous equation instead of fragmented inline math.
+
+    $a^{2}$ + $b^{2}$ = $c^{2}$  →  $a^{2} + b^{2} = c^{2}$
+    $a^{2}$$b^{2}$                →  $a^{2} b^{2}$
+    """
+    # Step 1: Merge directly adjacent $X$$Y$ → $X Y$
+    text = re.sub(r"\$\s*\$", " ", text)
+
+    # Step 2: Merge $X$ <short-op> $Y$ where op is +, -, =, ×, etc.
+    # This catches: $a^{2}$ + $b^{2}$ = $c^{2}$
+    # Pattern: closing $ + whitespace + short operator + whitespace + opening $
+    def _merge_op(m):
+        return " " + m.group(1) + " "
+
+    text = re.sub(
+        r"\$\s*([+\-=<>×÷·,])\s*\$",
+        _merge_op,
+        text,
+    )
+
+    return text
+
+
+def _strip_unsafe_unicode(text: str) -> str:
+    """Remove Unicode chars that pdflatex can't handle (Private Use Area, etc.)."""
+    result = []
     for ch in text:
         cp = ord(ch)
-        if cp <= 0x7E:
-            cleaned.append(ch)
-        elif any(lo <= cp <= hi for lo, hi in _SAFE_RANGES):
-            cleaned.append(ch)
+        # Keep ASCII
+        if cp < 128:
+            result.append(ch)
+        # Keep common Latin Extended (accented chars)
+        elif cp < 0x0250:
+            result.append(ch)
+        # Keep if it's a known LaTeX-wrapped symbol (already converted above)
+        elif ch in GREEK_TO_LATEX or ch in MATH_SYMBOLS:
+            result.append(ch)
+        # Skip Private Use Area (U+E000..U+F8FF) — these crash pdflatex
+        elif 0xE000 <= cp <= 0xF8FF:
+            continue
+        # Keep other reasonable Unicode (CJK, etc.) — pdflatex with inputenc handles some
+        elif cp < 0xFFFF:
+            result.append(ch)
         else:
-            decomposed = unicodedata.normalize("NFKD", ch)
-            ascii_approx = decomposed.encode("ascii", "ignore").decode("ascii")
-            if not ascii_approx:
-                log.debug("Safety net: unknown U+%04X in %r", ord(ch),
-                          text[max(0, len(cleaned) - 15):len(cleaned) + 5])
-            cleaned.append(ascii_approx if ascii_approx else "?")
+            continue  # skip supplementary planes
+    return "".join(result)
 
-    return "".join(cleaned).strip()
+
+# ── Table cell formula patterns ──────────────────────────────────
+
+# Common text-based formula patterns found in table cells.
+# These fire BEFORE _clean_with_math so they match the raw extracted text
+# (with plain digits, not yet Unicode-converted).
+# Order matters: more specific patterns first.
+_TABLE_FORMULA_PATTERNS = [
+    # ── Pythagoras: a2 + b2 = c2  →  $a^{2} + b^{2} = c^{2}$ ──
+    (re.compile(r'\b([a-zA-Z])(\d)\s*\+\s*([a-zA-Z])(\d)\s*=\s*([a-zA-Z])(\d)\b'),
+     lambda m: f"${m.group(1)}^{{{m.group(2)}}} + {m.group(3)}^{{{m.group(4)}}} = {m.group(5)}^{{{m.group(6)}}}$"),
+
+    # ── Logarithm: log(xy) = log(x) + log(y) ──
+    (re.compile(r'\blog\s*\(([^)]+)\)\s*=\s*log\s*\(([^)]+)\)\s*\+\s*log\s*\(([^)]+)\)'),
+     lambda m: f"$\\log({m.group(1)}) = \\log({m.group(2)}) + \\log({m.group(3)})$"),
+
+    # ── Derivative: df/dt = lim ... (f(t+h)-f(t))/h ──
+    (re.compile(r'\bdf\s*/\s*dt\s*=\s*lim'),
+     lambda m: r"$\frac{df}{dt} = \lim_{h \to 0} \frac{f(t+h) - f(t)}{h}$"),
+
+    # ── Gravity: F = Gm1m2/r2 ──
+    (re.compile(r'\bF\s*=\s*G\s*m\s*1\s*m\s*2\s*/\s*r\s*2\b'),
+     lambda m: r"$F = G\frac{m_1 m_2}{r^{2}}$"),
+    (re.compile(r'\bF\s*=\s*Gm1m2\s*/\s*r2\b'),
+     lambda m: r"$F = G\frac{m_1 m_2}{r^{2}}$"),
+
+    # ── Complex number: i2 = -1 or i² = −1 ──
+    (re.compile(r'\bi\s*2\s*=\s*[−\-]\s*1\b'),
+     lambda m: r"$i^{2} = -1$"),
+
+    # ── Normal distribution: Φ(x) = 1/(σ√(2π)) e^... ──
+    # This is complex — just wrap the whole thing as-is in math mode
+    (re.compile(r'[ΦPhi]\s*\(\s*x\s*\)\s*='),
+     lambda m: None),  # handled by Unicode conversion below
+
+    # ── Fourier: f̂(ω) = ∫ ... ──
+    (re.compile(r'f\s*\^\s*\(\s*[ωw]\s*\)\s*='),
+     lambda m: None),  # handled by Unicode conversion below
+
+    # ── Relativity: E = mc2 ──
+    (re.compile(r'\bE\s*=\s*mc\s*2\b'),
+     lambda m: r"$E = mc^{2}$"),
+
+    # ── Generic: Variable = expression with digit superscript ──
+    # X = YZn  where X is uppercase, YZ is lowercase, n is a digit
+    (re.compile(r'\b([A-Z])\s*=\s*([a-z]+)\s*(\d)\b'),
+     lambda m: f"${m.group(1)} = {m.group(2)}^{{{m.group(3)}}}$"),
+
+    # ── Generic: var-digit = number (e.g. i2 = -1, x3 = 27) ──
+    (re.compile(r'\b([a-z])(\d)\s*=\s*([−\-]?\d+)\b'),
+     lambda m: f"${m.group(1)}^{{{m.group(2)}}} = {m.group(3)}$"),
+]
+
+
+def _normalize_unicode_to_ascii(text: str) -> str:
+    """
+    Convert Unicode super/subscript chars and math symbols to plain ASCII
+    so table formula patterns can match consistently.
+    ² → 2, ₁ → 1, − → -, × → *, etc.
+    """
+    for char, digit in SUPERSCRIPTS.items():
+        text = text.replace(char, digit)
+    for char, digit in SUBSCRIPTS.items():
+        text = text.replace(char, digit)
+    # Unicode minus → ASCII minus
+    text = text.replace("\u2212", "-")  # −
+    text = text.replace("\u2013", "-")  # en-dash
+    return text
+
+
+def _clean_table_cell(text: str) -> str:
+    """
+    Clean a table cell with math awareness.
+
+    Strategy:
+    1. Normalize Unicode scripts to ASCII (² → 2, ₁ → 1, − → -)
+    2. Apply table-specific formula patterns on the normalized text
+    3. Apply standard math cleanup for anything not caught by patterns
+    """
+    if not text:
+        return ""
+
+    # Step 1: Normalize so patterns match regardless of Unicode vs ASCII
+    text = _normalize_unicode_to_ascii(text)
+
+    # Step 2: Apply basic cleanup (ligatures, whitespace)
+    text = _clean(text)
+
+    # Step 3: Try table-specific formula patterns
+    for pattern, replacement in _TABLE_FORMULA_PATTERNS:
+        if replacement is not None:
+            text = pattern.sub(replacement, text)
+
+    # Step 4: Apply remaining math cleanup (Greek letters, symbols, etc.)
+    # Skip _fix_unicode_scripts since we already normalized those
+    for char, cmd in GREEK_TO_LATEX.items():
+        if char in text:
+            text = text.replace(char, f"${cmd}$")
+    for char, cmd in MATH_SYMBOLS.items():
+        if char in text:
+            text = text.replace(char, f"${cmd}$")
+
+    # Step 5: Merge adjacent math fragments
+    text = _merge_adjacent_math(text)
+
+    # Step 6: Strip unsafe unicode
+    text = _strip_unsafe_unicode(text)
+
+    return text

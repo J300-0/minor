@@ -1,67 +1,75 @@
 """
-extractor/docx_extractor.py — Stage 1: DOCX -> raw text + blocks + tables.
-Uses python-docx.
+extractor/docx_extractor.py — DOCX text extraction via python-docx.
 """
 import os
+import logging
 
-from core.logger import get_logger
-
-log = get_logger(__name__)
+log = logging.getLogger("paper_formatter")
 
 
-def extract(docx_path: str, inter_dir: str) -> dict:
-    """
-    Returns dict with raw_text, blocks, tables, images (same shape as pdf_extractor).
-    """
-    os.makedirs(inter_dir, exist_ok=True)
+def extract_docx(path: str) -> dict:
+    """Extract text and tables from a DOCX file."""
+    from docx import Document as DocxDocument
 
-    try:
-        import docx as python_docx
-    except ImportError:
-        log.error("python-docx not installed — run: pip install python-docx")
-        return {"raw_text": "", "blocks": [], "tables": [], "images": []}
+    log.info("  Opening DOCX: %s", os.path.basename(path))
+    doc = DocxDocument(path)
 
-    doc    = python_docx.Document(docx_path)
+    # Extract paragraphs
+    paragraphs = []
     blocks = []
-    tables = []
-
-    # ── Paragraphs -> blocks ────────────────────────────────────────────────
     for para in doc.paragraphs:
         text = para.text.strip()
         if not text:
             continue
-        is_bold = any(run.bold for run in para.runs if run.text.strip())
-        is_head = para.style.name.startswith("Heading")
-        font_size = 12
-        for run in para.runs:
+        paragraphs.append(text)
+
+        # Get font info from first run
+        font_name = ""
+        font_size = 0
+        if para.runs:
+            run = para.runs[0]
+            if run.font.name:
+                font_name = run.font.name
             if run.font.size:
-                font_size = run.font.size.pt
-                break
+                font_size = round(run.font.size.pt, 1)
+
+        # Detect heading style
+        is_heading = para.style and para.style.name.startswith("Heading")
+
         blocks.append({
-            "text":      text,
-            "font_size": font_size if not is_head else 14,
-            "bold":      is_bold or is_head,
-            "page":      0,   # python-docx has no page concept
+            "text": text,
+            "font": font_name,
+            "size": font_size,
+            "page": 0,
+            "bbox": [0, 0, 0, 0],
+            "is_heading": is_heading,
+            "heading_level": int(para.style.name[-1]) if is_heading and para.style.name[-1].isdigit() else 0,
         })
 
-    # ── Tables ──────────────────────────────────────────────────────────────
-    for tbl in doc.tables:
-        rows = [[cell.text.strip() for cell in row.cells] for row in tbl.rows]
-        if rows:
+    # Extract tables
+    tables = []
+    for i, table in enumerate(doc.tables):
+        rows_data = []
+        for row in table.rows:
+            cells = [cell.text.strip() for cell in row.cells]
+            rows_data.append(cells)
+
+        if len(rows_data) >= 2:
             tables.append({
+                "headers": rows_data[0],
+                "rows": rows_data[1:],
                 "caption": "",
-                "headers": rows[0],
-                "rows":    rows[1:],
-                "notes":   "",
+                "label": f"tab_docx_{i+1}",
             })
 
-    raw_text = "\n\n".join(b["text"] for b in blocks)
+    full_text = "\n".join(paragraphs)
+    log.info("  Extracted %d chars, %d blocks, %d tables from DOCX",
+             len(full_text), len(blocks), len(tables))
 
-    # Write raw text for inspection
-    txt_path = os.path.join(inter_dir, "extracted.txt")
-    with open(txt_path, "w", encoding="utf-8") as f:
-        f.write(raw_text)
-
-    log.info("DOCX extraction: %d blocks, %d chars, %d tables",
-             len(blocks), len(raw_text), len(tables))
-    return {"raw_text": raw_text, "blocks": blocks, "tables": tables, "images": []}
+    return {
+        "text": full_text,
+        "blocks": blocks,
+        "tables": tables,
+        "figures": [],
+        "formula_blocks": [],
+    }

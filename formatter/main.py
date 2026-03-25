@@ -44,6 +44,9 @@ def main():
 
     args = parser.parse_args()
 
+    # Safety print to stderr (not buffered like log handlers)
+    print(f"[main] Starting: {args.input} → {args.template}", file=sys.stderr, flush=True)
+
     try:
         pdf = run(
             input_file=args.input,
@@ -58,8 +61,10 @@ def main():
         print(f"\n  Pipeline failed: {e}\n", file=sys.stderr)
         sys.exit(2)
     except Exception as e:
-        print(f"\n  Unexpected error: {e}\n", file=sys.stderr)
-        raise
+        print(f"\n  Unexpected error: {type(e).__name__}: {e}\n", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        sys.exit(3)
 
 
 if __name__ == "__main__":

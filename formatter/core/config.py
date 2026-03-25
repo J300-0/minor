@@ -1,42 +1,30 @@
 """
-core/config.py — All project-wide paths and constants.
+core/config.py — Paths, constants, template registry.
 """
 import os
 
-ROOT             = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INPUT_DIR        = os.path.join(ROOT, "input")
-INTERMEDIATE_DIR = os.path.join(ROOT, "intermediate")
-OUTPUT_DIR       = os.path.join(ROOT, "output")
-TEMPLATES_DIR    = os.path.join(ROOT, "template")
-LOGS_DIR         = os.path.join(ROOT, "logs")
+# Project root = parent of core/
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Intermediate file paths
-EXTRACTED_TXT   = os.path.join(INTERMEDIATE_DIR, "extracted.txt")
-STRUCTURED_JSON = os.path.join(INTERMEDIATE_DIR, "structured.json")
-GENERATED_TEX   = os.path.join(INTERMEDIATE_DIR, "generated.tex")
+# Directories
+INPUT_DIR = os.path.join(PROJECT_ROOT, "input")
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "output")
+INTERMEDIATE_DIR = os.path.join(PROJECT_ROOT, "intermediate")
+TEMPLATE_DIR = os.path.join(PROJECT_ROOT, "template")
+LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
 
-# Template registry — keys are CLI names, values are folder names under template/
+# Ensure dirs exist
+for d in [OUTPUT_DIR, INTERMEDIATE_DIR, LOG_DIR]:
+    os.makedirs(d, exist_ok=True)
+
+# Template registry: name -> (cls file or None, template.tex.j2)
+DEFAULT_TEMPLATE = "ieee"
+
 TEMPLATE_REGISTRY = {
-    "ieee":     "ieee",
-    "acm":      "acm",
-    "springer": "springer",
-    "elsevier": "elsevier",
-    "apa":      "apa",
-    "arxiv":    "arxiv",
-}
-DEFAULT_TEMPLATE     = "ieee"
-SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".doc"}
-
-# pdflatex
-PDFLATEX_PASSES = 2
-PDFLATEX_FLAGS  = ["-interaction=nonstopmode", "-halt-on-error"]
-
-# .cls files that must sit next to the .tex during compilation.
-# Keys match TEMPLATE_REGISTRY keys.  Value is the .cls filename inside
-# the corresponding template/ subfolder.
-CLS_FILES = {
-    "ieee":     "IEEEtran.cls",
-    "acm":      "acmart.cls",
-    "springer": "llncs.cls",
-    "elsevier": "elsarticle.cls",
+    "ieee":     {"cls": "IEEEtran.cls",     "j2": "template.tex.j2"},
+    "acm":      {"cls": "acmart.cls",        "j2": "template.tex.j2"},
+    "springer": {"cls": "llncs.cls",         "j2": "template.tex.j2"},
+    "elsevier": {"cls": "elsarticle.cls",    "j2": "template.tex.j2"},
+    "apa":      {"cls": None,                "j2": "template.tex.j2"},
+    "arxiv":    {"cls": None,                "j2": "template.tex.j2"},
 }

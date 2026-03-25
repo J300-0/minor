@@ -1,227 +1,344 @@
 """
-renderer/jinja_renderer.py — Stage 4: Document -> .tex via Jinja2.
+renderer/jinja_renderer.py — Jinja2 with LaTeX-safe delimiters → .tex file.
 
-LaTeX-safe Jinja2 delimiters (avoid conflict with LaTeX {}  and %):
-  Variables : \\VAR{ name }
-  Blocks    : \\BLOCK{ stmt }
-  Comments  : \\#{ comment }
-  Line stmt : %% (prefix)
-
-Custom filters: latex_escape, latex_paragraphs, render_table, section_cmd
+Custom filters: latex_escape, latex_paragraphs (paras), render_table, section_cmd.
+Copies required .cls files alongside generated .tex.
 """
 import os
 import re
 import shutil
-import traceback
-from copy import deepcopy
+import logging
+from dataclasses import asdict
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
+import jinja2
 
-from core.models import Document, Section, Author, Reference
-from core.logger import get_logger
+from core.config import TEMPLATE_DIR, INTERMEDIATE_DIR, TEMPLATE_REGISTRY
+from core.models import Document, Table
 
-log = get_logger(__name__)
-
-TEMPLATE_FILE = "template.tex.j2"
+log = logging.getLogger("paper_formatter")
 
 
-def render(doc: Document, template_name: str, template_dir: str,
-           output_tex: str) -> str:
+def render(doc: Document, template_name: str) -> str:
     """
-    Render a Document to a .tex file using the named template.
-    Returns path to the output .tex file.
+    Render a Document into a .tex file using the specified template.
+    Returns the path to the generated .tex file.
     """
-    doc = _sanitize(doc)
-    out_dir = os.path.dirname(output_tex)
+    tmpl_info = TEMPLATE_REGISTRY[template_name]
+    tmpl_dir = os.path.join(TEMPLATE_DIR, template_name)
+    j2_path = os.path.join(tmpl_dir, tmpl_info["j2"])
 
-    # Copy required .cls file next to the output .tex
-    from core.config import CLS_FILES
-    cls = CLS_FILES.get(template_name)
-    if cls:
-        src = os.path.join(template_dir, cls)
-        dst = os.path.join(out_dir, cls)
-        if os.path.exists(src) and not os.path.exists(dst):
-            shutil.copy2(src, dst)
+    if not os.path.isfile(j2_path):
+        raise FileNotFoundError(f"Template not found: {j2_path}")
 
-    # Copy figure images next to .tex so \includegraphics can find them
-    for section in doc.sections:
-        for fig in section.figures:
-            if fig.image_path and os.path.exists(fig.image_path):
-                fname = os.path.basename(fig.image_path)
-                dst = os.path.join(out_dir, fname)
-                if not os.path.exists(dst):
-                    shutil.copy2(fig.image_path, dst)
-                fig.image_path = fname   # use relative path in .tex
-
-    env = Environment(
-        loader                = FileSystemLoader(template_dir),
-        block_start_string    = r"\BLOCK{",
-        block_end_string      = "}",
-        variable_start_string = r"\VAR{",
-        variable_end_string   = "}",
-        comment_start_string  = r"\#{",
-        comment_end_string    = "}",
-        line_statement_prefix = "%%",
-        trim_blocks           = True,
-        lstrip_blocks         = True,
-        autoescape            = False,
-        undefined             = StrictUndefined,
+    # Set up Jinja2 environment with LaTeX-safe delimiters
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(tmpl_dir),
+        block_start_string=r"\BLOCK{",
+        block_end_string=r"\ENDBLOCK",
+        variable_start_string=r"\VAR{",
+        variable_end_string="}",
+        comment_start_string=r"\#{",
+        comment_end_string="}",
+        line_statement_prefix="%%",
+        line_comment_prefix="%#",
+        trim_blocks=True,
+        autoescape=False,
     )
-    env.filters["e"]            = latex_escape
-    env.filters["paras"]        = latex_paragraphs
-    env.filters["render_table"] = render_table
-    env.filters["section_cmd"]  = section_cmd
 
-    try:
-        tex = env.get_template(TEMPLATE_FILE).render(
-            title      = doc.title,
-            authors    = doc.authors,
-            abstract   = doc.abstract,
-            keywords   = doc.keywords,
-            sections   = doc.sections,
-            references = doc.references,
-        )
-    except Exception as exc:
-        log.error("Jinja2 render error:\n%s", traceback.format_exc())
-        raise
+    # Register custom filters
+    env.filters["e"] = _latex_escape
+    env.filters["paras"] = _latex_paragraphs
+    env.filters["render_table"] = _render_table
+    env.filters["section_cmd"] = _section_cmd
 
-    os.makedirs(os.path.dirname(output_tex), exist_ok=True)
-    with open(output_tex, "w", encoding="utf-8") as f:
-        f.write(tex)
-    print(f"         -> {output_tex}")
-    return output_tex
+    template = env.get_template(tmpl_info["j2"])
 
+    # Build context from Document
+    context = {
+        "title": doc.title or "Untitled",
+        "authors": [_author_to_dict(a) for a in doc.authors],
+        "abstract": doc.abstract or "",
+        "keywords": doc.keywords or [],
+        "sections": [_section_to_dict(s) for s in doc.sections],
+        "references": [_ref_to_dict(r) for r in doc.references],
+        "formula_blocks": [_fb_to_dict(fb) for fb in doc.formula_blocks],
+    }
 
-# ── LaTeX escape filter ──────────────────────────────────────────────────────
+    # Render
+    tex_content = template.render(**context)
 
-# Backslash MUST be first
-_SPECIAL = [
-    ("\\", r"\textbackslash{}"),
-    ("&",  r"\&"),
-    ("%",  r"\%"),
-    ("$",  r"\$"),
-    ("#",  r"\#"),
-    ("_",  r"\_"),
-    ("{",  r"\{"),
-    ("}",  r"\}"),
-    ("~",  r"\textasciitilde{}"),
-    ("^",  r"\textasciicircum{}"),
-]
+    # Write .tex file
+    tex_path = os.path.join(INTERMEDIATE_DIR, "generated.tex")
+    with open(tex_path, "w", encoding="utf-8") as f:
+        f.write(tex_content)
+
+    # Copy .cls file if needed
+    if tmpl_info.get("cls"):
+        cls_src = os.path.join(tmpl_dir, tmpl_info["cls"])
+        cls_dst = os.path.join(INTERMEDIATE_DIR, tmpl_info["cls"])
+        if os.path.isfile(cls_src):
+            shutil.copy2(cls_src, cls_dst)
+            log.debug("  Copied %s → %s", tmpl_info["cls"], INTERMEDIATE_DIR)
+
+    return tex_path
 
 
-def latex_escape(text) -> str:
-    """
-    Escape LaTeX special chars.  Preserves inline math $...$.
-    """
-    if not text:
-        return ""
-    text = str(text)
-    parts = re.split(r"(\$[^$]*\$)", text)
-    out = []
-    for part in parts:
-        if part.startswith("$") and part.endswith("$") and len(part) > 1:
-            out.append(part)   # math — pass through
-        else:
-            for ch, rep in _SPECIAL:
-                part = part.replace(ch, rep)
-            out.append(part)
-    return "".join(out)
+# ── Context conversion helpers ───────────────────────────────────
 
-
-def latex_paragraphs(text) -> str:
-    """
-    Escape text and separate paragraphs with blank lines.
-    Display math blocks \\[...\\] are kept as-is.
-    """
-    if not text:
-        return ""
-    paras = re.split(r"\n\n+", str(text))
-    result = []
-    for p in paras:
-        p = p.strip()
-        if not p:
-            continue
-        if p.startswith("\\[") and p.endswith("\\]"):
-            result.append(p)
-        else:
-            result.append(latex_escape(p))
-    return "\n\n".join(result)
-
-
-# ── Section command filter ───────────────────────────────────────────────────
-
-def section_cmd(depth) -> str:
-    """
-    Map Section.depth to LaTeX sectioning command.
-      1 -> \\section   2 -> \\subsection   3 -> \\subsubsection
-    """
-    try:
-        depth = int(depth)
-    except (TypeError, ValueError):
-        depth = 1
+def _author_to_dict(a):
     return {
-        1: r"\section",
-        2: r"\subsection",
-        3: r"\subsubsection",
-    }.get(depth, r"\section")
+        "name": a.name, "department": a.department,
+        "organization": a.organization, "city": a.city,
+        "country": a.country, "email": a.email,
+    }
+
+def _section_to_dict(s):
+    return {
+        "heading": s.heading, "depth": s.depth, "body": s.body,
+        "tables": s.tables,
+        "figures": [_figure_to_dict(f) for f in s.figures],
+        "formula_blocks": [_fb_to_dict(fb) for fb in s.formula_blocks],
+    }
 
 
-# ── Table renderer ───────────────────────────────────────────────────────────
+def _figure_to_dict(f):
+    """Convert Figure to dict with LaTeX-safe relative path."""
+    img_path = f.image_path if isinstance(f, str) else (
+        f.get("image_path", "") if isinstance(f, dict) else f.image_path
+    )
+    # Convert absolute path to relative from intermediate dir
+    # pdflatex runs in intermediate/, figures are in intermediate/figures/
+    if img_path and os.path.isabs(img_path):
+        try:
+            img_path = os.path.relpath(img_path, INTERMEDIATE_DIR)
+        except ValueError:
+            pass  # different drive on Windows, keep absolute
+    # Normalize path separators for LaTeX (always use forward slashes)
+    img_path = img_path.replace("\\", "/")
 
-def render_table(table) -> str:
-    """Render a Table object to a LaTeX tabular environment."""
-    headers = table.headers or []
-    rows = table.rows or []
-    ncols = max(len(headers), max((len(r) for r in rows), default=0), 1)
-    col_spec = "|" + "l|" * ncols
-    wide = ncols > 5
+    caption = f.get("caption", "") if isinstance(f, dict) else f.caption
+    label = f.get("label", "") if isinstance(f, dict) else f.label
+    return {"image_path": img_path, "caption": caption, "label": label}
 
-    lines = [r"\begin{table}[htbp]", r"\centering"]
-    if wide:
-        lines.append(r"\small")
-    if table.caption:
-        lines.append(r"\caption{" + latex_escape(table.caption) + "}")
-    if wide:
-        lines.append(r"\resizebox{\columnwidth}{!}{%")
-    lines += [
-        r"\begin{tabular}{" + col_spec + "}",
-        r"\hline",
-    ]
+def _ref_to_dict(r):
+    return {"text": r.text, "index": r.index, "author_year": r.author_year}
+
+def _fb_to_dict(fb):
+    """Convert FormulaBlock to dict with LaTeX-safe relative image path."""
+    img_path = fb.image_path or ""
+    if img_path and os.path.isabs(img_path):
+        try:
+            img_path = os.path.relpath(img_path, INTERMEDIATE_DIR)
+        except ValueError:
+            pass
+    img_path = img_path.replace("\\", "/")
+
+    return {"latex": fb.latex, "image_path": img_path,
+            "confidence": fb.confidence, "page": fb.page, "label": fb.label}
+
+
+# ── Jinja2 custom filters ───────────────────────────────────────
+
+def _latex_escape(text: str) -> str:
+    """
+    Escape text for LaTeX, but preserve:
+    - Already-existing LaTeX commands (\\cmd{...})
+    - Inline math ($...$)
+    - Display math (\\[...\\], \\(...\\))
+    """
+    if not text:
+        return ""
+
+    # Characters that need escaping in LaTeX
+    specials = {
+        "&": r"\&",
+        "%": r"\%",
+        "#": r"\#",
+        "_": r"\_",
+        "~": r"\textasciitilde{}",
+    }
+
+    result = []
+    i = 0
+    math_depth = 0  # 0 = not in math, >0 = in math
+
+    while i < len(text):
+        ch = text[i]
+
+        # Track inline math ($...$)
+        if ch == "$" and (i == 0 or text[i-1] != "\\"):
+            if math_depth == 0:
+                math_depth = 1
+            else:
+                math_depth = 0
+            result.append(ch)
+            i += 1
+            continue
+
+        # Track display math \[...\] and \(...\)
+        if ch == "\\" and i + 1 < len(text):
+            next_ch = text[i + 1]
+            if next_ch == "[":
+                math_depth += 1
+                result.append("\\[")
+                i += 2
+                continue
+            elif next_ch == "]" and math_depth > 0:
+                math_depth -= 1
+                result.append("\\]")
+                i += 2
+                continue
+            elif next_ch == "(":
+                math_depth += 1
+                result.append("\\(")
+                i += 2
+                continue
+            elif next_ch == ")" and math_depth > 0:
+                math_depth -= 1
+                result.append("\\)")
+                i += 2
+                continue
+            # LaTeX command — pass through
+            elif next_ch.isalpha():
+                result.append(ch)
+                i += 1
+                while i < len(text) and text[i].isalpha():
+                    result.append(text[i])
+                    i += 1
+                continue
+
+        # Inside math mode — don't escape
+        if math_depth > 0:
+            result.append(ch)
+            i += 1
+            continue
+
+        # Escape special chars
+        if ch in specials:
+            result.append(specials[ch])
+        elif ch == "{":
+            result.append(r"\{")
+        elif ch == "}":
+            result.append(r"\}")
+        elif ch == "^":
+            result.append(r"\textasciicircum{}")
+        else:
+            result.append(ch)
+        i += 1
+
+    return "".join(result)
+
+
+def _latex_paragraphs(text: str) -> str:
+    """Split text on double newlines into LaTeX paragraphs, with escaping."""
+    if not text:
+        return ""
+
+    paragraphs = re.split(r"\n\n+", text.strip())
+    escaped = []
+    for p in paragraphs:
+        p = p.strip()
+        if p:
+            escaped.append(_latex_escape(p))
+    return "\n\n".join(escaped)
+
+
+def _render_table(table) -> str:
+    """Render a Table object as LaTeX tabular environment."""
+    if isinstance(table, dict):
+        headers = table.get("headers", [])
+        rows = table.get("rows", [])
+        caption = table.get("caption", "")
+        label = table.get("label", "")
+    else:
+        headers = table.headers
+        rows = table.rows
+        caption = table.caption
+        label = table.label
+
+    if not headers and not rows:
+        return ""
+
+    num_cols = len(headers) if headers else (len(rows[0]) if rows else 0)
+    if num_cols == 0:
+        return ""
+
+    col_spec = "|".join(["l"] * num_cols)
+    lines = []
+
+    lines.append(r"\begin{table}[htbp]")
+    lines.append(r"\centering")
+
+    # Always use resizebox to prevent overflow — math content in cells
+    # can be very wide even with few columns
+    lines.append(r"\resizebox{\columnwidth}{!}{")
+
+    lines.append(f"\\begin{{tabular}}{{|{col_spec}|}}")
+    lines.append(r"\hline")
+
     if headers:
-        row_tex = " & ".join(
-            r"\textbf{" + latex_escape(h) + "}" for h in headers
-        )
-        lines += [row_tex + r" \\", r"\hline"]
+        escaped = [_escape_table_cell(h) for h in headers]
+        lines.append(" & ".join(escaped) + r" \\ \hline")
+
     for row in rows:
-        cells = list(row) + [""] * (ncols - len(row))
-        lines.append(" & ".join(latex_escape(c) for c in cells) + r" \\")
-    lines += [r"\hline", r"\end{tabular}"]
-    if wide:
-        lines.append("}")
+        escaped = [_escape_table_cell(str(c)) for c in row]
+        # Pad or trim to match column count
+        while len(escaped) < num_cols:
+            escaped.append("")
+        escaped = escaped[:num_cols]
+        lines.append(" & ".join(escaped) + r" \\")
+
+    lines.append(r"\hline")
+    lines.append(r"\end{tabular}")
+
+    # Close resizebox
+    lines.append("}")
+
+    if caption:
+        lines.append(f"\\caption{{{_latex_escape(caption)}}}")
+    if label:
+        lines.append(f"\\label{{{label}}}")
+
     lines.append(r"\end{table}")
+
     return "\n".join(lines)
 
 
-# ── Document sanitizer ───────────────────────────────────────────────────────
+def _escape_table_cell(text: str) -> str:
+    """
+    Escape a table cell, preserving math content ($...$).
 
-def _sanitize(doc: Document) -> Document:
-    """Ensure all string fields are non-None.  Preserves depth on sections."""
-    doc = deepcopy(doc)
-    doc.title = str(doc.title or "Untitled")
-    doc.abstract = str(doc.abstract or "")
-    doc.keywords = [str(k) for k in (doc.keywords or []) if k]
-    
-    for a in doc.authors:
-        a.name         = str(a.name or "")
-        a.department   = str(a.department or "")
-        a.organization = str(a.organization or "")
-        a.city         = str(a.city or "")
-        a.country      = str(a.country or "")
-        a.email        = str(a.email or "")
-    for s in doc.sections:
-        s.heading = str(s.heading or "")
-        s.body    = str(s.body or "")
-        s.depth   = int(s.depth) if s.depth else 1
-    for r in doc.references:
-        r.text = str(r.text or "")
-    return doc
+    Table cells may already contain LaTeX math from the normalizer
+    (e.g. $a^{2} + b^{2} = c^{2}$). These must NOT be escaped.
+    """
+    if not text:
+        return ""
+    # If the entire cell is wrapped in math delimiters, pass through
+    stripped = text.strip()
+    if stripped.startswith("$") and stripped.endswith("$"):
+        return stripped
+    # If cell contains $...$, escape only the non-math parts
+    if "$" in text:
+        parts = []
+        segments = text.split("$")
+        for i, seg in enumerate(segments):
+            if i % 2 == 0:
+                # Outside math — escape
+                parts.append(_latex_escape(seg))
+            else:
+                # Inside math — pass through
+                parts.append(f"${seg}$")
+        return "".join(parts)
+    # No math — normal escape
+    return _latex_escape(text)
+
+
+def _section_cmd(depth) -> str:
+    """Map section depth (1-3) to LaTeX section command."""
+    depth = int(depth)
+    if depth <= 1:
+        return r"\section"
+    elif depth == 2:
+        return r"\subsection"
+    else:
+        return r"\subsubsection"

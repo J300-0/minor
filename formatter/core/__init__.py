@@ -1,1 +1,1 @@
-# core/ — Shared configuration, data models, logging, and pipeline orchestrator.
+# core — shared models, config, logging, pipeline orchestrator

@@ -3,6 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
+\usepackage[export]{adjustbox}
 \usepackage{hyperref}
 
 \begin{document}
@@ -73,6 +74,21 @@
 \end{figure}
 %% endfor
 
+%% for fb in section.formula_blocks
+%% if fb.latex
+\begin{equation}
+\label{\VAR{fb.label}}
+\VAR{fb.latex}
+\end{equation}
+%% elif fb.image_path
+\begin{figure}[htbp]
+\centering
+\includegraphics[max width=0.85\columnwidth, max height=3cm]{\VAR{fb.image_path}}
+\label{\VAR{fb.label}}
+\end{figure}
+%% endif
+%% endfor
+
 %% endfor
 
 %% if references
@@ -81,6 +97,24 @@
 \bibitem{ref\VAR{ref.index}} \VAR{ref.text | e}
 %% endfor
 \end{thebibliography}
+%% endif
+
+%% if formula_blocks
+\section*{Key Equations}
+%% for fb in formula_blocks
+%% if fb.latex
+\begin{equation}
+\label{\VAR{fb.label}}
+\VAR{fb.latex}
+\end{equation}
+%% elif fb.image_path
+\begin{figure}[htbp]
+\centering
+\includegraphics[max width=0.85\columnwidth, max height=3cm]{\VAR{fb.image_path}}
+\label{\VAR{fb.label}}
+\end{figure}
+%% endif
+%% endfor
 %% endif
 
 \end{document}

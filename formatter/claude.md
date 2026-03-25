@@ -1,6 +1,6 @@
 # CLAUDE.md — ai-paper-formatter Project Memory
 > Read this file at the start of every session. Update it when structural changes are made.
-> Last updated: 2026-03-21 — Subprocess OCR (pix2tex/nougat/Tesseract), pipeline reorder
+> Last updated: 2026-03-25 — Image extraction overhaul, OCR-or-save fallback, table dedup
 
 ---
 
@@ -278,6 +278,27 @@ formatter/
    `_sanitize_ocr_latex()` (array col fix → brace fix → delimiter fix → safety gate).
    Reject output that fails `_is_latex_safe()` — better to skip an equation than crash.
 
+9. **pix2tex confidence filter**: always discard FormulaBlocks with confidence < 0.45.
+   Bad OCR output inserted verbatim into LaTeX is worse than no formula at all.
+   The `_score_ocr_quality()` heuristic in math_extractor catches prose-as-math garbage.
+
+10. **math_extractor detection must be conservative.** A false positive (cropping body text
+    and sending it to pix2tex) wastes ~10s per crop AND produces garbage that breaks pdflatex.
+    Keep `MIN_MATH_CHARS >= 5`, `MIN_MATH_RATIO >= 0.08`, `MAX_BLOCK_CHARS <= 300`.
+
+11. **Image-based equations use OCR-or-save pattern.** `_process_equation_image()` always
+    saves the equation image to disk. If OCR succeeds → `latex` field set. If OCR fails →
+    `image_path` field set. Templates handle both via conditional rendering. Never discard
+    an equation image just because OCR failed.
+
+12. **Image classification uses size heuristics.** `_classify_image()` uses height, width,
+    area, and aspect ratio. Equation images are typically < 120pt tall. Figures are > 100pt
+    tall with area > 15000pt². Very small images (< 15pt) are skipped.
+
+13. **Table text dedup via bbox overlap.** `_get_table_bboxes()` runs pdfplumber before
+    fitz extraction. Text blocks with ≥ 50% area overlap with a table are skipped from
+    body text to prevent table content appearing twice.
+
 ---
 
 ## Dependencies
@@ -381,6 +402,61 @@ KEY TECHNICAL RULES (add rule 4 to the rules section in claude.md):
 ---
 
 ## Changelog
+
+### 2026-03-25 — Image extraction overhaul, OCR-or-save fallback, table dedup
+- **Problem**: Formulas.pdf has equations as embedded images, not Unicode text.
+  `_detect_formula_regions()` only scanned text blocks → 0 formulas found.
+  Images were also missed (0 figures). Table content was duplicated in body text.
+- **Image extraction rewrite** (`pdf_extractor.py`):
+  - Replaced block-level image iteration with `page.get_images(full=True)` as primary
+  - Added `_classify_image()`: size/aspect ratio heuristic → equation vs figure vs skip
+  - Added `_process_equation_image()`: OCR-or-save pattern (pix2tex → nougat → save image)
+  - Added `_extract_all_page_images()`: processes all images per page
+  - Added `_find_image_y_position()`: looks up image bbox for ordering
+- **Table dedup** (`pdf_extractor.py`):
+  - `_get_table_bboxes()`: pre-extracts table bounding boxes from pdfplumber
+  - `_bbox_overlaps_any()`: skips text blocks with ≥50% overlap with table regions
+- **FormulaBlock.image_path** (`core/models.py`):
+  - Added `image_path: str` and `bbox_y: float` fields
+  - When OCR fails, equation image is saved and path is set (confidence=0.5)
+- **Template update** (all 6):
+  - Added `\usepackage[export]{adjustbox}` for max width/height
+  - Formula blocks render as `\begin{equation}` (latex) or `\includegraphics` (image_path)
+  - Section renamed from "Equations" to "Key Equations"
+- **Renderer** (`jinja_renderer.py`):
+  - `_fb_to_dict()` now converts image_path to relative path
+  - `_figure_to_dict()` normalizes paths for cross-platform LaTeX
+- **Normalizer** (`normalizer/cleaner.py`):
+  - Table cells now use `_clean_table_cell()` with formula pattern recognition
+  - Added `_TABLE_FORMULA_PATTERNS`: regex for a²+b²=c², E=mc², i²=-1, log formulas
+  - Table cells get full math cleanup (was `_clean()` only, now `_clean_with_math()` + patterns)
+
+### 2026-03-22 — math_extractor v2: stricter detection + OCR quality scoring
+- **Root cause**: math_extractor was flagging body text paragraphs as formula regions
+  - `MIN_MATH_CHARS=2` meant any paragraph with α and β got cropped & OCR'd
+  - Font hints too broad ("math", "symbol", "stix") — STIX is used for regular glyphs
+  - No block-length filter → entire paragraphs sent to pix2tex → garbage output
+  - `confidence` hardcoded to `1.0` → 0.45 threshold filter was useless
+  - No quality check on OCR output → `\mathrm{Keywords~federning}` passed through
+  - 19+ subprocess calls at ~10s each = 3+ min of wasted processing
+- **Detection fixes** (`math_extractor.py`):
+  - `MIN_MATH_CHARS` raised from 2 → 5
+  - Added `MIN_MATH_RATIO = 0.08` (math chars must be ≥8% of block chars)
+  - Added `MAX_BLOCK_CHARS = 300` (skip long body paragraphs)
+  - Narrowed font hints to TeX-only: `cmex`, `cmsy`, `cmmi`, `euler`
+  - Font-only detection now also requires ≥2 math chars
+  - Added `MAX_PER_PAGE = 8` and `MAX_TOTAL = 40` caps
+  - Added minimum crop size filter (`MIN_CROP_W=60`, `MIN_CROP_H=20`)
+- **Quality scoring** (`_score_ocr_quality()`):
+  - Replaces hardcoded `confidence=1.0` with heuristic 0.0–1.0 score
+  - Penalizes high `\mathrm{...}` ratio (prose wrapped as fake math)
+  - Penalizes tilde-separated words inside `\mathrm{}` (pix2tex space encoding)
+  - Penalizes `\scriptstyle` wrapping large blocks
+  - Bonuses for real math structures: `\frac`, `\int`, `\sum`, `^`, `_{}`
+  - Threshold: confidence < 0.45 → rejected (logged as REJECTED in debug log)
+- **Pipeline filter** (`pipeline.py`):
+  - Added `confidence >= 0.45` filter on formula_blocks before attaching to Document
+  - Logs count of discarded low-confidence blocks
 
 ### 2026-03-21 — Subprocess OCR isolation, nougat fallback, LaTeX sanitization, pipeline reorder
 - **Subprocess isolation**: ALL ML OCR (pix2tex, nougat) now runs in child processes

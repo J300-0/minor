@@ -1,1 +1,1 @@
-# renderer/ — Stage 4: Document -> .tex via Jinja2.
+# renderer — Jinja2 → LaTeX

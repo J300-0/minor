@@ -1,207 +1,228 @@
 """
-core/pipeline.py — Orchestrates the 5-stage (+canon) formatting pipeline.
+core/pipeline.py — 6-stage orchestrator.
 
-Stage flow:
-  1.  Extract    PDF/DOCX -> raw text + tables + images
-  2.  Parse      raw text -> Document  (heuristic, font-aware)
-  3.  Canon      Document -> CanonicalDocument  (validate + repair + score)
-  4.  Normalize  Document -> Document  (ligatures, unicode, math)
-  5.  Render     Document -> .tex      (Jinja2)
-  6.  Compile    .tex     -> PDF       (pdflatex)
+Extract → Parse → Canon → Normalize → Render → Compile
 """
+import json
 import os
-import shutil
 import time
-from core.models import FormulaBlock
 
-from core import config
-from core.models import Document
-from core.logger import (
-    get_logger, log_run_start, log_stage,
-    log_extraction, log_doc_stats, log_error, log_run_end,
+from core.config import (
+    INTERMEDIATE_DIR,
+    OUTPUT_DIR,
+    TEMPLATE_REGISTRY,
 )
+from core.logger import get_logger
+from core.models import Document
 
-log = get_logger(__name__)
+log = get_logger()
 
 
-def run(input_file: str, template: str = None, output_dir: str = None) -> str:
+def run(input_file: str, template: str = "ieee", output_dir: str = None) -> str:
     """
-    Run the full formatting pipeline.
-    Returns path to the output PDF.
+    Run the full pipeline.  Returns path to generated PDF.
     """
-    template = (template or config.DEFAULT_TEMPLATE).lower()
-    out_dir = output_dir or config.OUTPUT_DIR
+    if not os.path.isfile(input_file):
+        raise FileNotFoundError(f"Input file not found: {input_file}")
+
+    if template not in TEMPLATE_REGISTRY:
+        raise ValueError(f"Unknown template '{template}'. Choose from: {list(TEMPLATE_REGISTRY.keys())}")
+
+    out_dir = output_dir or OUTPUT_DIR
+    os.makedirs(out_dir, exist_ok=True)
+
+    ext = os.path.splitext(input_file)[1].lower()
     t0 = time.time()
 
-    _validate(input_file, template)
-    _clean_intermediate()
-    _ensure_dirs(out_dir)
-    log_run_start(input_file, template)
-    _banner(input_file, template)
+    # ── Stage 1: Extract ──────────────────────────────────────
+    log.info("Stage 1/6: Extract (%s)", ext)
+    _flush_log(log)
+    if ext == ".pdf":
+        from extractor.pdf_extractor import extract_pdf
+        raw = extract_pdf(input_file)
+    elif ext in (".docx", ".doc"):
+        from extractor.docx_extractor import extract_docx
+        raw = extract_docx(input_file)
+    else:
+        raise ValueError(f"Unsupported file type: {ext}")
+    _flush_log(log)
 
-    # ── 1. Extract ───────────────────────────────────────────────────────────
-    log_stage(1, "Extractor", "PDF/DOCX -> text + tables + images")
-    _print_stage(1, "Extract", "PDF/DOCX -> raw text")
-    rich = _extract(input_file)
-    log_extraction(len(rich["raw_text"]), len(rich["tables"]), len(rich["images"]))
+    # Save intermediate extracted text
+    with open(os.path.join(INTERMEDIATE_DIR, "extracted.txt"), "w", encoding="utf-8") as f:
+        f.write(raw.get("text", ""))
 
-    # ── 2. Parse ─────────────────────────────────────────────────────────────
-    log_stage(2, "Parser", "raw text -> structured Document")
-    _print_stage(2, "Parse", "raw text -> Document structure")
-    doc = _parse(rich)
-    doc.to_json(config.STRUCTURED_JSON)
-    log_doc_stats(doc)
-    print(f"         sections={len(doc.sections)}  refs={len(doc.references)}")
+    # ── Stage 2: Parse ────────────────────────────────────────
+    log.info("Stage 2/6: Parse")
+    _flush_log(log)
+    from parser.heuristic import parse_document
+    doc = parse_document(raw)
 
-    # ── 3. Canon (validate + repair gate) ─────────────────────────────────
-    log_stage(3, "Canon", "validate + repair + score Document")
-    _print_stage(3, "Canon", "validate + repair + score")
+    _flush_log(log)
+
+    # Attach formula blocks (filter low-confidence results)
+    formula_blocks = raw.get("formula_blocks", [])
+    if formula_blocks:
+        from core.models import FormulaBlock
+        good_fbs = [
+            FormulaBlock(**fb) if isinstance(fb, dict) else fb
+            for fb in formula_blocks
+            if (fb.get("confidence", 0) if isinstance(fb, dict) else fb.confidence) >= 0.45
+        ]
+        kept = len(good_fbs)
+        total = len(formula_blocks)
+        log.info("  Formula blocks: %d kept / %d total (conf >= 0.45)", kept, total)
+
+        # Distribute formula blocks into sections by page proximity
+        _attach_formulas_to_sections(doc, good_fbs)
+
+        # Any formulas that couldn't be placed go into the document-level list
+        # (rendered as "Key Equations" at the end by templates)
+        placed = set()
+        for s in doc.sections:
+            for fb in s.formula_blocks:
+                placed.add(id(fb))
+        doc.formula_blocks = [fb for fb in good_fbs if id(fb) not in placed]
+        if doc.formula_blocks:
+            log.info("  %d formula blocks placed in sections, %d in Key Equations",
+                     kept - len(doc.formula_blocks), len(doc.formula_blocks))
+
+    # Attach extracted figures to sections (distribute by page proximity)
+    raw_figures = raw.get("figures", [])
+    if raw_figures:
+        from core.models import Figure
+        figures = [
+            Figure(**fig) if isinstance(fig, dict) else fig
+            for fig in raw_figures
+        ]
+        _attach_figures_to_sections(doc, figures)
+        log.info("  Figures: %d extracted", len(figures))
+
+    # Save structured JSON
+    _save_structured_json(doc)
+    _flush_log(log)
+
+    # ── Stage 3: Canon (validate + repair) ────────────────────
+    log.info("Stage 3/6: Canon")
     from canon.builder import build_canonical
     canon_doc = build_canonical(doc)
 
-    print(f"         confidence={canon_doc.overall_confidence:.2f}  "
-          f"renderable={canon_doc.is_renderable()}  "
-          f"repairs={len(canon_doc.repair_log)}")
-
-    if canon_doc.warnings:
-        for w in canon_doc.warnings:
-            print(f"         !  {w}")
-            log.warning("[CANON] %s", w)
-
     if not canon_doc.is_renderable():
-        log.error("Document failed canonical check. Summary:\n%s",
-                  canon_doc.summary())
-        raise RuntimeError(
-            f"Document is not renderable after canonical check. "
-            f"Confidence: {canon_doc.overall_confidence:.2f}. "
-            f"Check logs for details."
-        )
+        summary = canon_doc.summary()
+        log.error("Document not renderable:\n%s", summary)
+        raise RuntimeError(f"Document not renderable. Check logs/pipeline_latest.log\n{summary}")
 
-    # Unwrap back to plain Document for downstream stages
+    log.info("  Canon OK: %s", canon_doc.summary())
     doc = canon_doc.to_document()
-    doc.to_json(config.STRUCTURED_JSON)
+    _flush_log(log)
 
-    # ── 4. Normalize ─────────────────────────────────────────────────────────
-    log_stage(4, "Normalizer", "fix ligatures, unicode, math")
-    _print_stage(4, "Normalize", "fix ligatures, unicode, math")
+    # ── Stage 4: Normalize ────────────────────────────────────
+    log.info("Stage 4/6: Normalize")
     from normalizer.cleaner import normalize
     doc = normalize(doc)
-    doc.to_json(config.STRUCTURED_JSON)
+    _flush_log(log)
 
-    # ── 5. Render ────────────────────────────────────────────────────────────
-    log_stage(5, "Renderer", f"Document -> LaTeX [{template}]")
-    _print_stage(5, "Render", f"Document -> LaTeX [{template}]")
-    tex_path = _render(doc, template)
+    # ── Stage 5: Render ───────────────────────────────────────
+    log.info("Stage 5/6: Render (%s)", template)
+    from renderer.jinja_renderer import render
+    tex_path = render(doc, template)
+    log.info("  Generated: %s", tex_path)
 
-    # ── 6. Compile ───────────────────────────────────────────────────────────
-    log_stage(6, "Compiler", "LaTeX -> PDF")
-    _print_stage(6, "Compile", "LaTeX -> PDF")
-    pdf_path = _compile(tex_path, template, out_dir)
+    # ── Stage 6: Compile ──────────────────────────────────────
+    log.info("Stage 6/6: Compile")
+    from compiler.latex_compiler import compile_latex
+    pdf_path = compile_latex(tex_path, out_dir, template)
 
-    elapsed = round(time.time() - t0, 1)
-    log_run_end(pdf_path, elapsed)
-    _print_done(pdf_path, elapsed)
+    elapsed = time.time() - t0
+    log.info("Done in %.1fs → %s", elapsed, pdf_path)
     return pdf_path
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Stage implementations
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _extract(input_file: str) -> dict:
-    ext = os.path.splitext(input_file)[1].lower()
-    try:
-        if ext == ".pdf":
-            from extractor.pdf_extractor import extract
-        else:
-            from extractor.docx_extractor import extract
-        return extract(input_file, config.INTERMEDIATE_DIR)
-    except Exception as e:
-        log_error("Extractor", e, fatal=False)
-        log.warning("Extraction failed — continuing with empty content")
-        return {"raw_text": "", "blocks": [], "tables": [], "images": []}
-
-
-def _parse(rich: dict) -> Document:    
-    raw = rich.get("raw_text", "")
-    os.makedirs(config.INTERMEDIATE_DIR, exist_ok=True)
-    with open(config.EXTRACTED_TXT, "w", encoding="utf-8") as f:
-        f.write(raw)
-    from parser.heuristic import parse
-    return parse(rich)
-    doc.formula_blocks = [
-        FormulaBlock(**fb) for fb in rich.get("formula_blocks", [])
-    ]
-
-
-
-def _render(doc: Document, template: str) -> str:
-    tdir = os.path.join(config.TEMPLATES_DIR, template)
-    if not os.path.isdir(tdir):
-        raise FileNotFoundError(
-            f"Template folder not found: {tdir}\n"
-            f"Available: {list(config.TEMPLATE_REGISTRY.keys())}"
-        )
-    from renderer.jinja_renderer import render
-    return render(doc, template, tdir, config.GENERATED_TEX)
-
-
-def _compile(tex_path: str, template: str, out_dir: str) -> str:
-    from compiler.latex_compiler import compile as latex_compile
-    return latex_compile(tex_path, out_dir, template)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Validation and directory helpers
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _validate(input_file: str, template: str):
-    if not os.path.exists(input_file):
-        raise FileNotFoundError(f"Input file not found: {input_file}")
-    if template not in config.TEMPLATE_REGISTRY:
-        raise ValueError(
-            f"Unknown template {template!r}. "
-            f"Available: {list(config.TEMPLATE_REGISTRY.keys())}"
-        )
-
-
-def _clean_intermediate():
-    """Remove all files from the intermediate directory before a new run.
-
-    Prevents stale artifacts (images, .tex, .json) from a previous paper
-    from bleeding into the current run.
+def _attach_formulas_to_sections(doc: Document, formula_blocks: list):
     """
-    idir = config.INTERMEDIATE_DIR
-    if os.path.isdir(idir):
-        shutil.rmtree(idir)
-        log.debug("Cleaned intermediate directory: %s", idir)
-    os.makedirs(idir, exist_ok=True)
+    Distribute formula blocks into sections by page proximity.
+
+    Each FormulaBlock has a `page` field. Each Section has a `start_page` field.
+    We assign each formula to the section whose page range contains the formula's page.
+    A section's page range is [start_page, next_section.start_page).
+    """
+    if not formula_blocks or not doc.sections:
+        return
+
+    # Build page ranges for sections
+    sections_with_pages = []
+    for i, s in enumerate(doc.sections):
+        if s.start_page >= 0:
+            sections_with_pages.append((s, s.start_page))
+
+    if not sections_with_pages:
+        # No page info — fall back to even distribution
+        body_sections = [s for s in doc.sections if s.body.strip()]
+        if body_sections:
+            for i, fb in enumerate(formula_blocks):
+                idx = i % len(body_sections)
+                body_sections[idx].formula_blocks.append(fb)
+        return
+
+    # Sort formula blocks by page, then y-position
+    formula_blocks.sort(key=lambda fb: (fb.page, fb.bbox_y))
+
+    for fb in formula_blocks:
+        best_section = None
+        best_distance = float("inf")
+
+        for i, (section, page) in enumerate(sections_with_pages):
+            # Compute next section's start page (for range)
+            if i + 1 < len(sections_with_pages):
+                next_page = sections_with_pages[i + 1][1]
+            else:
+                next_page = float("inf")
+
+            # Formula is within this section's page range
+            if page <= fb.page < next_page:
+                best_section = section
+                break
+
+            # Otherwise find closest by page distance
+            dist = abs(fb.page - page)
+            if dist < best_distance:
+                best_distance = dist
+                best_section = section
+
+        if best_section:
+            best_section.formula_blocks.append(fb)
 
 
-def _ensure_dirs(out_dir: str):
-    for d in (config.INTERMEDIATE_DIR, out_dir, config.LOGS_DIR):
-        os.makedirs(d, exist_ok=True)
+def _attach_figures_to_sections(doc: Document, figures: list):
+    """
+    Distribute extracted figures across sections.
+    Simple strategy: spread evenly across sections that have body text.
+    On Windows with fitz, figures come with page numbers so we can do
+    page-proximity matching in a future improvement.
+    """
+    if not figures or not doc.sections:
+        return
+
+    body_sections = [s for s in doc.sections if s.body.strip()]
+    if not body_sections:
+        return
+
+    for i, fig in enumerate(figures):
+        idx = i % len(body_sections)
+        body_sections[idx].figures.append(fig)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Console output helpers
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _banner(input_file: str, template: str):
-    print("\n" + "=" * 60)
-    print("  ai-paper-formatter")
-    print(f"  input    : {os.path.basename(input_file)}")
-    print(f"  template : {template.upper()}")
-    print("=" * 60)
+def _flush_log(logger):
+    """Force-flush all log handlers so nothing is lost if the process crashes."""
+    for h in logger.handlers:
+        try:
+            h.flush()
+        except Exception:
+            pass
 
 
-def _print_stage(n, name: str, desc: str):
-    print(f"\n[{n}] {name:<12} {desc}")
-    print(f"     {'-' * 45}")
-
-
-def _print_done(pdf_path: str, elapsed: float):
-    print("\n" + "=" * 60)
-    print(f"  Done in {elapsed}s")
-    print(f"  Output: {pdf_path}")
-    print("=" * 60 + "\n")
+def _save_structured_json(doc: Document):
+    """Dump Document to intermediate/structured.json for debugging."""
+    from dataclasses import asdict
+    path = os.path.join(INTERMEDIATE_DIR, "structured.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(asdict(doc), f, indent=2, ensure_ascii=False, default=str)

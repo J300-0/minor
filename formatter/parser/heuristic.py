@@ -1,1844 +1,684 @@
 """
-parser/heuristic.py — Stage 2: Convert extracted blocks into a Document.
+parser/heuristic.py — Font-aware + text-only heading/section detection.
 
-Two modes:
-  A. Font-aware (pymupdf): uses font_size to detect headings (threshold > body)
-  B. Text-only (pdfplumber fallback): uses regex patterns for numbered headings
-
-In both modes:
-  - Title      = first block / largest font on page 1
-  - Abstract   = block(s) after "Abstract" label
-  - Authors    = blocks between title and abstract
-  - Sections   = headed by detected headings, with depth (1/2/3)
-  - References = text after "References" label, split on [N] markers
-
-Public entry point: parse(rich) -> Document
+Detects: title, authors, abstract, keywords, sections, references.
 """
 import re
-from statistics import median
+import logging
+from typing import List, Optional
 
-from core.models import Document, Author, Section, Reference, Table, Figure
-from core.logger import get_logger
+from core.models import Document, Author, Section, Table, Figure, Reference
 
-log = get_logger(__name__)
+log = logging.getLogger("paper_formatter")
 
+# ── Patterns ─────────────────────────────────────────────────────
 
-# ── Known section names ──────────────────────────────────────────────────────
-
-_SECTION_NAMES = {
-    "abstract", "introduction", "related work", "related works",
-    "background", "preliminaries", "motivation", "overview",
-    "methodology", "method", "methods", "approach", "proposed method",
-    "framework", "architecture", "system design", "implementation",
-    "experiments", "experiment", "experimental setup", "experimental study",
-    "experimental results", "evaluation", "results", "results and discussion",
-    "analysis", "ablation", "ablation study", "discussion",
-    "conclusion", "conclusions", "future work", "future directions",
-    "limitations", "acknowledgment", "acknowledgements",
-    "references", "bibliography", "appendix",
-    "dataset", "datasets", "contributions", "literature review",
+# Section heading patterns (numbered or keyword-based)
+NUMBERED_HEADING_RE = re.compile(
+    r"^(\d+\.?\d*\.?\d*\.?)\s+(.+)$"
+)
+KEYWORD_HEADINGS = {
+    "abstract", "introduction", "background", "related work",
+    "methodology", "method", "methods", "approach",
+    "experiment", "experiments", "experimental", "results",
+    "discussion", "evaluation", "analysis", "implementation",
+    "conclusion", "conclusions", "summary",
+    "acknowledgment", "acknowledgments", "acknowledgement", "acknowledgements",
+    "future work",
 }
 
-# Matches heading patterns: "1 Title", "1. Title", "1.2 Title", "II. Title"
-_HEADING_RE = re.compile(
-    r"^(?:"
-    r"(\d+(?:\.\d+)*\.?)\s+"       # "1 " / "1. " / "2.1 "
-    r"|([IVXLCDM]{1,6})[.\s]+"    # "II. " / "IV "
-    r")"
-    r"([A-Z].*)$"                   # rest = heading text
-)
+# Metadata line patterns to filter
+METADATA_PATTERNS = [
+    re.compile(r"^\d+\s*$"),                          # page numbers
+    re.compile(r"^vol\.\s*\d+", re.I),                # volume numbers
+    re.compile(r"^doi:\s*", re.I),                     # DOIs
+    re.compile(r"^\d{4}\s+(IEEE|ACM|Springer)", re.I), # year + publisher
+    re.compile(r"^©\s*\d{4}", re.I),                   # copyright
+    re.compile(r"ISSN\s*[\d-]+", re.I),                # ISSN
+    re.compile(r"^Authorized licensed use", re.I),     # IEEE license
+    re.compile(r"^Proceedings of", re.I),               # conference proceedings
+    re.compile(r"^\d+-\d+-\d+-\d+"),                    # ISBN-like
+    re.compile(r"^arXiv:\d+\.\d+", re.I),             # arXiv IDs
+    re.compile(r"^https?://", re.I),                    # URLs
+]
+
+# Reference patterns
+REF_BRACKET_RE = re.compile(r"^\[(\d+)\]\s*(.+)")     # [1] Author...
+REF_DOT_RE = re.compile(r"^(\d+)\.\s+([A-Z].{20,})")  # 1. Author...
+
+# Author-like patterns
+EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
+AFFILIATION_WORDS = {"university", "institute", "department", "college",
+                     "laboratory", "school", "center", "centre", "faculty"}
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Public entry point
-# ══════════════════════════════════════════════════════════════════════════════
-
-def parse(rich: dict) -> Document:
+def parse_document(raw: dict) -> Document:
     """
-    Main entry called by pipeline.py.
-    Dispatches to font-aware (Mode A) or text-only (Mode B) parsing.
+    Parse extracted raw data into a structured Document.
+
+    Uses font-aware parsing if block info is available, falls back to
+    text-only parsing otherwise.
     """
-    blocks = rich.get("blocks", [])
-    tables = rich.get("tables", [])
-    images = rich.get("images", [])
-    doc = Document()
+    blocks = raw.get("blocks", [])
+    text = raw.get("text", "")
+    tables = raw.get("tables", [])
 
-    if not blocks:
-        raw = rich.get("raw_text", "")
-        blocks = [
-            {"text": line.strip(), "font_size": 10, "bold": False, "page": 1}
-            for line in raw.split("\n") if line.strip()
-        ]
-
-    if not blocks:
-        log.error("No content extracted")
-        return doc
-
-    # Decide mode: if all font_size == 10 and all bold == False -> text-only
-    has_font_info = any(b["font_size"] != 10 or b["bold"] for b in blocks)
-
-    if has_font_info:
-        _parse_font_aware(blocks, tables, images, doc)
+    if blocks and any(b.get("size", 0) > 0 for b in blocks):
+        log.info("  Using font-aware parsing (%d blocks)", len(blocks))
+        doc = _parse_with_fonts(blocks, text)
     else:
-        _parse_text_only(blocks, tables, images, doc)
+        log.info("  Using text-only parsing")
+        doc = _parse_text_only(text)
 
-    # Remove any section headed "Abstract" — template handles abstract separately
-    doc.sections = [
-        s for s in doc.sections
-        if s.heading.lower().rstrip(".") != "abstract"
-    ]
+    # Attach tables to appropriate sections
+    _attach_tables(doc, tables)
 
-    # Deduplicate sections (same heading + same body prefix)
-    seen = set()
-    unique = []
-    for s in doc.sections:
-        key = (s.heading.lower(), s.body[:200])
-        if key not in seen:
-            seen.add(key)
-            unique.append(s)
-    doc.sections = unique
+    log.info("  Parsed: title=%d chars, %d authors, abstract=%d chars, "
+             "%d sections, %d references",
+             len(doc.title), len(doc.authors), len(doc.abstract),
+             len(doc.sections), len(doc.references))
 
-    # Fallback: if no sections at all, dump all body text into one section
-    if not doc.sections:
-        body = "\n".join(
-            b["text"] for b in blocks if b["text"] != doc.title
-        )
-        doc.sections.append(
-            Section(heading="Content", body=body.strip(), depth=1)
-        )
-
-    log.info("parse: title=%r  authors=%d  sections=%d  refs=%d",
-             doc.title[:40] if doc.title else "?",
-             len(doc.authors), len(doc.sections), len(doc.references))
     return doc
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# MODE A: Font-aware parsing (pymupdf blocks with font_size + bold)
-# ══════════════════════════════════════════════════════════════════════════════
+# ── Font-aware parsing ───────────────────────────────────────────
 
-def _parse_font_aware(blocks, tables, images, doc):
-    sizes = [b["font_size"] for b in blocks if b["font_size"] > 0]
-    body_size = median(sizes) if sizes else 10
-    threshold = body_size + 1.5
+def _parse_with_fonts(blocks: list, full_text: str) -> Document:
+    """Parse using font size/name info from blocks."""
+    # Filter metadata lines
+    blocks = [b for b in blocks if not _is_metadata_line(b["text"])]
 
-    # Title = largest font on page 1, but FILTER metadata/junk first
-    page1 = [b for b in blocks if b["page"] <= 1] or blocks[:5]
-    page1_clean = [
-        b for b in page1
-        if not _is_metadata_line(b["text"].strip())
-        and not _is_table_data_line(b["text"].strip())
-        and len(b["text"].strip()) >= 5
-        and not re.match(r"^abstract", b["text"].strip(), re.IGNORECASE)
-    ]
-    if not page1_clean:
-        page1_clean = page1  # fallback to unfiltered
+    if not blocks:
+        return _parse_text_only(full_text)
 
-    if page1_clean:
-        # Score candidates: prefer longer text with large font
-        def _title_score(b):
-            t = b["text"].strip()
-            words = t.split()
-            fs = b["font_size"]
-            score = fs * 2  # font size matters
-            if 4 <= len(words) <= 25:
-                score += 5
-            if len(words) == 1:
-                score -= 15  # single-word titles unlikely
-            elif len(words) == 2:
-                score -= 3   # 2-word titles are valid (e.g. "THE FORMULAS")
-            if re.search(r"^\d+\s+\d+$", t):
-                score -= 50  # "1 3" type patterns
-            if re.search(r"\b(page|vol|doi)\b", t, re.IGNORECASE):
-                score -= 50
-            if "@" in t or "http" in t.lower():
-                score -= 50
-            # "Authors" heading is never the title
-            if re.match(r"^authors?\s*$", t, re.IGNORECASE):
-                score -= 100
-            # Keywords/ISSN/Volume lines are never the title
-            if re.match(r"^keywords?\s*[:;]", t, re.IGNORECASE):
-                score -= 100
-            if re.search(r"\bISSN\b", t):
-                score -= 100
-            if re.match(r"^volume\b", t, re.IGNORECASE):
-                score -= 100
-            # Short ALL-CAPS titles are legitimate (e.g. "THE FORMULAS")
-            if len(words) >= 2 and all(w.isupper() for w in words):
-                score += 3  # small bonus, don't over-penalize short titles
-            return score
+    # Find the most common font size (body text size)
+    sizes = [b["size"] for b in blocks if b["size"] > 0]
+    if not sizes:
+        return _parse_text_only(full_text)
 
-        title_b = max(page1_clean, key=_title_score)
-        if title_b["font_size"] >= body_size and _title_score(title_b) > 0:
-            doc.title = title_b["text"].strip()
+    body_size = max(set(sizes), key=sizes.count)
 
-    abstract_block_texts = _detect_abstract_keywords(blocks, doc, threshold)
-    _detect_authors_between_title_and_abstract(blocks, doc)
+    # Title: largest font, typically first few blocks
+    title = _extract_title_from_blocks(blocks, body_size)
 
-    # Build set of blocks to skip (title, abstract, author lines)
-    skip = {doc.title} | abstract_block_texts
-    if doc.abstract:
-        skip.add(doc.abstract)
-    for a in doc.authors:
-        if a.name:
-            skip.add(a.name)
+    # Authors: blocks between title and abstract
+    authors = _extract_authors_from_blocks(blocks, body_size)
 
-    # ── Collect sections ─────────────────────────────────────────────────────
-    cur_head     = None
-    cur_raw_head = ""
-    cur_body     = []
-    in_refs      = False
+    # Abstract
+    abstract = _extract_abstract_from_blocks(blocks)
 
-    def flush():
-        if cur_head and cur_body:
-            doc.sections.append(Section(
-                heading=cur_head,
-                body="\n\n".join(cur_body).strip(),
-                depth=_heading_depth(cur_raw_head),
-            ))
+    # Keywords
+    keywords = _extract_keywords_from_blocks(blocks)
 
-    for b in blocks:
-        t = b["text"].strip()
-        if not t or t in skip:
-            continue
-        if _is_metadata_line(t):
-            continue
-        if re.match(r"^abstract[\s:—\-]?$", t, re.IGNORECASE):
-            continue
-        if re.match(r"^(?:keywords?|index terms?)[\s:—\-]", t, re.IGNORECASE):
-            continue
-        if re.match(r"^references\.?\s*$", t, re.IGNORECASE):
-            flush()
-            in_refs = True
-            continue
-        # "References" embedded at end of a paragraph — split it off
-        ref_tail = re.search(r"\bReferences\s*$", t, re.IGNORECASE)
-        if ref_tail and len(t) > 20:
-            body_part = t[:ref_tail.start()].strip()
-            if body_part and cur_head:
-                cur_body.append(body_part)
-            flush()
-            in_refs = True
-            continue
-        if in_refs:
-            continue
-        # Skip reference entries that leaked past the "References" heading
-        # e.g. "[1] Author Name..." blocks
-        if re.match(r"^\[\d+\]\s+[A-Z]", t) and not cur_head:
-            continue
-        if _is_table_data_line(t):
-            continue
-        if re.match(r"^Table\s+\d+", t):
-            continue
+    # Sections and references
+    sections, references = _extract_sections_from_blocks(blocks, body_size)
 
-        is_heading = (
-            (b["font_size"] >= threshold and len(t) < 100)
-            or (b["bold"] and len(t) <= 80 and not re.search(r"[.!?]$", t))
-            or (_HEADING_RE.match(t) and len(t) <= 90)
-            or (t.lower().rstrip(".") in _SECTION_NAMES
-                and t.lower().rstrip(".") != "abstract")
-        )
-
-        # Never create a section called "Abstract" or "Authors" — these are
-        # metadata, not body sections.  Author data is already extracted by
-        # _detect_authors_between_title_and_abstract().
-        if is_heading and t.lower().rstrip(".") in {"abstract", "authors", "author"}:
-            continue
-
-        if is_heading:
-            flush()
-            cur_raw_head = t
-            cur_head = _strip_num(t)
-            cur_body = []
-            continue
-
-        if cur_head:
-            cur_body.append(t)
-
-    flush()
-    _attach_tables(doc, tables, blocks)
-    _extract_inline_tables(doc)
-    _attach_images(doc, images, blocks)
-    _extract_refs_from_blocks(blocks, doc)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# MODE B: Text-only parsing (no font info, line-per-block)
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _parse_text_only(blocks, tables, images, doc):
-    """
-    Each block is a single line with no font metadata.
-    Walk lines: detect title -> authors -> abstract -> sections -> references.
-    """
-    lines = [b["text"].strip() for b in blocks if b["text"].strip()]
-    if not lines:
-        return
-
-    idx   = 0
-    total = len(lines)
-
-    # ── Title: scan first ~30 lines, pick best candidate ─────────────────────
-    doc.title = ""
-    best_title_score = -999
-    abstract_limit = min(total, 30)
-
-    for i in range(abstract_limit):
-        low = lines[i].lower().strip()
-        if low.startswith("abstract"):
-            if best_title_score <= -999:
-                idx = i
-            break
-        line = lines[i].strip()
-        if _is_metadata_line(line):
-            continue
-        if len(line) < 5:
-            continue
-        if (not re.search(r"@|\.\w{2,3}$", line)
-                and not re.match(r"^https?://", line)
-                and not _is_metadata_line(line)):
-            words = line.split()
-            score = 0
-            if re.search(r"[,·]", line):
-                score -= 2
-            if re.search(r"\d", line):
-                score -= 1
-            if "\u202f" in line:
-                score -= 5
-            if 4 <= len(words) <= 20:
-                score += 2
-            if line[0].isupper():
-                score += 1
-            if not re.search(r"\d", line):
-                score += 1
-            if score > best_title_score:
-                best_title_score = score
-                doc.title = line
-                idx = i + 1
-
-    # ── Title continuation: extend a cut-off title with the next line ────────
-    # When a title spans two lines (e.g. "...Framework for Structured" /
-    # "Content Extraction and IEEE-Compliant Reconstruction"), the title
-    # candidate wins on line 0 but the continuation on line 1 gets
-    # misidentified as authors.  Detect continuation: title doesn't end with
-    # terminal punctuation AND the next candidate line is not a metadata line,
-    # email, URL, or standalone word (authors are typically ≤ 4 words or pass
-    # _looks_like_author, so we require the continuation line to have ≥ 3 words
-    # and NOT look like an author line).
-    if doc.title and idx < total:
-        nxt = lines[idx].strip()
-        nxt_words = nxt.split()
-        _title_terminal = re.search(r"[.!?:)\]\"']$", doc.title)
-        if (not _title_terminal
-                and not nxt.lower().startswith("abstract")
-                and not _is_metadata_line(nxt)
-                and not re.search(r"@|https?://", nxt.lower())
-                and len(nxt_words) >= 3
-                and len(nxt) <= 120
-                and not nxt.lower() in {"authors", "author", "keywords", "abstract"}):
-            doc.title = doc.title + " " + nxt
-            idx += 1
-
-    # ── Authors: lines between title and "Abstract" ──────────────────────────
-    current_author = None
-    _author_limit = abstract_limit + 60
-
-    while idx < total:
-        low = lines[idx].lower().strip()
-        if low.startswith("abstract") or re.match(r"^\[\d+\]", lines[idx]):
-            break
-        # Stop at numbered section headings
-        if _HEADING_RE.match(lines[idx].strip()) and _is_heading_line(lines[idx]):
-            break
-        if idx >= _author_limit:
-            break
-
-        line = lines[idx].strip()
-
-        # "Corresponding author. E-mail: x@y.z" — extract email and assign
-        # to the author whose original name had the '*' marker, or first author.
-        corr_m = re.match(
-            r"\*?\s*Corresponding author[^E]*E[\s.\-]*mail\s*[:\-]\s*([\w.+-]+@[\w.-]+\.\w+)",
-            line, re.IGNORECASE,
-        )
-        if corr_m:
-            email_addr = corr_m.group(1)
-            # Assign to first author (starred author is always first in this pattern)
-            target = doc.authors[0] if doc.authors else current_author
-            if target and not target.email:
-                target.email = email_addr
-            idx += 1
-            continue
-
-        if _is_metadata_line(line):
-            idx += 1
-            continue
-
-        if "·" in line or (" and " in line and _has_multi_author_pattern(line)):
-            parts = re.split(r"\s*[·]\s*|\s+and\s+", line)
-            for part in parts:
-                part = part.strip()
-                if part and _looks_like_author(part):
-                    current_author = Author(name=_clean_author_name(part))
-                    doc.authors.append(current_author)
-            idx += 1
-            continue
-
-        if _looks_like_author(line):
-            current_author = Author(name=_clean_author_name(line))
-            doc.authors.append(current_author)
-        elif current_author:
-            # Check organization BEFORE department: "Technical University of X,
-            # Faculty of Y" contains both "university" and "faculty".
-            # University = organization, Department of X = department.
-            if _looks_like_organization(line):
-                if not current_author.organization:
-                    current_author.organization = line
-                elif not current_author.department:
-                    current_author.department = line
-            elif _looks_like_department(line):
-                if not current_author.department:
-                    current_author.department = line
-                elif not current_author.organization:
-                    current_author.organization = line
-            elif _looks_like_location(line):
-                current_author.city = line
-            elif _looks_like_email(line):
-                m = re.search(r"[\w.+-]+@[\w.-]+\.\w+", line)
-                if m:
-                    current_author.email = m.group(0)
-        idx += 1
-
-    # ── Abstract ─────────────────────────────────────────────────────────────
-    if idx < total and lines[idx].lower().strip().startswith("abstract"):
-        label = lines[idx]
-        m = re.match(r"^abstract[\s:—.\-]+(.+)", label, re.IGNORECASE)
-        abs_parts = []
-        if m:
-            abs_parts.append(m.group(1).strip())
-        idx += 1
-        while idx < total:
-            l = lines[idx]
-            if _is_heading_line(l):
-                break
-            if re.match(r"^(?:keywords?|index terms?)\b", l, re.IGNORECASE):
-                break
-            if re.match(r"^1[\s.]+[A-Z]", l):
-                break
-            abs_parts.append(l)
-            idx += 1
-        if abs_parts:
-            doc.abstract = " ".join(abs_parts).strip()
-
-    # ── Keywords ─────────────────────────────────────────────────────────────
-    if idx < total:
-        m = re.match(
-            r"^(?:keywords?|index terms?)[\s:—\-]+(.+)",
-            lines[idx], re.IGNORECASE,
-        )
-        if m:
-            doc.keywords = [
-                k.strip() for k in re.split(r"[;,·]", m.group(1)) if k.strip()
-            ]
-            idx += 1
-
-    # ── Sections: walk remaining lines ───────────────────────────────────────
-    cur_head     = None
-    cur_raw_head = ""
-    cur_body     = []
-    in_refs      = False
-    in_appendix  = False
-
-    def flush():
-        if cur_head and cur_body:
-            body = _join_body_lines(cur_body)
-            if body:
-                doc.sections.append(Section(
-                    heading=cur_head,
-                    body=body,
-                    depth=_heading_depth(cur_raw_head),
-                ))
-
-    while idx < total:
-        line = lines[idx]
-        idx += 1
-
-        if re.match(r"^references\.?\s*$", line, re.IGNORECASE):
-            flush()
-            in_refs = True
-            continue
-        # "References" embedded at end of a paragraph — split it off
-        ref_tail = re.search(r"\bReferences\s*$", line, re.IGNORECASE)
-        if ref_tail and len(line) > 20:
-            body_part = line[:ref_tail.start()].strip()
-            if body_part and cur_head is not None:
-                cur_body.append(body_part)
-            flush()
-            in_refs = True
-            continue
-        if in_refs:
-            continue
-        if _is_metadata_line(line):
-            continue
-        if re.match(r"^Table\s+\d+", line):
-            continue
-        if _is_table_data_line(line):
-            continue
-
-        # Appendix detection
-        if (re.match(r"^Appendix\s+[A-Z]\s*:", line) or
-                re.match(r"^Appendix\s*$", line, re.IGNORECASE)):
-            flush()
-            in_appendix = True
-            cur_head = None
-            cur_body = []
-            continue
-        if in_appendix:
-            continue
-
-        if _is_heading_line(line):
-            heading_text = _strip_num(line)
-            # Skip "Authors" — metadata, not a body section
-            if heading_text.lower().rstrip(".") in {"authors", "author"}:
-                continue
-            flush()
-            cur_raw_head = line
-            cur_head = heading_text
-            cur_body = []
-            continue
-        if cur_head is not None:
-            cur_body.append(line)
-
-    flush()
-    _attach_tables(doc, tables, blocks)
-    _extract_inline_tables(doc)
-    _attach_images(doc, images, blocks)
-    _extract_refs_from_blocks(blocks, doc)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Heading / depth helpers
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _heading_depth(text: str) -> int:
-    """
-    Infer heading depth from numbering pattern.
-      "1 Introduction"    -> 1   "2.1 Related Work" -> 2
-      "2.1.1 Aggregation" -> 3   "II. Background"   -> 1
-    Capped at 3.
-    """
-    text = text.strip()
-    m = _HEADING_RE.match(text)
-    if m and m.group(1):
-        num = m.group(1).rstrip(".")
-        return min(num.count(".") + 1, 3)
-    return 1
-
-
-def _strip_num(text: str) -> str:
-    """Remove leading section number from heading text."""
-    m = _HEADING_RE.match(text.strip())
-    if m:
-        return m.group(3).strip().rstrip(".")
-    return text.strip().rstrip(".")
-
-
-def _is_heading_line(line: str) -> bool:
-    """Is this single line a section/subsection heading?"""
-    line = line.strip()
-    if not line or len(line) > 100:
-        return False
-    if _is_metadata_line(line):
-        return False
-    alpha_chars = sum(1 for c in line if c.isalpha())
-    if alpha_chars < 3:
-        return False
-
-    # Numbered heading
-    m = _HEADING_RE.match(line)
-    if m:
-        heading_text = m.group(3).strip()
-        _SENTENCE_STARTERS = {
-            "we", "the", "in", "to", "a", "an", "it", "this",
-            "our", "these", "that", "there", "if", "for",
-        }
-        first_word = heading_text.split()[0].lower().rstrip(",;:") if heading_text else ""
-        if len(heading_text) <= 70 and first_word not in _SENTENCE_STARTERS:
-            return True
-
-    # Known section name alone on a line
-    if line.lower().rstrip(".") in _SECTION_NAMES:
-        return True
-
-    # ALL CAPS short heading: "INTRODUCTION", "RELATED WORK"
-    if (line.isupper()
-            and re.match(r"^[A-Z][A-Z\s]+$", line)
-            and 3 < len(line) < 60):
-        words = line.split()
-        if len(words) >= 2 or (len(words) == 1 and len(line) >= 4):
-            return True
-
-    return False
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Metadata / table data filters
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _is_metadata_line(line: str) -> bool:
-    """Detect journal/page metadata lines that should be skipped."""
-    line = line.strip()
-    if not line:
-        return True
-
-    # Page numbers (various formats)
-    if re.search(r"Page\s+\d+\s+of\s+\d+", line, re.IGNORECASE):
-        return True
-    if re.search(r"\bp\.\s*\d+\s+of\s+\d+", line, re.IGNORECASE):
-        return True
-    if re.search(r"\d+\s*/\s*\d+\s*$", line) and len(line) < 20:
-        return True
-    # "72 Page 2 of 36" or "Page 3 of 36 72" (Springer page+article number)
-    if re.search(r"\d+\s+Page\s+\d+\s+of\s+\d+", line, re.IGNORECASE):
-        return True
-    if re.search(r"Page\s+\d+\s+of\s+\d+\s+\d+", line, re.IGNORECASE):
-        return True
-
-    # Journal header patterns
-    if re.search(r"\(\d{4}\)\s+\d+:\d+", line):
-        return True
-    if re.search(r"\bVol(?:ume)?\.?\s+\d+", line, re.IGNORECASE):
-        return True
-    if re.search(r"^\d+\s+Page\s+\d+", line, re.IGNORECASE):
-        return True
-    if re.search(r"Machine\s+Learning\s*\(\d{4}\)", line, re.IGNORECASE):
-        return True
-    # Generic journal name + year + volume:page
-    if re.search(r"[A-Z][a-z]+\s+[A-Z][a-z]+\s+\(\d{4}\)\s+\d+:\d+", line):
-        return True
-
-    # Author / affiliation footnotes
-    if line.startswith("et al."):
-        return True
-    if re.match(r"^https?://", line) or "doi.org" in line.lower():
-        return True
-    if re.match(r"^(Received|Revised|Accepted|Published)\s*:", line, re.IGNORECASE):
-        return True
-    if "Received:" in line and "Accepted:" in line:
-        return True
-    if re.match(r"^Editor\s*:", line, re.IGNORECASE):
-        return True
-    if re.match(r"^Extended author information", line, re.IGNORECASE):
-        return True
-    if re.match(r"^Corresponding author", line, re.IGNORECASE):
-        return True
-    if re.search(r":\s*The work was done at", line):
-        return True
-    if re.match(r"^Authors and Affiliations", line, re.IGNORECASE):
-        return True
-    if re.match(r"^Publisher'?s?\s+Note", line, re.IGNORECASE):
-        return True
-
-    # Copyright / licensing
-    if "\u00a9" in line or "copyright" in line.lower():
-        return True
-    if "creative commons" in line.lower() or "cc by" in line.lower():
-        return True
-    if re.search(r"\b(CC\s+BY|Attribution)\b.*licen", line, re.IGNORECASE):
-        return True
-    if "springer nature" in line.lower() or "open access" in line.lower():
-        return True
-
-    # Pure page-number lines
-    if re.match(r"^\d{1,4}$", line):
-        return True
-    # Springer narrow no-break space markers
-    if ("\u202f" in line and len(line) <= 10
-            and all(c.isdigit() or c.isspace() for c in line)):
-        return True
-    # "1 3" or "72 3" — short digit-only fragments (Springer page markers)
-    if re.match(r"^\d{1,4}(\s+\d{1,4})*$", line) and len(line) <= 15:
-        return True
-    # "– N" or "N –" page range fragments
-    if re.match(r"^[\d\s\u2013\u2014\-]+$", line) and len(line) <= 15:
-        return True
-
-    # "Article N" / "Paper N" markers
-    if re.match(r"^(Article|Paper)\s+\d+$", line, re.IGNORECASE):
-        return True
-
-    # ISSN lines
-    if "ISSN" in line:
-        return True
-
-    # Running headers: "N AuthorName, AuthorName" (page number + author names)
-    if (re.match(r"^\d{1,3}\s+[A-Z]", line)
-            and re.search(r",\s*[A-Z]", line)
-            and len(line) < 80):
-        return True
-
-    # Running headers: "Title N ." (paper title + page number + period)
-    if re.match(r"^.{3,40}\s+\d{1,3}\s*\.\s*$", line):
-        return True
-
-    return False
-
-
-def _is_table_data_line(line: str) -> bool:
-    """Detect lines that are table data rows — skip during body collection."""
-    line = line.strip()
-    if not line:
-        return False
-
-    # Arrow symbols (significance markers in table cells/captions)
-    _ARROWS = "\u2191\u2193\u21d1\u21d3\u2197\u2198"
-    arrow_count = sum(1 for c in line if c in _ARROWS)
-    if arrow_count > 0 and not re.search(r"[a-zA-Z]", line):
-        return True
-    if line[0] in _ARROWS:
-        return True
-    if arrow_count >= 2:
-        return True
-    if re.search(r"[\d.][" + _ARROWS + r"]|[" + _ARROWS + r"][\d.]", line):
-        return True
-
-    # Table caption continuation fragments
-    if re.match(r"^similarly\s+to\s+(Table|Tab\.?)\s+\d+", line, re.IGNORECASE):
-        return True
-    if re.match(r"^(significantly\s+(worse|better)|results?\s+similarly)\b",
-                line, re.IGNORECASE):
-        return True
-    if re.search(r"\bdenote\s+significantly\b", line, re.IGNORECASE):
-        return True
-    if re.search(r"\bp[<>]=?\s*0\.\d+\s+and\s+p[<>]=?\s*0\.\d+", line):
-        return True
-    if line.lower() in ("ours", "ours.", "our", "our.", "similarly", "results"):
-        return True
-
-    # TABLE + Roman numeral caption lines ("TABLE III", "TABLE IV")
-    if re.match(r"^TABLE\s+[IVXLCDM]+", line):
-        return True
-    # "Table N:" continuation or "Tab. N"
-    if re.match(r"^Tab(?:le)?\.?\s+\d+\b", line, re.IGNORECASE):
-        return True
-
-    # "#Clients" header rows
-    if re.match(r"^#\w+\b", line):
-        return True
-
-    # 3+ distinct numeric tokens (table rows typically have many numbers)
-    num_tokens = re.findall(r"\b\d[\d./%\u00b1\u2213]*\b", line)
-    if len(num_tokens) >= 4:
-        return True
-    # 3 numbers with a label prefix (method name + results)
-    if len(num_tokens) >= 3 and re.match(r"^[A-Za-z]", line):
-        alpha_ratio = sum(1 for c in line if c.isalpha()) / max(len(line), 1)
-        if alpha_ratio < 0.4:
-            return True
-
-    # Pure dashes/spaces (table empty-cell placeholders)
-    if re.match(r"^[\s\-\u2212\u2013\u2014N/Aa]+$", line) and len(line) <= 20:
-        return True
-
-    # Mostly digits/punctuation
-    stripped = re.sub(r"[\d.\s\-/\u2212\u2013\u2014]", "", line)
-    if len(line) > 5 and len(stripped) < len(line) * 0.3:
-        return True
-
-    # Method/row name + 3+ numbers
-    if re.match(r"^[\w\s\-+.]+\s+([\d.]+\s+){2,}[\d.]+\s*$", line):
-        return True
-    if re.match(r"^\w+\s+[\d.]+(\s+[\d.]+){2,}", line):
-        return True
-
-    # All-caps column headers ("RMSE ECE MAP")
-    if re.match(r"^([A-Z]{3,}\s+){2,}", line):
-        return True
-
-    # 4+ capitalised tokens, no sentence starters
-    tokens = line.split()
-    if len(tokens) >= 4:
-        cap_count = sum(1 for t in tokens if t and t[0].isupper())
-        if cap_count == len(tokens):
-            _starters = {
-                "The", "This", "For", "In", "We", "Our", "To", "A", "An",
-                "And", "It", "Such", "With", "As", "By", "At", "From",
-                "Each", "All", "Some", "Both",
-            }
-            _conj = {"and", "or", "vs", "v.s.", "versus"}
-            if (not any(t in _starters for t in tokens)
-                    and not any(t.lower() in _conj for t in tokens)):
-                return True
-
-    # Pure integer rows
-    if all(re.match(r"^\d+$", t) for t in tokens) and len(tokens) >= 2:
-        return True
-
-    # Legacy patterns
-    if all(t.lower() in ("long", "medium", "short") for t in tokens):
-        return True
-    if re.match(r"^(?:Benchmark|Speedup)\b", line, re.IGNORECASE):
-        return True
-    if line.lower() in ("livermore", "clinpack", "spec", "pass"):
-        return True
-
-    return False
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Body / author / abstract helpers
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _join_body_lines(lines: list) -> str:
-    """Join consecutive body lines into paragraphs."""
-    if not lines:
-        return ""
-    paragraphs = []
-    current = []
-    for line in lines:
-        if not line.strip():
-            if current:
-                paragraphs.append(" ".join(current))
-                current = []
-        else:
-            current.append(line.strip())
-    if current:
-        paragraphs.append(" ".join(current))
-    return "\n\n".join(paragraphs)
-
-
-def _looks_like_author(text: str) -> bool:
-    """Heuristic: 2-5 words, starts with capital, allows superscript digits."""
-    text = text.strip()
-    if not text or len(text) > 80:
-        return False
-    if "@" in text:
-        return False
-    clean = re.sub(r"[*\u2020\u2021\u00a7\d,\u00b7]+$", "", text).strip()
-    clean = re.sub(r"\d+", "", clean).strip()
-    clean = re.sub(r"\s*[\u00b7]\s*", " ", clean).strip()
-    words = [w for w in clean.split() if w]
-    if not 2 <= len(words) <= 5:
-        return False
-    if not all(w[0].isupper() for w in words if w):
-        return False
-    if all(w.isupper() for w in words):
-        return False
-    # Reject all-caps acronyms (e.g. "IEEE", "AI", "NLP") UNLESS the pattern
-    # looks like European-style "Firstname LASTNAME" (at least one mixed-case
-    # word alongside the all-caps word).
-    caps_words = [w for w in words if w.isupper() and len(w) >= 3]
-    mixed_words = [w for w in words if not w.isupper() and w[0].isupper()]
-    if caps_words and not mixed_words:
-        # All significant words are all-caps with no mixed-case first name → reject
-        return False
-    # Reject if any word contains a hyphen — title/technical phrases like
-    # "IEEE-Compliant" or "Deep-Learning" are not author names.
-    if any("-" in w for w in words):
-        return False
-    low = text.lower()
-    reject_keywords = [
-        "department", "university", "institute", "school",
-        "college", "inc", "corp", "lab", "formula",
-        "abstract", "introduction", "conclusion",
-        "received:", "accepted:", "revised:",
-        # Section heading words that form 2-3 word capitalized phrases
-        "experiment", "results", "method", "approach", "analysis",
-        "discussion", "evaluation", "framework", "architecture",
-        "background", "overview", "motivation", "implementation",
-        "appendix", "setting", "privacy", "attack", "messages",
-        "sensitivity", "sensitivities", "details", "additional",
-        "generalization", "personalization", "differential",
-        "adversarial", "variance", "kernel", "approximate",
-        "transform", "conjecture", "equation",
-        "distribution", "derivative", "logarithm", "relativity",
-        "gravity", "complex", "normal", "fourier",
-        "stationary", "non-stationary", "unifying", "random",
-        "federated", "regression", "bayesian", "theorem",
-    ]
-    if any(kw in low for kw in reject_keywords):
-        return False
-    # Reject if it matches a known section name
-    if clean.lower().rstrip(".") in _SECTION_NAMES:
-        return False
-    # Reject if it looks like a numbered heading
-    if _HEADING_RE.match(text.strip()):
-        return False
-    return True
-
-
-def _clean_author_name(text: str) -> str:
-    """Strip superscript digits, markers from author name."""
-    clean = re.sub(r"[*\u2020\u2021\u00a7]+", "", text).strip()
-    clean = re.sub(r"\d+,?\d*$", "", clean).strip()
-    clean = re.sub(r"(\w)\d+", r"\1", clean)
-    return clean.strip()
-
-
-def _extract_author_from_concat_line(line: str):
-    """Extract author name + affiliation from a single concatenated line.
-
-    PyMuPDF sometimes produces blocks like:
-      "Samaira Mittal Department of Computer Science XYZ Institute, India email@x.com"
-      "Arjun Mehta, Student Member, IEEE Department of Computer Science, ..."
-    This splits at the first affiliation keyword and checks if the prefix is
-    a valid author name.
-
-    Returns (Author, remaining_text) or (None, None).
-    """
-    # Strip IEEE membership designations before processing
-    # e.g. ", Student Member, IEEE", ", Senior Member, IEEE", ", Fellow, IEEE"
-    _IEEE_MEMBER_RE = re.compile(
-        r",?\s*(?:Student\s+|Senior\s+|Life\s+|Fellow\s*,?\s*)?Member,?\s*IEEE",
-        re.IGNORECASE,
+    return Document(
+        title=title,
+        authors=authors,
+        abstract=abstract,
+        keywords=keywords,
+        sections=sections,
+        references=references,
     )
-    cleaned_line = _IEEE_MEMBER_RE.sub("", line).strip()
-    # Also handle standalone ", IEEE" or ", IEEE," fragments
-    cleaned_line = re.sub(r",?\s*IEEE\b,?", "", cleaned_line).strip()
-
-    # Split at the first occurrence of an affiliation keyword
-    split_kws = [
-        "department", "dept", "faculty", "school of", "division of",
-        "university", "institute", "college", "laboratory",
-        "inc.", "corp", "ltd", "research center", "polytechnic",
-    ]
-    low = cleaned_line.lower()
-    split_pos = len(cleaned_line)
-    for kw in split_kws:
-        idx = low.find(kw)
-        if idx > 0 and idx < split_pos:
-            split_pos = idx
-
-    if split_pos == len(cleaned_line):
-        return None, None
-
-    name_part = cleaned_line[:split_pos].strip().rstrip(",").strip()
-    rest = cleaned_line[split_pos:].strip()
-
-    # Strip trailing affiliation-prefix words that got stuck to the name.
-    # e.g. "Miroslava FERENCOVÁ Technical" → name="Miroslava FERENCOVÁ",
-    #       rest="Technical University of Košice..."
-    _AFFIL_PREFIXES = {
-        "technical", "national", "central", "federal", "royal", "imperial",
-        "state", "regional", "international", "global", "municipal",
-    }
-    name_words = name_part.split()
-    if len(name_words) > 2 and name_words[-1].lower() in _AFFIL_PREFIXES:
-        stripped_word = name_words.pop()
-        name_part = " ".join(name_words)
-        rest = stripped_word + " " + rest
-
-    if not _looks_like_author(name_part):
-        return None, None
-
-    author = Author(name=_clean_author_name(name_part))
-
-    # Parse the remaining text for department, organization, location, email
-    # Remove email first
-    email_m = re.search(r"[\w.+-]+@[\w.-]+\.\w+", rest)
-    if email_m:
-        author.email = email_m.group(0)
-        rest = rest[:email_m.start()] + rest[email_m.end():]
-
-    rest = rest.strip().rstrip(",").strip()
-    if not rest:
-        return author, ""
-
-    # Split affiliation into department, organization, and location.
-    # Pattern: "Department of Computer Science XYZ Institute of Technology, India"
-    #   → dept="Department of Computer Science"
-    #   → org="XYZ Institute of Technology"
-    #   → city="India"
-    rest_low = rest.lower()
-
-    # Extract location: text after last comma (e.g. ", India")
-    last_comma = rest.rfind(",")
-    location = ""
-    if last_comma > 0:
-        candidate = rest[last_comma + 1:].strip()
-        # Only treat as location if it's short (country/city name)
-        if len(candidate.split()) <= 4 and not any(
-            kw in candidate.lower() for kw in ["department", "university", "institute"]
-        ):
-            location = candidate
-            rest = rest[:last_comma].strip()
-            rest_low = rest.lower()
-
-    # Split department from organization.
-    # Strategy 1: comma-separated — "Department of CS, Global Tech University"
-    # Strategy 2: all-caps abbreviation — "Department of CS XYZ Institute of Tech"
-    # Strategy 3: fallback — everything as organization
-
-    # Check for comma split between dept and org keywords
-    comma_idx = rest.find(",")
-    if comma_idx > 0:
-        before = rest[:comma_idx].strip()
-        after = rest[comma_idx + 1:].strip()
-        before_low = before.lower()
-        after_low = after.lower()
-        # If "before" has dept keywords and "after" has org keywords, split there
-        has_dept = any(kw in before_low for kw in ["department", "dept", "faculty", "school", "division"])
-        has_org = any(kw in after_low for kw in ["university", "institute", "college", "polytechnic"])
-        if has_dept and has_org:
-            author.department = before
-            author.organization = after
-            if location:
-                author.city = location
-            return author, ""
-
-    # Look for all-caps abbreviation (org name prefix like "XYZ", "ABC", "MIT")
-    # followed eventually by an org keyword
-    org_kws = ["university", "institute", "college", "polytechnic", "laboratory"]
-    has_org_kw = any(kw in rest_low for kw in org_kws)
-    if has_org_kw:
-        # Find an all-caps word (2+ chars) that precedes an org keyword
-        abbrev_m = re.search(r"\b([A-Z]{2,})\s", rest)
-        if abbrev_m:
-            org_start = abbrev_m.start()
-            dept_part = rest[:org_start].strip().rstrip(",").strip()
-            org_part = rest[org_start:].strip().rstrip(",").strip()
-            if dept_part:
-                author.department = dept_part
-                author.organization = org_part
-            else:
-                author.organization = rest.strip()
-        else:
-            # No abbreviation — put it all in organization
-            author.organization = rest.strip()
-    else:
-        author.organization = rest.strip()
-
-    if location:
-        author.city = location
-
-    return author, rest
 
 
-def _scan_for_authors_in_block(text: str) -> list:
-    """Scan a long text block for embedded author names.
+def _extract_title_from_blocks(blocks: list, body_size: float) -> str:
+    """Find the title — usually the largest text near the top."""
+    candidates = []
+    for i, b in enumerate(blocks[:10]):  # title is in first 10 blocks
+        if b["size"] > body_size * 1.2:  # significantly larger than body
+            candidates.append((i, b))
 
-    Handles blocks like:
-      "...Slovak Republic Miroslava FERENCOVÁ Technical University..."
-    Uses targeted patterns rather than sliding windows to avoid false positives.
-    Returns list of (author_name, start_pos) tuples found within text.
+    if candidates:
+        # Take the first large block(s)
+        title_parts = []
+        first_idx = candidates[0][0]
+        for idx, b in candidates:
+            if idx <= first_idx + 2:  # allow multi-line titles
+                title_parts.append(b["text"])
+        return " ".join(title_parts).strip()
+
+    # Fallback: first non-metadata block
+    for b in blocks[:5]:
+        text = b["text"].strip()
+        if len(text) > 10 and not _is_metadata_line(text):
+            return text
+
+    return ""
+
+
+def _extract_authors_from_blocks(blocks: list, body_size: float) -> List[Author]:
     """
-    results = []
+    Extract authors from blocks between title and abstract.
 
-    # Pattern 1: European-style "Firstname ALLLCAPS-LASTNAME" (with accented chars)
-    # Matches: "Miroslava FERENCOVÁ", "Peter SZABÓ"
-    euro_re = re.compile(
-        r'\b([A-Z][a-záéíóúüöčďňřšťžľ]+)'        # mixed-case first name
-        r'\s+'
-        r'([A-ZÁÉÍÓÚÜÖČĎŇŘŠŤŽĽ]{2,}\*?)'          # ALL-CAPS last name (opt *)
-        r'\b'
-    )
-    for m in euro_re.finditer(text):
-        full_name = m.group(0).rstrip("*")
-        # Quick sanity: reject if it matches reject keywords
-        if _looks_like_author(full_name):
-            results.append((full_name, m.start()))
-
-    # Deduplicate overlapping matches
-    if len(results) <= 1:
-        return results
-    deduped = [results[0]]
-    for name, pos in results[1:]:
-        prev_name, prev_pos = deduped[-1]
-        if pos >= prev_pos + len(prev_name):
-            deduped.append((name, pos))
-    return deduped
-
-
-def _has_multi_author_pattern(line: str) -> bool:
-    parts = re.split(r"\s+and\s+", line)
-    return (len(parts) >= 2
-            and all(_looks_like_author(p.strip()) for p in parts if p.strip()))
-
-
-def _looks_like_department(text: str) -> bool:
-    low = text.lower().strip()
-    return any(kw in low for kw in [
-        "department", "dept", "faculty", "school of", "division of", "group of",
-    ])
-
-
-def _looks_like_organization(text: str) -> bool:
-    low = text.lower().strip()
-    return any(kw in low for kw in [
-        "university", "institute", "college", "laboratory", "lab",
-        "inc.", "corp", "ltd", "company", "research center", "polytechnic",
-    ])
-
-
-def _looks_like_location(text: str) -> bool:
-    text = text.strip()
-    return bool(re.match(r"^[A-Z][a-z]+.*,\s*[A-Z]", text))
-
-
-def _looks_like_email(text: str) -> bool:
-    return bool(re.search(r"[\w.+-]+@[\w.-]+\.\w+", text.strip()))
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Font-aware: abstract + author detection
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _detect_abstract_keywords(blocks, doc, threshold):
-    """Detect abstract and keywords from blocks (font-aware mode)."""
-    abstract_block_texts = set()
-    abs_collecting = False
-    abs_parts = []
-
-    for b in blocks:
-        t = b["text"].strip()
-        low = t.lower()
-
-        # Keywords line
-        m_kw = re.match(
-            r"^(?:keywords?|index terms?)[\s:—\-]+(.+)",
-            t, re.IGNORECASE | re.DOTALL,
-        )
-        if m_kw:
-            if abs_collecting:
-                abs_collecting = False
-            doc.keywords = [
-                k.strip() for k in re.split(r"[;,·]", m_kw.group(1)) if k.strip()
-            ]
-            abstract_block_texts.add(t)
-            continue
-
-        if low == "abstract" or re.match(r"^abstract[\s.]*$", low):
-            abs_collecting = True
-            abstract_block_texts.add(t)
-            continue
-
-        m_abs = re.match(r"^abstract[\s:—.\-]+(.+)", t, re.IGNORECASE | re.DOTALL)
-        if m_abs and not doc.abstract:
-            abs_parts.append(m_abs.group(1).strip())
-            abs_collecting = True
-            abstract_block_texts.add(t)
-            continue
-
-        if abs_collecting:
-            is_heading = (
-                (b["font_size"] >= threshold and len(t) < 100)
-                or (b.get("bold", False) and len(t) <= 80
-                    and not re.search(r"[.!?]$", t))
-                or (_HEADING_RE.match(t) and len(t) <= 90)
-                or (t.lower().rstrip(".") in _SECTION_NAMES
-                    and t.lower().rstrip(".") != "abstract")
-            )
-            if is_heading:
-                abs_collecting = False
-            else:
-                abs_parts.append(t)
-                abstract_block_texts.add(t)
-                continue
-
-    if abs_parts and not doc.abstract:
-        doc.abstract = " ".join(abs_parts).strip()
-
-    return abstract_block_texts
-
-
-def _detect_authors_between_title_and_abstract(blocks, doc):
-    """Font-aware: blocks between title and abstract = authors + affiliations.
-
-    Handles:
-    - "Authors" label blocks (skipped)
-    - Multi-line PyMuPDF blocks (split on newlines and process each line)
-    - Title text that differs slightly from doc.title (whitespace, linebreaks)
+    Handles two layouts:
+    1. Structured "Authors" section: explicit "Authors" heading block, then
+       per-author groups of [bold name, department, institution, email].
+       fitz often groups each author + affiliations into ONE multi-line block:
+         "Samaira Mittal\nDepartment of CS\nXYZ Inst, India\nemail@ex.com"
+       → must split on \\n and classify each line individually.
+    2. Traditional inline: author names crammed between title and abstract,
+       no explicit "Authors" heading, no affiliations.
     """
-    if not doc.title:
-        return
+    authors = []
+    in_author_zone = False
+    current_author: Optional[Author] = None
 
-    found_title = False
-    current_author = None
+    for b in blocks[:35]:  # extended window — structured layout needs more blocks
+        text = b["text"].strip()
+        lower = text.lower()
 
-    # Normalize helper: collapse whitespace for robust comparison
-    def _norm(s: str) -> str:
-        return " ".join(s.split()).lower()
-
-    title_norm = _norm(doc.title)
-
-    for b in blocks:
-        t = b["text"].strip()
-        if not found_title:
-            t_norm = _norm(t)
-            # Match: exact, containment, or significant overlap
-            if (t_norm == title_norm
-                    or title_norm in t_norm
-                    or t_norm in title_norm
-                    or (len(title_norm) > 20
-                        and title_norm[:20] == t_norm[:20])):
-                found_title = True
-                continue
+        # ── Zone triggers ────────────────────────────────────────
+        # Trigger 1: explicit "Authors" / "Author" heading block
+        if lower.strip() in ("authors", "author"):
+            in_author_zone = True
             continue
-        if re.match(r"^abstract", t, re.IGNORECASE):
+
+        # Trigger 2: title-sized font — we're past the title, authors follow
+        if b["size"] > body_size * 1.2:
+            in_author_zone = True
+            continue
+
+        # Stop conditions
+        if lower.startswith("abstract") or lower.startswith("keywords") \
+                or lower.startswith("key words") or lower.startswith("index terms"):
             break
-        # If "Abstract" appears mid-block, truncate to only process text before it
-        abs_mid = re.search(r"\bAbstract\s*[.:\s]", t)
-        hit_abstract_mid = False
-        if abs_mid:
-            t = t[:abs_mid.start()].strip()
-            if not t:
-                break
-            hit_abstract_mid = True
-        # Skip standalone "Authors" / "Author" label
-        if re.match(r"^authors?\s*$", t, re.IGNORECASE):
+
+        if not in_author_zone:
             continue
-        # PyMuPDF may combine multiple lines into one block — split and
-        # process each line individually.
-        for line in t.split("\n"):
+
+        if _is_metadata_line(text):
+            continue
+
+        # ── Process each line within the block individually ──────
+        # fitz groups nearby text into multi-line blocks.  A single block
+        # may contain "AuthorName\nDepartment\nUniversity, Country\nemail".
+        # We must classify EACH line, not the whole block.
+        lines = text.split("\n")
+        for line in lines:
             line = line.strip()
             if not line:
                 continue
-            if re.match(r"^abstract", line, re.IGNORECASE):
-                break
-            if re.match(r"^authors?\s*$", line, re.IGNORECASE):
+            line_lower = line.lower()
+
+            # Email → attach to current author
+            email_match = EMAIL_RE.search(line)
+            if email_match:
+                if current_author:
+                    current_author.email = email_match.group(0)
                 continue
-            if _looks_like_author(line):
-                current_author = Author(name=_clean_author_name(line))
-                doc.authors.append(current_author)
-            else:
-                # Try extracting author from concatenated line
-                # e.g. "Samaira Mittal Department of CS XYZ Univ, India email@x.com"
-                concat_author, _ = _extract_author_from_concat_line(line)
-                if concat_author:
-                    current_author = concat_author
-                    doc.authors.append(current_author)
-                elif len(line) > 100:
-                    # Long block — scan for embedded author names within
-                    # e.g. "...Slovak Republic Miroslava FERENCOVÁ Technical Univ..."
-                    embedded = _scan_for_authors_in_block(line)
-                    for ei, (author_name, pos) in enumerate(embedded):
-                        # Text before the first embedded name = affiliation
-                        # for the *previous* author (e.g. "Technical University
-                        # of Košice, ...Slovak Republic" belongs to Peter SZABÓ)
-                        if ei == 0 and current_author and pos > 10:
-                            before = line[:pos].strip().rstrip(",").strip()
-                            if before and not current_author.organization:
-                                ca_prev, _ = _extract_author_from_concat_line(
-                                    current_author.name + " " + before)
-                                if ca_prev:
-                                    current_author.department = ca_prev.department
-                                    current_author.organization = ca_prev.organization
-                                    current_author.city = ca_prev.city or current_author.city
-                                    current_author.email = ca_prev.email or current_author.email
 
-                        new_author = Author(name=_clean_author_name(author_name))
-                        # Try to extract affiliation from text after the name
-                        after = line[pos + len(author_name):].strip()
-                        if after:
-                            ca, _ = _extract_author_from_concat_line(
-                                author_name + " " + after)
-                            if ca:
-                                new_author = ca
-                        doc.authors.append(new_author)
-                        current_author = new_author
-                elif current_author:
-                    if _looks_like_department(line):
-                        current_author.department = line
-                    elif _looks_like_organization(line):
-                        current_author.organization = line
-                    elif _looks_like_location(line):
-                        current_author.city = line
-                    elif _looks_like_email(line):
-                        m = re.search(r"[\w.+-]+@[\w.-]+\.\w+", line)
-                        if m:
-                            current_author.email = m.group(0)
-        # Stop scanning after the block that contained mid-block "Abstract"
-        # — everything after is body content, not author data.
-        if hit_abstract_mid:
-            break
-
-    # ── Fallback: if block-walk found nothing, scan all page-1 blocks ────────
-    if not doc.authors:
-        log.debug("author block-walk found nothing; trying page-1 scan fallback")
-        for b in blocks:
-            if b.get("page", 0) > 1:
-                break
-            t = b["text"].strip()
-            if _norm(t) == title_norm or re.match(r"^abstract", t, re.IGNORECASE):
+            # Affiliation (department/university/institute/etc.)
+            if any(w in line_lower for w in AFFILIATION_WORDS):
+                if current_author:
+                    _attach_affiliation_line(current_author, line)
                 continue
-            if re.match(r"^authors?\s*$", t, re.IGNORECASE):
+
+            # Short location-only line: "India" or "New Delhi, India"
+            if current_author and len(line) < 40 and not _is_plausible_author(line):
+                if "," in line:
+                    parts = [p.strip() for p in line.split(",")]
+                    if not current_author.city:
+                        current_author.city = parts[0]
+                    if not current_author.country and len(parts) > 1:
+                        current_author.country = parts[-1]
+                elif not current_author.country:
+                    current_author.country = line
                 continue
-            if _is_metadata_line(t):
-                continue
-            for line in t.split("\n"):
-                line = line.strip()
-                if not line:
-                    continue
-                if _looks_like_author(line):
-                    current_author = Author(name=_clean_author_name(line))
-                    doc.authors.append(current_author)
-                else:
-                    concat_author, _ = _extract_author_from_concat_line(line)
-                    if concat_author:
-                        current_author = concat_author
-                        doc.authors.append(current_author)
-                    elif current_author:
-                        if _looks_like_department(line):
-                            current_author.department = line
-                        elif _looks_like_organization(line):
-                            current_author.organization = line
-                        elif _looks_like_email(line):
-                            m = re.search(r"[\w.+-]+@[\w.-]+\.\w+", line)
-                            if m:
-                                current_author.email = m.group(0)
+
+            # Try to parse as author name(s)
+            names = _split_author_names(line)
+            valid = [n for n in names if _is_plausible_author(n)]
+            for name in valid:
+                current_author = Author(name=name.strip())
+                authors.append(current_author)
+
+    return authors
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Inline table extraction from section bodies
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _smart_table_split(line: str) -> list:
-    """Split a table row line into columns using number/percentage boundaries.
-
-    "OCR Only 75% Moderate Very Poor" → ["OCR Only", "75%", "Moderate", "Very Poor"]
-    "Rule-Based 65% Poor Poor" → ["Rule-Based", "65%", "Poor", "Poor"]
-
-    Strategy: find percentage/number tokens and use them as column anchors.
-    Text before the first number is column 1, each subsequent word group
-    between numbers is a column.
+def _attach_affiliation_line(author: Author, text: str) -> None:
     """
-    # Split on spaces first
-    words = line.split()
-    if len(words) < 2:
-        return [line]
+    Attach one affiliation line to an Author, filling fields in order:
+    department → organization → city/country.
 
-    # Find indices of "number" tokens (contain digits, possibly %)
-    num_indices = [i for i, w in enumerate(words) if re.match(r"^\d+%?$", w)]
-
-    if not num_indices:
-        return [line]  # no numbers found, can't smart-split
-
-    columns = []
-
-    # Everything before the first number = first column
-    if num_indices[0] > 0:
-        columns.append(" ".join(words[:num_indices[0]]))
-
-    # Each number is its own column
-    prev_end = num_indices[0]
-    for ni in range(len(num_indices)):
-        idx = num_indices[ni]
-        # If there's a text gap between previous number and this one, add it
-        if idx > prev_end:
-            columns.append(" ".join(words[prev_end:idx]))
-        columns.append(words[idx])
-        prev_end = idx + 1
-
-    # Remaining words after last number: split into individual word-group columns
-    if prev_end < len(words):
-        remaining = words[prev_end:]
-        # Group consecutive capitalized words as one column each
-        # "Moderate Very Poor" → one approach: each single word is a column
-        # unless they form a known multi-word like "Very Poor"
-        # Simple heuristic: look for "Very/Not/Quite" + adjective combos
-        i = 0
-        while i < len(remaining):
-            if (i + 1 < len(remaining)
-                    and remaining[i].lower() in ("very", "not", "quite", "no")):
-                columns.append(remaining[i] + " " + remaining[i + 1])
-                i += 2
-            else:
-                columns.append(remaining[i])
-                i += 1
-
-    return columns if len(columns) >= 2 else [line]
-
-
-def _extract_inline_tables(doc):
-    """Detect table-like rows embedded in section bodies and extract as Table objects.
-
-    Looks for paragraphs where multiple consecutive short lines share a
-    consistent column count (space/tab separated) and contain numbers or
-    percentage values.  Extracts them as a Table and removes from body text.
+    Handles trailing country: "ABC University, India" → org="ABC University", country="India"
     """
-    for section in doc.sections:
-        if section.tables:
-            continue  # already has tables, skip
-        body = section.body
-        if not body:
-            continue
+    # Strip trailing country if present (short, title-case, after last comma)
+    country_extracted = ""
+    if "," in text:
+        last_comma = text.rfind(",")
+        tail = text[last_comma + 1:].strip()
+        if (1 < len(tail) < 35
+                and tail[0:1].isupper()
+                and not any(w in tail.lower() for w in AFFILIATION_WORDS)):
+            country_extracted = tail
+            text = text[:last_comma].strip()
 
-        paragraphs = body.split("\n\n")
-        table_rows = []
-        table_para_indices = []
-        non_table_paras = []
+    if country_extracted and not author.country:
+        author.country = country_extracted
 
-        for pi, para in enumerate(paragraphs):
-            para = para.strip()
-            if not para:
-                non_table_paras.append(para)
-                continue
-
-            # A "table row" candidate: short line (<150 chars), contains a
-            # number or percentage, and has 2+ whitespace-separated tokens.
-            lines = [l.strip() for l in para.split("\n") if l.strip()]
-            is_table_block = True
-            block_rows = []
-            for line in lines:
-                # Try multi-space/tab split first
-                tokens = re.split(r"\s{2,}|\t", line)
-                if len(tokens) < 2:
-                    # Smart split: use percentage/number boundaries
-                    # "OCR Only 75% Moderate Very Poor"
-                    # → ["OCR Only", "75%", "Moderate", "Very Poor"]
-                    tokens = _smart_table_split(line)
-                has_number = bool(re.search(r"\d", line))
-                if len(tokens) >= 2 and has_number and len(line) < 150:
-                    block_rows.append(tokens)
-                else:
-                    is_table_block = False
-                    break
-
-            if is_table_block and len(block_rows) >= 1:
-                table_rows.extend(block_rows)
-                table_para_indices.append(pi)
-            else:
-                non_table_paras.append(para)
-
-        if len(table_rows) >= 2:
-            # Check column consistency: all rows should have similar col count
-            col_counts = [len(r) for r in table_rows]
-            median_cols = sorted(col_counts)[len(col_counts) // 2]
-            consistent = all(abs(c - median_cols) <= 1 for c in col_counts)
-
-            if consistent:
-                # Use section heading as caption
-                caption = f"Comparison — {section.heading}"
-                tbl = Table(
-                    caption=caption,
-                    headers=[],
-                    rows=table_rows,
-                )
-                section.tables.append(tbl)
-                # Remove table text from body
-                section.body = "\n\n".join(non_table_paras).strip()
-                log.debug("Extracted inline table (%d rows) from section '%s'",
-                           len(table_rows), section.heading)
+    # Fill department first, then organization
+    if not author.department:
+        author.department = text
+    elif not author.organization:
+        author.organization = text
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Table / image / reference attachment
-# ══════════════════════════════════════════════════════════════════════════════
+def _extract_abstract_from_blocks(blocks: list) -> str:
+    """Extract abstract text."""
+    abstract_parts = []
+    in_abstract = False
 
-def _attach_tables(doc, tables_raw, blocks):
-    """Attach extracted tables to the most relevant section."""
-    if not tables_raw and blocks:
-        tables_raw = _extract_tables_from_text(blocks)
-
-    if not tables_raw or not doc.sections:
-        return
-
-    # Filter out obviously bad tables before attaching
-    valid_tables = []
-    for tbl_raw in tables_raw:
-        headers = tbl_raw.get("headers", [])
-        rows = tbl_raw.get("rows", [])
-        # Skip tables with no real data
-        if not headers and not rows:
-            continue
-        # Skip if header is a single cell with lots of text (body text leak)
-        if len(headers) == 1 and len(headers[0]) > 100:
-            log.debug("Skipping table with body-text header: %s", headers[0][:60])
-            continue
-        # Skip if header contains many LaTeX math fragments
-        header_text = " ".join(headers)
-        if header_text.count("$") > 6:
-            log.debug("Skipping table with math-heavy header")
-            continue
-        valid_tables.append(tbl_raw)
-
-    tables_raw = valid_tables
-    if not tables_raw:
-        return
-
-    for tbl_idx, tbl_raw in enumerate(tables_raw, start=1):
-        headers = [str(c or "").strip() for c in tbl_raw.get("headers", [])]
-        rows = [[str(c or "").strip() for c in row] for row in tbl_raw.get("rows", [])]
-        caption = tbl_raw.get("caption", "")
-        notes = tbl_raw.get("notes", "")
-        tbl = Table(caption=caption, headers=headers, rows=rows, notes=notes)
-
-        attached = False
-        # Try to extract table number from caption
-        tbl_num_m = re.match(r"^.*?(?:Table|TABLE)\s*(\d+|[IVXLCDM]+)",
-                             caption) if caption else None
-        tbl_ref = None
-        if tbl_num_m:
-            tbl_ref = f"table {tbl_num_m.group(1).lower()}"
-        else:
-            # Use sequential numbering as fallback
-            tbl_ref = f"table {tbl_idx}"
-
-        if tbl_ref:
-            for section in doc.sections:
-                if tbl_ref in section.body.lower():
-                    section.tables.append(tbl)
-                    attached = True
-                    break
-
-        if not attached:
-            # Attach to the last section before Conclusion
-            target = doc.sections[-1]
-            for s in doc.sections:
-                if s.heading.lower() in ("conclusion", "conclusions", "future work"):
-                    break
-                target = s
-            target.tables.append(tbl)
-
-    log.info("Attached %d table(s) to sections", len(tables_raw))
-
-
-def _attach_images(doc, images_raw, blocks):
-    """Attach extracted images to sections based on page proximity.
-
-    Images with is_equation=True (OCR'd equation images) are injected as
-    text into the nearest section body instead of being attached as figures.
-    """
-    if not images_raw or not doc.sections:
-        return
-
-    section_pages = {}
-    if blocks:
-        for i, sec in enumerate(doc.sections):
-            for b in blocks:
-                if (b["text"].strip() == sec.heading
-                        or sec.heading in b["text"]):
-                    section_pages[i] = b.get("page", 1)
-                    break
-
-    fig_captions = {}
     for b in blocks:
-        t = b["text"].strip()
-        m = re.match(r"^(?:Fig\.?|Figure)\s*(\d+)\b\s*(.*)", t, re.IGNORECASE)
-        if m:
-            fig_num = int(m.group(1))
-            fig_captions[fig_num] = {
-                "caption": m.group(2).strip(),
-                "page": b.get("page", 1),
-            }
+        text = b["text"].strip()
+        lower = text.lower()
 
-    fig_idx = 0
-    eq_injected = 0
-    for img in images_raw:
-        img_page = img.get("page", 1)
-
-        # Equation images: inject OCR text into section body
-        if img.get("is_equation") and img.get("ocr_text"):
-            best_section = doc.sections[-1]
-            best_dist = float("inf")
-            for i, sec in enumerate(doc.sections):
-                sec_page = section_pages.get(i, 1)
-                dist = abs(sec_page - img_page)
-                if dist < best_dist:
-                    best_dist = dist
-                    best_section = sec
-            # Inject OCR text as a paragraph in the section body
-            ocr_text = img["ocr_text"].strip()
-            if best_section.body:
-                best_section.body += "\n\n" + ocr_text
-            else:
-                best_section.body = ocr_text
-            eq_injected += 1
-            log.debug("Injected OCR equation into section '%s': %s",
-                      best_section.heading, ocr_text[:50])
+        if lower.startswith("abstract"):
+            in_abstract = True
+            # Remove the "Abstract" prefix
+            rest = re.sub(r"^abstract[\s—:.-]*", "", text, flags=re.I).strip()
+            if rest:
+                abstract_parts.append(rest)
             continue
 
-        # Regular figures
-        fig_idx += 1
-        caption = fig_captions.get(fig_idx, {}).get("caption", "")
+        if in_abstract:
+            # Stop at keywords or first section heading
+            if lower.startswith("keywords") or lower.startswith("key words"):
+                break
+            if lower.startswith("index terms"):
+                break
+            if _is_heading_line(text):
+                break
+            abstract_parts.append(text)
 
-        fig = Figure(
-            caption=caption,
-            image_path=img.get("path", ""),
-            label=f"fig:{fig_idx}",
-        )
-
-        best_section = doc.sections[-1]
-        best_dist = float("inf")
-        for i, sec in enumerate(doc.sections):
-            sec_page = section_pages.get(i, 1)
-            dist = abs(sec_page - img_page)
-            if dist < best_dist:
-                best_dist = dist
-                best_section = sec
-
-        best_section.figures.append(fig)
-
-    log.info("Attached %d image(s) to sections, injected %d OCR equations",
-             fig_idx, eq_injected)
+    return " ".join(abstract_parts).strip()
 
 
-def _extract_refs_from_blocks(blocks, doc):
-    """Extract references from blocks after 'References' heading."""
+def _extract_keywords_from_blocks(blocks: list) -> List[str]:
+    """Extract keywords."""
+    for b in blocks:
+        text = b["text"].strip()
+        lower = text.lower()
+
+        for prefix in ["keywords", "key words", "index terms"]:
+            if lower.startswith(prefix):
+                rest = re.sub(
+                    r"^(keywords|key\s*words|index\s*terms)[\s—:.-]*",
+                    "", text, flags=re.I
+                ).strip()
+                if rest:
+                    # Split by comma, semicolon, or middot
+                    kws = re.split(r"[;,·•]", rest)
+                    return [k.strip().rstrip(".") for k in kws if k.strip()]
+
+    return []
+
+
+def _extract_sections_from_blocks(blocks: list, body_size: float) -> tuple:
+    """Extract sections and references."""
+    sections = []
+    references = []
+    current_heading = ""
+    current_depth = 1
+    current_body = []
+    current_page = -1
     in_refs = False
-    ref_texts = []
-    current_ref_parts = []
-    current_idx = 0
+    past_abstract = False
 
     for b in blocks:
         text = b["text"].strip()
         if not text:
             continue
-        # Standalone "References" heading
-        if re.match(r"^references\.?\s*$", text, re.IGNORECASE):
-            in_refs = True
-            continue
-        # "References" merged at end of a paragraph (e.g. "...authors (3, 6, 7). References")
-        if not in_refs and re.search(r"\breferences\s*$", text, re.IGNORECASE):
-            in_refs = True
-            continue
-        # Block starts with [1] — likely refs even without explicit heading
-        if not in_refs and re.match(r"^\[1\]\s+", text):
-            # Only trigger if we're past the halfway point of the document
-            block_idx = blocks.index(b)
-            if block_idx > len(blocks) // 2:
-                in_refs = True
-                # Don't continue — process this block as a ref below
-        if not in_refs:
-            continue
 
-        # Split lines that contain multiple [N] markers on one line.
-        # e.g. "[1] Ref text 1. [2] Ref text 2. [3] Ref text 3."
-        # → ["[1] Ref text 1.", "[2] Ref text 2.", "[3] Ref text 3."]
-        lines = re.split(r"(?=\[\d+\]\s)", text)
-        if len(lines) <= 1:
-            # Also try splitting on "N. " style markers mid-text
-            lines = re.split(r"(?<=\.)\s+(?=\d+\.\s)", text)
-        if len(lines) <= 1:
-            lines = [text]
+        lower = text.lower()
 
-        for ref_line in lines:
-            ref_line = ref_line.strip()
-            if not ref_line:
+        # Skip until we're past abstract/keywords
+        if not past_abstract:
+            if lower.startswith("abstract"):
+                past_abstract = True
                 continue
-
-            # [N] bracket marker  → "[1] Author..."
-            m = re.match(r"^\[(\d+)\]\s*(.*)", ref_line)
-            # N. period marker    → "1. Author..." (common in many IEEE/NeurIPS papers)
-            # Require the text after "N." to be ≥ 20 chars to avoid matching
-            # stray page-number lines like "202. Springer."
-            if not m:
-                m2 = re.match(r"^(\d+)\.\s+(.*)", ref_line)
-                if m2 and len(m2.group(2)) >= 20:
-                    m = m2
-            if m:
-                if current_ref_parts and current_idx:
-                    ref_texts.append((current_idx, " ".join(current_ref_parts)))
-                current_idx = int(m.group(1))
-                current_ref_parts = [m.group(2).strip()] if m.group(2).strip() else []
+            if _is_heading_line(text):
+                past_abstract = True
             else:
-                current_ref_parts.append(ref_line)
-
-    if current_ref_parts and current_idx:
-        ref_texts.append((current_idx, " ".join(current_ref_parts)))
-
-    # Fallback: author-year style (no [N] or N. markers found).
-    # Only scan blocks AFTER the "References" heading to avoid false positives
-    # from the paper body.
-    if not ref_texts and in_refs:
-        idx = 1
-        after_refs = False
-        for b in blocks:
-            text = b["text"].strip()
-            if not text:
                 continue
-            if re.match(r"^references\.?\s*$", text, re.IGNORECASE):
-                after_refs = True
-                continue
-            if not after_refs:
-                continue
-            if re.match(r"^[A-Z]", text) and re.search(r"\b(19|20)\d{2}\b", text):
-                ref_texts.append((idx, text))
-                idx += 1
 
-    # Build Reference objects
-    for idx_val, text in ref_texts:
-        doc.references.append(Reference(index=idx_val, text=text))
-
-    # Clean boilerplate that leaks into refs
-    clean_refs = []
-    for r in doc.references:
-        text = r.text
-        if re.match(r"^(Authors and Affiliations|Open Access)\b", text, re.IGNORECASE):
-            continue
-        if re.search(r"\b(Springer Nature|Elsevier)\b.*licen", text, re.IGNORECASE):
-            continue
-        if re.match(r"^Open Access\b", text, re.IGNORECASE):
-            continue
-        if (re.search(r"\b(University|Institute|Lab|Huawei|Google|Microsoft|DeepMind)\b", text)
-                and len(text.split()) < 20):
-            continue
-        clean_refs.append(r)
-    doc.references = clean_refs
-
-    # Deduplicate by index
-    seen = set()
-    unique = []
-    for r in sorted(doc.references, key=lambda x: x.index):
-        if r.index not in seen:
-            seen.add(r.index)
-            unique.append(r)
-    doc.references = unique
-
-    log.info("Extracted %d references", len(doc.references))
-
-
-def _extract_tables_from_text(blocks: list) -> list:
-    """Extract tables from raw text blocks when pdfplumber finds none."""
-    tables = []
-    i = 0
-    while i < len(blocks):
-        t = blocks[i]["text"].strip()
-        # Match "Table N" or "TABLE N" (Arabic or Roman numerals)
-        m = re.match(r"^(?:Table|TABLE)\s+(\d+|[IVXLCDM]+)\b\s*(.*)", t)
-        if not m:
-            i += 1
+        if _is_metadata_line(text):
             continue
 
-        caption_parts = [m.group(2).strip()] if m.group(2).strip() else []
-        i += 1
+        # Check for References section
+        if re.match(r"^(references|bibliography)\s*$", lower):
+            # Save current section
+            if current_heading and current_body:
+                sections.append(Section(
+                    heading=current_heading,
+                    depth=current_depth,
+                    body="\n\n".join(current_body),
+                    start_page=current_page,
+                ))
+            in_refs = True
+            current_heading = ""
+            current_body = []
+            continue
 
-        # Collect caption continuation lines (max 5 lines of caption)
-        cap_count = 0
-        while i < len(blocks) and cap_count < 5:
-            t2 = blocks[i]["text"].strip()
-            if re.match(r"^[\u21d1\u21d3\u2191\u2193\s,]+$", t2):
-                i += 1
-                continue
-            if _looks_like_table_row(t2):
-                break
-            if _is_heading_line(t2):
-                break
-            if _is_metadata_line(t2):
-                i += 1
-                continue
-            # Stop caption if line is too long (likely body text)
-            if len(t2) > 200:
-                break
-            caption_parts.append(t2)
-            cap_count += 1
-            i += 1
+        # Check for "References" at end of a paragraph
+        ref_match = re.search(r"\bReferences\s*$", text)
+        if ref_match and not in_refs:
+            before = text[:ref_match.start()].strip()
+            if before and current_body is not None:
+                current_body.append(before)
+            if current_heading and current_body:
+                sections.append(Section(
+                    heading=current_heading,
+                    depth=current_depth,
+                    body="\n\n".join(current_body),
+                    start_page=current_page,
+                ))
+            in_refs = True
+            current_heading = ""
+            current_body = []
+            continue
 
-        caption = re.sub(r"\s+", " ", " ".join(caption_parts).strip())
-        headers = []
-        rows = []
-        max_table_rows = 30  # safety limit
+        if in_refs:
+            # Parse reference entries
+            ref = _parse_reference_line(text, len(references) + 1)
+            if ref:
+                references.append(ref)
+            continue
 
-        # Collect table rows
-        while i < len(blocks) and len(rows) < max_table_rows:
-            t2 = blocks[i]["text"].strip()
-            if _is_metadata_line(t2):
-                i += 1
-                continue
-            if re.match(r"^[\u21d1\u21d3\u2191\u2193\s,]+$", t2):
-                i += 1
-                continue
-            if re.match(r"^(?:Table|TABLE)\s+(\d+|[IVXLCDM]+)\b", t2):
-                break
-            if _is_heading_line(t2):
-                break
-            if re.match(r"^references\.?\s*$", t2, re.IGNORECASE):
-                break
-            if len(t2) < 3:
-                i += 1
-                continue
-            # Stop if we hit normal prose (long line with few numbers)
-            if len(t2) > 150 and not _looks_like_table_row(t2):
-                break
-            if _looks_like_table_row(t2):
-                cells = _split_table_row(t2)
-                if not headers:
-                    headers = cells
-                else:
-                    rows.append(cells)
-            else:
-                # Non-table line in the middle of a table — stop collecting
-                if headers or rows:
+        # Detect headings
+        heading_info = _detect_heading(text, b.get("size", 0), body_size)
+        if heading_info:
+            # Save previous section
+            if current_heading and current_body:
+                sections.append(Section(
+                    heading=current_heading,
+                    depth=current_depth,
+                    body="\n\n".join(current_body),
+                    start_page=current_page,
+                ))
+            current_heading = heading_info["text"]
+            current_depth = heading_info["depth"]
+            current_page = b.get("page", -1)
+            current_body = []
+        else:
+            current_body.append(text)
+
+    # Save last section
+    if current_heading and current_body:
+        sections.append(Section(
+            heading=current_heading,
+            depth=current_depth,
+            body="\n\n".join(current_body),
+            start_page=current_page,
+        ))
+
+    return sections, references
+
+
+def _detect_heading(text: str, font_size: float, body_size: float) -> Optional[dict]:
+    """Detect if a text line is a section heading. Returns {text, depth} or None."""
+    stripped = text.strip()
+
+    # Numbered headings: "1. Introduction", "2.1 Method"
+    m = NUMBERED_HEADING_RE.match(stripped)
+    if m:
+        num = m.group(1).rstrip(".")
+        heading_text = m.group(2).strip()
+        # Determine depth from numbering: "1" = 1, "1.1" = 2, "1.1.1" = 3
+        depth = num.count(".") + 1 if "." in num else 1
+        return {"text": heading_text, "depth": min(depth, 3)}
+
+    # Roman numeral headings: "I. Introduction", "II. Method"
+    rom_match = re.match(r"^([IVXivx]+\.?)\s+(.+)$", stripped)
+    if rom_match:
+        heading_text = rom_match.group(2).strip()
+        if heading_text.lower() in KEYWORD_HEADINGS or font_size > body_size * 1.1:
+            return {"text": heading_text, "depth": 1}
+
+    # Keyword-based headings (must be short and match known patterns)
+    if stripped.lower() in KEYWORD_HEADINGS and len(stripped) < 40:
+        return {"text": stripped, "depth": 1}
+
+    # Font-size based: significantly larger than body
+    if font_size > body_size * 1.15 and len(stripped) < 60:
+        # Likely a heading — check it's not just a short body line
+        if stripped[0].isupper() and not stripped.endswith(","):
+            return {"text": stripped, "depth": 1}
+
+    return None
+
+
+# ── Text-only parsing (fallback) ─────────────────────────────────
+
+def _parse_text_only(text: str) -> Document:
+    """Parse from raw text without font information."""
+    lines = text.split("\n")
+    lines = [l.strip() for l in lines]
+    lines = [l for l in lines if l and not _is_metadata_line(l)]
+
+    if not lines:
+        return Document()
+
+    # Title: first substantial line
+    title = ""
+    start_idx = 0
+    for i, line in enumerate(lines[:5]):
+        if len(line) > 10:
+            title = line
+            start_idx = i + 1
+            break
+
+    # Abstract
+    abstract = ""
+    abstract_end = start_idx
+    for i in range(start_idx, min(len(lines), start_idx + 30)):
+        lower = lines[i].lower()
+        if lower.startswith("abstract"):
+            rest = re.sub(r"^abstract[\s—:.-]*", "", lines[i], flags=re.I).strip()
+            abs_parts = [rest] if rest else []
+            for j in range(i + 1, min(len(lines), i + 20)):
+                if _is_heading_line(lines[j]):
+                    abstract_end = j
                     break
-            i += 1
+                if lines[j].lower().startswith("keywords"):
+                    abstract_end = j
+                    break
+                abs_parts.append(lines[j])
+                abstract_end = j + 1
+            abstract = " ".join(abs_parts).strip()
+            break
 
-        # Validate table: needs at least 2 columns and reasonable structure
-        if _validate_table(headers, rows):
-            tables.append({
-                "caption": caption[:300],  # cap caption length
-                "headers": headers,
-                "rows":    rows,
-                "notes":   "",
-            })
+    # Keywords
+    keywords = []
+    kw_end = abstract_end
+    for i in range(abstract_end, min(len(lines), abstract_end + 5)):
+        lower = lines[i].lower()
+        for prefix in ["keywords", "key words", "index terms"]:
+            if lower.startswith(prefix):
+                rest = re.sub(
+                    r"^(keywords|key\s*words|index\s*terms)[\s—:.-]*",
+                    "", lines[i], flags=re.I
+                ).strip()
+                if rest:
+                    kws = re.split(r"[;,·•]", rest)
+                    keywords = [k.strip().rstrip(".") for k in kws if k.strip()]
+                kw_end = i + 1
+                break
 
-    return tables
+    # Sections and references
+    sections = []
+    references = []
+    current_heading = ""
+    current_depth = 1
+    current_body = []
+    in_refs = False
+
+    for i in range(kw_end, len(lines)):
+        line = lines[i]
+        lower = line.lower()
+
+        if re.match(r"^(references|bibliography)\s*$", lower):
+            if current_heading and current_body:
+                sections.append(Section(
+                    heading=current_heading,
+                    depth=current_depth,
+                    body="\n\n".join(current_body),
+                ))
+            in_refs = True
+            current_heading = ""
+            current_body = []
+            continue
+
+        if in_refs:
+            ref = _parse_reference_line(line, len(references) + 1)
+            if ref:
+                references.append(ref)
+            continue
+
+        heading_info = _detect_heading(line, 0, 0)
+        if heading_info:
+            if current_heading and current_body:
+                sections.append(Section(
+                    heading=current_heading,
+                    depth=current_depth,
+                    body="\n\n".join(current_body),
+                ))
+            current_heading = heading_info["text"]
+            current_depth = heading_info["depth"]
+            current_body = []
+        else:
+            current_body.append(line)
+
+    if current_heading and current_body:
+        sections.append(Section(
+            heading=current_heading,
+            depth=current_depth,
+            body="\n\n".join(current_body),
+        ))
+
+    return Document(
+        title=title,
+        abstract=abstract,
+        keywords=keywords,
+        sections=sections,
+        references=references,
+    )
 
 
-def _validate_table(headers: list, rows: list) -> bool:
-    """Validate that extracted table data looks reasonable."""
-    if not headers and not rows:
-        return False
-    # Header shouldn't be a formula or long prose
-    if headers:
-        header_text = " ".join(headers)
-        if len(header_text) > 300:
-            return False
-        # Reject if header contains many LaTeX math (body text leak)
-        if header_text.count("$") > 6:
-            return False
-        # Reject if header looks like a sentence (prose, not column names)
-        if re.search(r"\b(which|that|this|these|is|are|was|were)\b",
-                     header_text, re.IGNORECASE) and len(header_text) > 80:
-            return False
-    # Need at least 1 row
-    if not rows:
-        return False
-    return True
+# ── Helper functions ─────────────────────────────────────────────
 
-
-def _looks_like_table_row(line: str) -> bool:
-    """Heuristic: line has 3+ whitespace-separated tokens with numbers or short labels."""
-    tokens = line.split()
-    if len(tokens) < 3:
-        return False
-    # Count numeric-like tokens (including fractions like 2670/334, percentages)
-    num_count = sum(1 for t in tokens
-                    if re.match(r"^[\d./]+[⇑⇓↑↓%±]*$", t))
-    # Need at least 2 numbers, and the line shouldn't be too long (prose)
-    if num_count >= 2 and len(line) < 200:
+def _is_metadata_line(text: str) -> bool:
+    """Check if a line is page header/footer metadata."""
+    text = text.strip()
+    if not text:
         return True
-    # Also match: short capitalized labels with no sentences (column headers)
-    # e.g., "Skillcraft SML Parkinsons Bike CCPP"
-    if (len(tokens) >= 3 and len(tokens) <= 12
-            and all(len(t) <= 20 for t in tokens)
-            and len(line) < 100
-            and not re.search(r"[.!?;]$", line.strip())
-            and all(t[0].isupper() or t.startswith("#") for t in tokens if t)):
+    for pat in METADATA_PATTERNS:
+        if pat.search(text):
+            return True
+    return False
+
+
+def _is_heading_line(text: str) -> bool:
+    """Quick check if text looks like a section heading."""
+    text = text.strip()
+    if NUMBERED_HEADING_RE.match(text):
+        return True
+    if text.lower() in KEYWORD_HEADINGS:
+        return True
+    rom = re.match(r"^[IVX]+\.?\s+\w+", text)
+    if rom and len(text) < 60:
         return True
     return False
 
 
-def _split_table_row(line: str) -> list:
-    """
-    Split a table row into cells.
-    Try 2+ spaces first. If that gives only 1 cell, fall back to detecting
-    the label prefix vs numeric data.
-    """
-    # First try: split on 2+ spaces
-    cells = re.split(r"\s{2,}", line.strip())
-    cells = [c.strip() for c in cells if c.strip()]
-    if len(cells) >= 2:
-        return cells
+def _split_author_names(text: str) -> List[str]:
+    """Split a line into individual author names."""
+    # Remove superscript digits
+    text = re.sub(r"[¹²³⁴⁵⁶⁷⁸⁹⁰\d*†‡§]", "", text)
+    # Split by common separators
+    if "," in text:
+        parts = text.split(",")
+    elif " and " in text.lower():
+        parts = re.split(r"\s+and\s+", text, flags=re.I)
+    elif "·" in text or "•" in text:
+        parts = re.split(r"[·•]", text)
+    else:
+        parts = [text]
+    return [p.strip() for p in parts if p.strip()]
 
-    # Second try: split "MethodName 0.95 0.21 ..." into [label, n1, n2, ...]
-    # Find where numeric data starts
-    m = re.match(r"^([A-Za-z][A-Za-z\s\-+.]*?)\s+([\d.]+(?:[⇑⇓↑↓]*)(?:\s+[\d.]+[⇑⇓↑↓]*)*)\s*$",
-                 line.strip())
+
+def _is_plausible_author(name: str) -> bool:
+    """Check if a string looks like an author name."""
+    name = name.strip()
+    if len(name) < 3 or len(name) > 60:
+        return False
+    if name[0].islower():
+        return False
+    # Reject if it's all caps and long (likely an acronym or heading)
+    if name.isupper() and len(name) > 5:
+        return False
+    # Reject affiliation words
+    lower = name.lower()
+    if any(w in lower for w in AFFILIATION_WORDS):
+        return False
+    if any(w in lower for w in ["the ", "ieee", "acm"]):
+        return False
+    # Must have at least 2 words
+    if len(name.split()) < 2:
+        return False
+    # Reject hyphens (likely compound terms, not names)
+    if "-" in name and not " " in name.split("-")[0]:
+        pass  # Allow hyphenated surnames like "Mary-Jane"
+    return True
+
+
+def _parse_reference_line(text: str, default_idx: int) -> Optional[Reference]:
+    """Parse a reference line into a Reference object."""
+    text = text.strip()
+    if len(text) < 15:
+        return None
+
+    # [1] Author, Title...
+    m = REF_BRACKET_RE.match(text)
     if m:
-        label = m.group(1).strip()
-        numbers = m.group(2).strip().split()
-        return [label] + numbers
+        return Reference(
+            text=m.group(2).strip(),
+            index=int(m.group(1)),
+        )
 
-    # Third try: just split on any whitespace
-    tokens = line.strip().split()
-    return tokens
+    # 1. Author, Title...
+    m = REF_DOT_RE.match(text)
+    if m:
+        return Reference(
+            text=m.group(2).strip(),
+            index=int(m.group(1)),
+        )
+
+    # Continuation of previous reference or unlabeled reference
+    if text[0].isupper() and len(text) > 30:
+        return Reference(text=text, index=default_idx)
+
+    return None
+
+
+def _attach_tables(doc: Document, tables: list):
+    """Attach extracted tables to the nearest section."""
+    if not tables or not doc.sections:
+        return
+
+    table_objects = []
+    for t in tables:
+        table_objects.append(Table(
+            headers=t.get("headers", []),
+            rows=t.get("rows", []),
+            caption=t.get("caption", ""),
+            label=t.get("label", ""),
+        ))
+
+    # Distribute tables across sections (simple: evenly or to first section with body)
+    for i, table in enumerate(table_objects):
+        if doc.sections:
+            # Attach to the section at roughly the right position
+            idx = min(i, len(doc.sections) - 1)
+            doc.sections[idx].tables.append(table)

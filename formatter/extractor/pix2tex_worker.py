@@ -1,44 +1,33 @@
+#!/usr/bin/env python3
 """
-extractor/pix2tex_worker.py — Isolated pix2tex OCR worker.
+extractor/pix2tex_worker.py — Subprocess worker for pix2tex LaTeX OCR.
 
-Called by pdf_extractor.py via subprocess:
+Usage:
     python pix2tex_worker.py <image_path>
 
-Prints the LaTeX result to stdout (one line).
-Exits 0 on success, 1 on failure.
-
-Running in a subprocess means any segfault, sys.exit(), or CUDA crash
-inside pix2tex stays isolated and never kills the main pipeline.
+Prints LaTeX string to stdout.  Runs in a child process so that a
+segfault (CUDA DLL issues on Windows) cannot kill the main pipeline.
 """
-import os
 import sys
 
 
 def main():
     if len(sys.argv) < 2:
+        print("Usage: pix2tex_worker.py <image_path>", file=sys.stderr)
         sys.exit(1)
 
     image_path = sys.argv[1]
-    if not os.path.exists(image_path):
-        print(f"File not found: {image_path}", file=sys.stderr)
-        sys.exit(1)
 
     try:
-        from pix2tex.cli import LatexOCR
         from PIL import Image
+        from pix2tex.cli import LatexOCR
 
         model = LatexOCR()
         img = Image.open(image_path)
-        result = model(img)
-
-        if result and len(result.strip()) >= 2:
-            print(result.strip())
-            sys.exit(0)
-        else:
-            sys.exit(1)
-
+        latex = model(img)
+        print(latex, end="")
     except Exception as e:
-        print(f"pix2tex error: {e}", file=sys.stderr)
+        print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
 
 

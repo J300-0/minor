@@ -1,170 +1,53 @@
-2026-03-21 15:59:16  DEBUG     core.pipeline             Cleaned intermediate directory: /sessions/relaxed-awesome-cori/mnt/formatter/intermediate
-2026-03-21 15:59:16  INFO      pipeline                  ======================================================================
-2026-03-21 15:59:16  INFO      pipeline                  RUN START
-2026-03-21 15:59:16  INFO      pipeline                    input    = Formulas.pdf
-2026-03-21 15:59:16  INFO      pipeline                    template = ieee
-2026-03-21 15:59:16  INFO      pipeline                    parser   = heuristic
-2026-03-21 15:59:16  INFO      pipeline                  ======================================================================
-2026-03-21 15:59:16  INFO      pipeline                  [1] Extractor — PDF/DOCX -> text + tables + images
-2026-03-21 15:59:16  WARNING   extractor.pdf_extractor   pymupdf not installed — falling back to pdfplumber line blocks
-2026-03-21 15:59:17  INFO      extractor.pdf_extractor   Fallback extraction: 169 line-blocks from 5 pages
-2026-03-21 15:59:17  INFO      extractor.pdf_extractor   pix2tex package not importable: Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-ModuleNotFoundError: No module named 'pix2tex'
-2026-03-21 15:59:18  DEBUG     extractor.pdf_extractor   Cell OCR: using embedded image bbox (103.9199985, 272.8799862500001, 219.35999700000002, 295.55998625000007) (cell (83.40000075, 259.079997875, 240.95999887500003, 312.479995625))
-2026-03-21 15:59:18  DEBUG     pypdfium2._lazy           Evaluating lazy import 'PIL.Image' ...
-2026-03-21 15:59:18  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_5dasi1y3_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_5dasi1y3', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:18  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_pg86sb9s_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_pg86sb9s', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:18  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_9p8vfd2p_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_9p8vfd2p', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:18  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_irlal13d_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_irlal13d', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:18  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_2j0mopdm_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_2j0mopdm', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:18  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_wyuldhmf_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_wyuldhmf', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:19  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_wbs1mr11_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_wbs1mr11', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:19  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_0yx2ivgl_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_0yx2ivgl', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:19  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_cgfi41hx_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_cgfi41hx', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:19  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_lio4omde_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_lio4omde', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:19  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_hoo15uia_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_hoo15uia', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:19  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_l7dulvir_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_l7dulvir', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:19  DEBUG     extractor.pdf_extractor   Cell OCR collapsed: ay = lim J(t+h) Fit Aon
-2026-03-21 15:59:19  DEBUG     extractor.pdf_extractor   Table cell OCR p2 r2 c1: ay = lim J(t+h) Fit Aon
-2026-03-21 15:59:19  DEBUG     extractor.pdf_extractor   Cell OCR: using embedded image bbox (124.5600015, 326.4000035, 198.60000225, 342.36000425) (cell (83.40000075, 312.479995625, 240.95999887500003, 346.79999150000003))
-2026-03-21 15:59:20  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_vc2mb3b4_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_vc2mb3b4', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:20  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_xeyr0etq_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_xeyr0etq', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:20  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_wx5ommgo_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_wx5ommgo', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:20  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_bnl3_7h7_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_bnl3_7h7', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:20  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_4350hy6n_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_4350hy6n', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:20  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_2a1rbc5h_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_2a1rbc5h', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:20  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_xpv9j_6n_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_xpv9j_6n', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:20  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_cc34glvd_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_cc34glvd', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:20  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_4_ggm1e4_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_4_ggm1e4', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:21  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_1jc0xw67_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_1jc0xw67', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:21  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_j91a_ya2_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_j91a_ya2', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:21  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_0rtvm6vf_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_0rtvm6vf', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:21  DEBUG     extractor.pdf_extractor   Cell OCR lax accept: Fk =Geye
-2026-03-21 15:59:21  DEBUG     extractor.pdf_extractor   Table cell OCR p2 r3 c1: Fk =Geye
-2026-03-21 15:59:21  DEBUG     extractor.pdf_extractor   Cell OCR: using embedded image bbox (128.39999775, 361.080005, 213.72000525, 380.400005) (cell (83.40000075, 360.83999225, 240.95999887500003, 390.11999862500005))
-2026-03-21 15:59:21  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_l9ynro5u_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_l9ynro5u', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:21  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_iw50x8ku_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_iw50x8ku', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:21  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_w_cuv99e_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_w_cuv99e', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:21  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_vmnak7cz_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_vmnak7cz', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:22  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess__r5q5j9t_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess__r5q5j9t', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:22  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_y10n4wrg_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_y10n4wrg', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:22  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_ixw2ed2m_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_ixw2ed2m', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:22  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_zc00v6os_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_zc00v6os', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:22  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_4__7x8d0_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_4__7x8d0', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:22  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_fmedf7jw_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_fmedf7jw', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:22  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_y4eg92r2_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_y4eg92r2', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:22  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_yohpss26_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_yohpss26', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:22  DEBUG     extractor.pdf_extractor   Cell OCR lax accept: B(x) = eae
-2026-03-21 15:59:22  DEBUG     extractor.pdf_extractor   Table cell OCR p2 r5 c1: B(x) = eae
-2026-03-21 15:59:22  DEBUG     extractor.pdf_extractor   Cell OCR: using embedded image bbox (86.63999775, 390.359996, 236.63999775000002, 410.999996) (cell (83.40000075, 390.11999862500005, 240.95999887500003, 418.440006125))
-2026-03-21 15:59:23  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_39296ncz_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_39296ncz', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:23  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_lxqgm6b5_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_lxqgm6b5', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:23  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_ve9y7996_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_ve9y7996', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:23  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_dr3u9pa4_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_dr3u9pa4', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:23  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_nkjd0gvn_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_nkjd0gvn', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:23  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_e9hm85hh_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_e9hm85hh', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:23  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_iinzj_f5_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_iinzj_f5', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:24  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_p0p1crts_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_p0p1crts', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:24  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_zhqe76d5_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_zhqe76d5', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:24  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_rqieaolj_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_rqieaolj', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:24  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_zrc30iut_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_zrc30iut', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:24  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_t58mn_hc_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_t58mn_hc', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:24  DEBUG     extractor.pdf_extractor   Cell OCR lax accept: fe) = [72 flale Pda
-2026-03-21 15:59:24  DEBUG     extractor.pdf_extractor   Table cell OCR p2 r6 c1: fe) = [72 flale Pda
-2026-03-21 15:59:24  INFO      extractor.pdf_extractor   Extracted 1 tables from PDF (0 cells via fitz, 4 via OCR)
-2026-03-21 15:59:24  INFO      extractor.pdf_extractor   Filtered 8 text blocks that duplicated table content
-2026-03-21 15:59:25  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_plx3s9pg_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_plx3s9pg', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:25  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_829556x9_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_829556x9', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:25  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_7dbkv3n3_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_7dbkv3n3', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:25  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_mraadsq5_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_mraadsq5', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:25  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_m0171zmg_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_m0171zmg', '--psm', '7', '--oem', '1', 'txt']
-2026-03-21 15:59:25  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_8ijiuo92_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_8ijiuo92', '--psm', '8', '--oem', '1', 'txt']
-2026-03-21 15:59:26  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_aqh0htvr_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_aqh0htvr', '--psm', '6', '--oem', '1', 'txt']
-2026-03-21 15:59:26  DEBUG     pytesseract               ['tesseract', '/sessions/relaxed-awesome-cori/tmp/tess_9bn0p3kz_input.PNG', '/sessions/relaxed-awesome-cori/tmp/tess_9bn0p3kz', '--psm', '11', '--oem', '1', 'txt']
-2026-03-21 15:59:26  INFO      extractor.pdf_extractor   Extracted 2 images from PDF (0 with OCR equations)
-2026-03-21 15:59:26  INFO      extractor.pdf_extractor   PDF extraction: 161 blocks, 11463 chars, 1 tables, 2 images
-2026-03-21 15:59:26  INFO      pipeline                    extracted: 11463 chars | 1 tables | 2 images
-2026-03-21 15:59:26  INFO      pipeline                  [2] Parser — raw text -> structured Document
-2026-03-21 15:59:26  INFO      parser.heuristic          Attached 1 table(s) to sections
-2026-03-21 15:59:26  INFO      parser.heuristic          Attached 2 image(s) to sections, injected 0 OCR equations
-2026-03-21 15:59:26  INFO      parser.heuristic          Extracted 7 references
-2026-03-21 15:59:26  INFO      parser.heuristic          parse: title='THE FORMULAS'  authors=2  sections=10  refs=7
-2026-03-21 15:59:26  INFO      pipeline                    doc: title='THE FORMULAS'  authors=2  sections=10  tables=1  refs=7
-2026-03-21 15:59:26  INFO      pipeline                  [3] Canon — validate + repair + score Document
-2026-03-21 15:59:26  INFO      canon.builder             Canonical build complete:
-  overall_confidence : 0.883
-  title              : [0.90] 'THE FORMULAS'
-  authors            : [0.90] 2 authors
-  abstract           : [0.85] 579 chars
-  keywords           : [0.85] ['mathematical formulas', 'physical formulas']
-  sections           : [0.90] 10 sections
-  references         : [0.90] 7 refs
-  renderable         : True
-2026-03-21 15:59:26  INFO      pipeline                  [4] Normalizer — fix ligatures, unicode, math
-2026-03-21 15:59:26  INFO      pipeline                  [5] Renderer — Document -> LaTeX [ieee]
-2026-03-21 15:59:26  INFO      pipeline                  [6] Compiler — LaTeX -> PDF
-2026-03-21 15:59:30  DEBUG     compiler.latex_compiler   pdflatex pass 1 stdout (last 1500 chars):
- and/or PDF output post-processing
- uses only Type 1 fonts and that every step in the generation
- process uses the appropriate paper size.
-
-[3 <./fig_2_p4.png>] (./generated.aux)
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
-
-Package rerunfilecheck Warning: File `generated.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
- )
-(see the transcript file for additional information){/usr/share/texlive/texmf-d
-ist/fonts/enc/dvips/base/8r.enc}</usr/share/texlive/texmf-dist/fonts/type1/publ
-ic/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
-fonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/c
-m/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.
-pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></us
-r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/
-texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texliv
-e/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/texmf
--dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/typ
-e1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/u
-tmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on generated.pdf (3 pages, 184536 bytes).
-Transcript written on generated.log.
-
-2026-03-21 15:59:32  DEBUG     compiler.latex_compiler   pdflatex pass 2 stdout (last 1500 chars):
-8pt too wide) in paragraph at lines 59--72
- [][] 
-[2 <./fig_1_p3.png>]
-
-** Conference Paper **
-Before submitting the final camera ready copy, remember to:
-
- 1. Manually equalize the lengths of two columns on the last page
- of your paper;
-
- 2. Ensure that any PostScript and/or PDF output post-processing
- uses only Type 1 fonts and that every step in the generation
- process uses the appropriate paper size.
-
-[3 <./fig_2_p4.png>] (./generated.aux) )
-(see the transcript file for additional information){/usr/share/texlive/texmf-d
-ist/fonts/enc/dvips/base/8r.enc}</usr/share/texlive/texmf-dist/fonts/type1/publ
-ic/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
-fonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/c
-m/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.
-pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></us
-r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/
-texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texliv
-e/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/texmf
--dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/typ
-e1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/u
-tmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on generated.pdf (3 pages, 185537 bytes).
-Transcript written on generated.log.
-
-2026-03-21 15:59:32  INFO      compiler.latex_compiler   PDF written to /sessions/relaxed-awesome-cori/mnt/formatter/output/generated_ieee.pdf
-2026-03-21 15:59:32  INFO      pipeline                  RUN END — /sessions/relaxed-awesome-cori/mnt/formatter/output/generated_ieee.pdf  (16.6s)
-2026-03-21 15:59:32  INFO      pipeline                  
+17:35:32 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+17:35:32 [INFO   ] paper_formatter:   Opening PDF: formulas.pdf
+17:35:33 [DEBUG  ] paper_formatter:   Figure p0 xref=91 (753x286 pt): fig_0_0.png
+17:35:33 [INFO   ] paper_formatter:   OCR engine 'pix2tex' is available
+17:35:40 [DEBUG  ] paper_formatter:   pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip inst
+17:35:50 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check timed out
+17:35:50 [DEBUG  ] paper_formatter:   Equation image saved (no OCR) p0: eq_0_0.png
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 71,187,507,252
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,259,164,272
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 219,286,222,298
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 256,259,509,272
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,313,89,325
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 199,333,201,345
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 268,313,509,325
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,347,505,373
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 214,371,216,383
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 281,361,511,373
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,390,82,403
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 237,401,239,413
+17:35:50 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 284,390,508,403
+17:36:02 [DEBUG  ] paper_formatter:   pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip inst
+17:36:02 [DEBUG  ] paper_formatter:   Equation image saved (no OCR) p1: eq_1_0.png
+17:36:13 [DEBUG  ] paper_formatter:   pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip inst
+17:36:13 [DEBUG  ] paper_formatter:   Equation image saved (no OCR) p1: eq_1_1.png
+17:36:24 [DEBUG  ] paper_formatter:   pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip inst
+17:36:24 [DEBUG  ] paper_formatter:   Equation image saved (no OCR) p1: eq_1_2.png
+17:36:35 [DEBUG  ] paper_formatter:   pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip inst
+17:36:35 [DEBUG  ] paper_formatter:   Equation image saved (no OCR) p1: eq_1_3.png
+17:36:35 [DEBUG  ] paper_formatter:   Figure p2 xref=18 (505x357 pt): fig_2_0.jpeg
+17:36:45 [DEBUG  ] paper_formatter:   Equation OCR p2: conf=0.70 latex=a_{i i}>\Longleftrightarrow_{k=1}^{i}\sum_{l=k+1}^{n}\;a_{k 
+17:36:52 [DEBUG  ] paper_formatter:   Equation OCR p3: conf=0.60 latex=a_{\sigma(i)\pi(i)}+a_{\sigma(j)\pi(k)}\le a_{\sigma(i)\pi(j
+17:37:00 [DEBUG  ] paper_formatter:   Equation OCR p3: conf=0.60 latex=A\quad\mathop{\textrm{a}}\quad\left(\begin{array}{cc}{{A_{11
+17:37:07 [DEBUG  ] paper_formatter:   Equation OCR p3: conf=0.65 latex={\frac{t_{p}+t_{q}}{3}}=\lambda(A)
+17:37:07 [DEBUG  ] paper_formatter:   Figure p3 xref=26 (184x101 pt): fig_3_0.jpeg
+17:37:17 [DEBUG  ] paper_formatter:   Equation OCR p4: conf=0.55 latex=\{\bigotimes\}_{i\in\lbrack\operatorname{prit})}
+17:37:18 [INFO   ] paper_formatter:   Extracted 11750 chars, 56 blocks, 1 tables, 3 figures, 10 formulas (fitz)
+17:37:18 [INFO   ] paper_formatter: Stage 2/6: Parse
+17:37:18 [INFO   ] paper_formatter:   Using font-aware parsing (56 blocks)
+17:37:18 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=0 chars, 10 sections, 6 references
+17:37:18 [INFO   ] paper_formatter:   Formula blocks: 10 kept / 10 total (conf >= 0.45)
+17:37:18 [INFO   ] paper_formatter:   Figures: 3 extracted
+17:37:18 [INFO   ] paper_formatter: Stage 3/6: Canon
+17:37:18 [DEBUG  ] paper_formatter:   Canon: authors: none found
+17:37:18 [DEBUG  ] paper_formatter:   Canon: abstract: repaired from first body paragraph
+17:37:18 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.3(619 chars) | sections=0.8(10) | refs=0.8(6) | repairs=2
+17:37:18 [INFO   ] paper_formatter: Stage 4/6: Normalize
+17:37:18 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+17:37:18 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+17:37:19 [INFO   ] paper_formatter:   Generated: C:\Users\janme\Desktop\minor\formatter\intermediate\generated.tex
+17:37:19 [INFO   ] paper_formatter: Stage 6/6: Compile
+17:37:19 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+17:37:21 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+17:37:22 [INFO   ] paper_formatter:   Output: C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf

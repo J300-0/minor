@@ -5,6 +5,7 @@
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
+\usepackage[export]{adjustbox}  % max width/height for includegraphics
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{hyperref}
@@ -58,6 +59,7 @@
 
 %% for section in sections
 \VAR{section.depth | section_cmd}{\VAR{section.heading | e}}
+
 \VAR{section.body | paras}
 
 %% for table in section.tables
@@ -65,6 +67,7 @@
 %% endfor
 
 %% for figure in section.figures
+%% if figure.image_path
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{\VAR{figure.image_path}}
@@ -75,9 +78,43 @@
 \label{\VAR{figure.label}}
 %% endif
 \end{figure}
+%% endif
+%% endfor
+
+%% for fb in section.formula_blocks
+%% if fb.latex
+\begin{equation}
+\label{\VAR{fb.label}}
+\VAR{fb.latex}
+\end{equation}
+%% elif fb.image_path
+\begin{figure}[htbp]
+\centering
+\includegraphics[max width=0.85\columnwidth, max height=3cm]{\VAR{fb.image_path}}
+\label{\VAR{fb.label}}
+\end{figure}
+%% endif
 %% endfor
 
 %% endfor
+
+%% if formula_blocks
+\section*{Key Equations}
+%% for fb in formula_blocks
+%% if fb.latex
+\begin{equation}
+\label{\VAR{fb.label}}
+\VAR{fb.latex}
+\end{equation}
+%% elif fb.image_path
+\begin{figure}[htbp]
+\centering
+\includegraphics[max width=0.85\columnwidth, max height=3cm]{\VAR{fb.image_path}}
+\label{\VAR{fb.label}}
+\end{figure}
+%% endif
+%% endfor
+%% endif
 
 %% if references
 \begin{thebibliography}{99}

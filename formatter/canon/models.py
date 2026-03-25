@@ -1,106 +1,67 @@
 """
-canon/models.py — CanonicalDocument: validated Document with confidence scores + repair log.
+canon/models.py — CanonicalDocument and FieldResult.
 
-Every field has:
-  - The actual value (always a safe non-None type)
-  - A confidence score 0.0-1.0
-  - A source tag ("parsed" | "repaired:..." | "default")
+Every field has a value, confidence (0.0–1.0), and source tag.
 """
 from dataclasses import dataclass, field
-from typing import List
+from typing import Any, List
 
-from core.models import Author, Section, Reference, Table, Figure
+from core.models import Document, Author, Section, Reference
 
-
-# ── Per-field confidence wrapper ─────────────────────────────────────────────
 
 @dataclass
 class FieldResult:
-    """Wraps a single extracted field with its confidence and source."""
-    value: object          # The actual value
-    confidence: float      # 0.0 (guessed) -> 1.0 (very certain)
-    source: str            # "parsed" | "repaired:fallback_1" | "default"
+    value: Any = None
+    confidence: float = 0.0
+    source: str = "default"  # "parsed", "repaired:fallback_name", "default"
 
-    def __repr__(self):
-        return (f"FieldResult(conf={self.confidence:.2f}, "
-                f"src={self.source!r}, val={str(self.value)[:60]!r})")
-
-
-# ── Canonical Document ───────────────────────────────────────────────────────
 
 @dataclass
 class CanonicalDocument:
-    """
-    A fully validated, repaired Document ready for rendering.
-    Fields always have safe values.  Check is_renderable() before Jinja2.
-    """
-
-    title:      FieldResult = None
-    authors:    FieldResult = None   # value = List[Author]
-    abstract:   FieldResult = None
-    keywords:   FieldResult = None   # value = List[str]
-    sections:   FieldResult = None   # value = List[Section]
-    references: FieldResult = None   # value = List[Reference]
-
-    # Diagnostics
+    title: FieldResult = field(default_factory=FieldResult)
+    authors: FieldResult = field(default_factory=FieldResult)
+    abstract: FieldResult = field(default_factory=FieldResult)
+    keywords: FieldResult = field(default_factory=FieldResult)
+    sections: FieldResult = field(default_factory=FieldResult)
+    references: FieldResult = field(default_factory=FieldResult)
+    formula_blocks: FieldResult = field(default_factory=FieldResult)
     repair_log: List[str] = field(default_factory=list)
-    warnings:   List[str] = field(default_factory=list)
-
-    @property
-    def overall_confidence(self) -> float:
-        scores = []
-        for attr in ("title", "authors", "abstract", "keywords",
-                      "sections", "references"):
-            fr: FieldResult = getattr(self, attr)
-            if fr is not None:
-                scores.append(fr.confidence)
-        return round(sum(scores) / len(scores), 3) if scores else 0.0
 
     def is_renderable(self) -> bool:
         """
-        Minimum bar for rendering:
-          - title exists (confidence > 0)
-          - at least 1 section with non-empty body
+        Returns True only if:
+        1. title exists (confidence > 0)
+        2. at least 1 section with non-empty body
+        3. no critical field is completely missing
         """
-        if self.title is None or not self.title.value:
+        # Must have a title
+        if not self.title.value or self.title.confidence <= 0:
             return False
-        if self.sections is None or not self.sections.value:
+
+        # Must have at least one section with body text
+        sections = self.sections.value or []
+        if not any(s.body.strip() for s in sections if hasattr(s, "body")):
             return False
-        if not any(s.body.strip() for s in self.sections.value):
-            return False
+
         return True
 
     def summary(self) -> str:
-        """Human-readable summary for logging."""
-        lines = [
-            f"  overall_confidence : {self.overall_confidence}",
-            f"  title              : [{self.title.confidence:.2f}] "
-            f"{str(self.title.value)[:70]!r}",
-            f"  authors            : [{self.authors.confidence:.2f}] "
-            f"{len(self.authors.value)} authors",
-            f"  abstract           : [{self.abstract.confidence:.2f}] "
-            f"{len(self.abstract.value)} chars",
-            f"  keywords           : [{self.keywords.confidence:.2f}] "
-            f"{self.keywords.value}",
-            f"  sections           : [{self.sections.confidence:.2f}] "
-            f"{len(self.sections.value)} sections",
-            f"  references         : [{self.references.confidence:.2f}] "
-            f"{len(self.references.value)} refs",
-            f"  renderable         : {self.is_renderable()}",
+        """One-line summary of the canonical document state."""
+        sections = self.sections.value or []
+        refs = self.references.value or []
+        parts = [
+            f"title={self.title.confidence:.1f}({self.title.source})",
+            f"authors={self.authors.confidence:.1f}({len(self.authors.value or [])})",
+            f"abstract={self.abstract.confidence:.1f}({len(self.abstract.value or '')} chars)",
+            f"sections={self.sections.confidence:.1f}({len(sections)})",
+            f"refs={self.references.confidence:.1f}({len(refs)})",
         ]
         if self.repair_log:
-            lines.append(f"  repairs ({len(self.repair_log)}):")
-            for r in self.repair_log:
-                lines.append(f"    - {r}")
-        if self.warnings:
-            lines.append(f"  warnings ({len(self.warnings)}):")
-            for w in self.warnings:
-                lines.append(f"    ! {w}")
-        return "\n".join(lines)
+            parts.append(f"repairs={len(self.repair_log)}")
+        return " | ".join(parts)
 
-    def to_document(self):
-        """Convert back to core.models.Document for the renderer."""
-        from core.models import Document
+    def to_document(self) -> Document:
+        """Unwrap back to a plain Document for Jinja2 rendering."""
         return Document(
             title=self.title.value or "",
             authors=self.authors.value or [],
@@ -108,4 +69,5 @@ class CanonicalDocument:
             keywords=self.keywords.value or [],
             sections=self.sections.value or [],
             references=self.references.value or [],
+            formula_blocks=(self.formula_blocks.value or []),
         )

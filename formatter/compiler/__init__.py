@@ -1,1 +1,1 @@
-# compiler/ — Stage 5: .tex -> PDF via pdflatex.
+# compiler — pdflatex 2-pass compilation

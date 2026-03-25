@@ -1,80 +1,91 @@
 """
-compiler/latex_compiler.py — Stage 5: .tex -> PDF via pdflatex.
-Runs pdflatex twice (needed for cross-references / table of contents).
+compiler/latex_compiler.py — pdflatex 2-pass compilation.
+
+Flags: -interaction=nonstopmode -halt-on-error
+Outputs: generated_{template}.pdf
 """
 import os
 import shutil
 import subprocess
+import logging
 
-from core.config import PDFLATEX_PASSES, PDFLATEX_FLAGS, CLS_FILES, TEMPLATES_DIR
-from core.logger import get_logger
+from core.config import INTERMEDIATE_DIR
 
-log = get_logger(__name__)
+log = logging.getLogger("paper_formatter")
 
 
-def compile(tex_path: str, output_dir: str, template_name: str) -> str:
+def compile_latex(tex_path: str, output_dir: str, template_name: str) -> str:
     """
-    Compile tex_path to PDF, then copy result to output_dir.
-    Returns path to the final PDF.
+    Compile a .tex file to PDF using pdflatex (2 passes for cross-references).
+    Returns path to the output PDF.
     """
+    # Check pdflatex is available
     if not shutil.which("pdflatex"):
         raise RuntimeError(
-            "pdflatex not found on PATH.\n"
-            "  Windows: https://miktex.org/\n"
-            "  Linux:   sudo apt install texlive-full\n"
-            "  macOS:   https://tug.org/mactex/"
+            "pdflatex not found on PATH. Install TeX Live or MiKTeX.\n"
+            "  Ubuntu/Debian: sudo apt install texlive-latex-extra texlive-fonts-recommended\n"
+            "  macOS: brew install --cask mactex"
         )
 
-    os.makedirs(output_dir, exist_ok=True)
-    work_dir = os.path.dirname(tex_path)
+    tex_dir = os.path.dirname(os.path.abspath(tex_path))
     tex_name = os.path.basename(tex_path)
 
-    # Copy required .cls file into work dir if needed
-    cls = CLS_FILES.get(template_name)
-    if cls:
-        src = os.path.join(TEMPLATES_DIR, template_name, cls)
-        dst = os.path.join(work_dir, cls)
-        if os.path.exists(src) and not os.path.exists(dst):
-            shutil.copy2(src, dst)
-            log.info("Copied %s to work dir", cls)
-
-    cmd = ["pdflatex"] + PDFLATEX_FLAGS + [tex_name]
-
-    for n in range(1, PDFLATEX_PASSES + 1):
-        print(f"         pdflatex pass {n}/{PDFLATEX_PASSES}...")
-        result = subprocess.run(cmd, cwd=work_dir, capture_output=True)
-        stdout_text = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
-        log.debug("pdflatex pass %d stdout (last 1500 chars):\n%s",
-                  n, stdout_text[-1500:])
-        if result.returncode != 0:
-            _log_pdflatex_error(stdout_text)
-            raise RuntimeError(
-                f"pdflatex failed on pass {n} — check logs/pipeline_latest.log\n"
-                f"Also inspect: "
-                f"{os.path.join(work_dir, tex_name.replace('.tex', '.log'))}"
-            )
-
-    # Move final PDF to output_dir
-    pdf_name = tex_name.replace(".tex", ".pdf")
-    src_pdf = os.path.join(work_dir, pdf_name)
-    if not os.path.exists(src_pdf):
-        raise RuntimeError(f"pdflatex finished but PDF not found: {src_pdf}")
-
-    base, ext = os.path.splitext(pdf_name)
-    dest_name = f"{base}_{template_name}{ext}"
-    dest_pdf = os.path.join(output_dir, dest_name)
-    shutil.move(src_pdf, dest_pdf)
-    log.info("PDF written to %s", dest_pdf)
-    return dest_pdf
-
-
-def _log_pdflatex_error(stdout: str):
-    """Extract and log the most useful error lines from pdflatex output."""
-    error_lines = [
-        l for l in (stdout or "").splitlines()
-        if l.startswith("!") or "Error" in l or "error" in l
+    cmd = [
+        "pdflatex",
+        "-interaction=nonstopmode",
+        f"-output-directory={tex_dir}",
+        tex_name,
     ]
-    if error_lines:
-        log.error("pdflatex errors:\n%s", "\n".join(error_lines[:20]))
+
+    # Run 2 passes (second pass resolves cross-references)
+    for pass_num in (1, 2):
+        log.info("  pdflatex pass %d/2...", pass_num)
+        result = subprocess.run(
+            cmd, cwd=tex_dir,
+            capture_output=True, timeout=120,
+        )
+        # Decode stdout/stderr with error handling (pdflatex may emit non-UTF-8)
+        result.stdout = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
+        result.stderr = result.stderr.decode("utf-8", errors="replace") if result.stderr else ""
+
+        # Save log
+        log_path = os.path.join(INTERMEDIATE_DIR, "generated.log")
+        if result.stdout:
+            with open(log_path, "w", encoding="utf-8") as f:
+                f.write(result.stdout)
+
+        if result.returncode != 0:
+            # Extract error from output
+            error_lines = []
+            for line in (result.stdout or "").split("\n"):
+                if line.startswith("!") or "Fatal error" in line:
+                    error_lines.append(line)
+
+            error_msg = "\n".join(error_lines[:5]) if error_lines else ""
+
+            # Check if "no output PDF file produced" (fatal)
+            fatal = "no output PDF file produced" in (result.stdout or "")
+
+            if fatal and pass_num == 1:
+                log.error("  pdflatex fatal failure (pass %d):\n%s", pass_num, error_msg)
+                raise RuntimeError(
+                    f"pdflatex compilation failed:\n{error_msg}\n"
+                    f"See {log_path} for full output."
+                )
+            elif error_lines:
+                log.warning("  pdflatex pass %d had errors (non-fatal):\n%s",
+                            pass_num, error_msg)
+            # Continue — nonstopmode may still produce output despite errors
+
+    # Move PDF to output directory
+    pdf_name = os.path.splitext(tex_name)[0] + ".pdf"
+    src_pdf = os.path.join(tex_dir, pdf_name)
+    dst_pdf = os.path.join(output_dir, f"generated_{template_name}.pdf")
+
+    if os.path.isfile(src_pdf):
+        os.makedirs(output_dir, exist_ok=True)
+        shutil.copy2(src_pdf, dst_pdf)
+        log.info("  Output: %s", dst_pdf)
+        return dst_pdf
     else:
-        log.error("pdflatex failed — no specific error found in stdout")
+        raise RuntimeError(f"PDF not generated. Expected: {src_pdf}")
