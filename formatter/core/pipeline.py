@@ -63,14 +63,20 @@ def run(input_file: str, template: str = "ieee", output_dir: str = None) -> str:
     formula_blocks = raw.get("formula_blocks", [])
     if formula_blocks:
         from core.models import FormulaBlock
-        good_fbs = [
-            FormulaBlock(**fb) if isinstance(fb, dict) else fb
-            for fb in formula_blocks
-            if (fb.get("confidence", 0) if isinstance(fb, dict) else fb.confidence) >= 0.45
-        ]
+        good_fbs = []
+        for fb in formula_blocks:
+            conf = fb.get("confidence", 0) if isinstance(fb, dict) else fb.confidence
+            has_latex = (fb.get("latex", "") if isinstance(fb, dict) else fb.latex)
+            has_img = (fb.get("image_path", "") if isinstance(fb, dict) else fb.image_path)
+            # Accept if: has good OCR (conf >= 0.60), or has image fallback (no latex)
+            if has_latex and conf >= 0.60:
+                good_fbs.append(FormulaBlock(**fb) if isinstance(fb, dict) else fb)
+            elif has_img and not has_latex:
+                # Image-only fallback — keep it (rendered as \includegraphics)
+                good_fbs.append(FormulaBlock(**fb) if isinstance(fb, dict) else fb)
         kept = len(good_fbs)
         total = len(formula_blocks)
-        log.info("  Formula blocks: %d kept / %d total (conf >= 0.45)", kept, total)
+        log.info("  Formula blocks: %d kept / %d total (conf >= 0.60 or image-only)", kept, total)
 
         # Distribute formula blocks into sections by page proximity
         _attach_formulas_to_sections(doc, good_fbs)

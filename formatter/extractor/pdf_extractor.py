@@ -160,16 +160,21 @@ def _extract_with_fitz(path: str) -> dict:
 
         # ── Extract ALL images via get_images() ──────────────────
         # Classifies each as equation or figure, tries OCR, falls back to image
+        # Pass table bboxes so equation images inside tables are skipped
+        # (they're already handled by _render_cell_image in table extraction)
         page_figs, page_eqs = _extract_all_page_images(
-            pdf, page, page_num, fig_dir, total_pages
+            pdf, page, page_num, fig_dir, total_pages,
+            table_bboxes=page_table_bboxes
         )
         all_figures.extend(page_figs)
         all_formulas.extend(page_eqs)
 
         # ── Formula detection on text blocks (math-char analysis) ─
         # This catches formulas rendered as text with Unicode math symbols
+        # Skip blocks that overlap tables (already handled by CELLIMG)
         if len(all_formulas) < MAX_TOTAL:
-            page_fbs = _detect_formula_regions(page, page_num, text_dict)
+            page_fbs = _detect_formula_regions(page, page_num, text_dict,
+                                               table_bboxes=page_table_bboxes)
             for fb in page_fbs[:MAX_PER_PAGE]:
                 if len(all_formulas) >= MAX_TOTAL:
                     break
@@ -178,6 +183,10 @@ def _extract_with_fitz(path: str) -> dict:
     fig_counter = len(all_figures)
 
     pdf.close()
+
+    # ── Batch OCR: run pix2tex once for ALL equation images ──────
+    # This loads the model once instead of per-equation (10x faster)
+    all_formulas = _batch_ocr_equations(all_formulas)
 
     # Tables via pdfplumber
     all_tables = _extract_tables_pdfplumber(path)
@@ -382,6 +391,126 @@ def _classify_image(w: float, h: float, page_num: int, total_pages: int) -> str:
     return "figure"
 
 
+# ── Alpha compositing helper (fixes SMask black backgrounds) ──────
+
+def _composite_on_white(img_bytes: bytes) -> bytes:
+    """
+    Composite an image with alpha/transparency onto a white background.
+    Many PDF equation images use SMask (alpha mask). When extracted raw,
+    transparent areas become black. This composites onto white → clean image.
+    Returns PNG bytes. Falls back to original bytes on error.
+    """
+    try:
+        from PIL import Image
+        import io
+
+        img = Image.open(io.BytesIO(img_bytes))
+
+        # If RGBA or LA or P with transparency → composite on white
+        if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+            if img.mode == "P":
+                img = img.convert("RGBA")
+            elif img.mode == "LA":
+                img = img.convert("RGBA")
+
+            # Create white background
+            white = Image.new("RGBA", img.size, (255, 255, 255, 255))
+            composited = Image.alpha_composite(white, img)
+            result = composited.convert("RGB")
+
+            buf = io.BytesIO()
+            result.save(buf, format="PNG")
+            return buf.getvalue()
+
+        # Already opaque — convert to RGB PNG to normalize format
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
+
+    except Exception as e:
+        log.debug("  Alpha composite failed: %s", e)
+        return img_bytes  # return original on error
+
+
+def _composite_with_smask(pdf, xref: int, smask_xref: int, raw_bytes: bytes) -> bytes:
+    """
+    Composite an image with its separate SMask onto white background.
+
+    PDF images can have a separate SMask (soft mask / alpha channel) stored as
+    a different xref. fitz.extract_image(xref) returns ONLY the RGB data — the
+    alpha mask is in smask_xref. Without compositing, transparent areas = black.
+
+    Uses fitz.Pixmap to reconstruct the full RGBA image, then composites onto white.
+    """
+    try:
+        import fitz
+
+        # Method 1: Use fitz Pixmap reconstruction (most reliable)
+        pix_main = fitz.Pixmap(pdf, xref)
+        pix_mask = fitz.Pixmap(pdf, smask_xref)
+
+        # Ensure mask dimensions match main image
+        if pix_mask.width != pix_main.width or pix_mask.height != pix_main.height:
+            # Resize mask to match (rare but possible)
+            pix_mask = fitz.Pixmap(pix_mask, pix_main.width, pix_main.height, None)
+
+        # Create RGBA pixmap by combining main image + mask as alpha channel
+        pix_rgba = fitz.Pixmap(pix_main)  # copy main
+        if pix_main.alpha == 0:
+            pix_rgba = fitz.Pixmap(pix_main, 1)  # add alpha channel
+
+        # Set alpha from mask
+        pix_rgba.set_alpha(pix_mask.samples)
+
+        # Composite onto white background by creating non-alpha pixmap
+        # fitz.Pixmap(colorspace, src_pixmap) drops alpha compositing on white
+        if pix_rgba.alpha:
+            # Use PIL for reliable compositing (fitz drops alpha = black bg)
+            from PIL import Image
+            import io
+
+            img_data = pix_rgba.tobytes("png")
+            img = Image.open(io.BytesIO(img_data))
+            if img.mode == "RGBA":
+                white = Image.new("RGBA", img.size, (255, 255, 255, 255))
+                composited = Image.alpha_composite(white, img)
+                result = composited.convert("RGB")
+            else:
+                result = img.convert("RGB")
+
+            buf = io.BytesIO()
+            result.save(buf, format="PNG")
+            log.debug("  SMask composite: xref=%d, smask=%d → clean PNG (%dx%d)",
+                      xref, smask_xref, result.width, result.height)
+            return buf.getvalue()
+
+    except Exception as e:
+        log.debug("  SMask composite failed (xref=%d, smask=%d): %s", xref, smask_xref, e)
+
+    # Method 2: Try PIL-based reconstruction from raw bytes
+    try:
+        from PIL import Image
+        import io
+
+        # Raw bytes might still be a valid image format (JPEG, PNG)
+        img = Image.open(io.BytesIO(raw_bytes))
+        if img.mode in ("RGBA", "LA", "PA"):
+            white = Image.new("RGBA", img.size, (255, 255, 255, 255))
+            composited = Image.alpha_composite(white, img.convert("RGBA"))
+            result = composited.convert("RGB")
+            buf = io.BytesIO()
+            result.save(buf, format="PNG")
+            return buf.getvalue()
+    except Exception:
+        pass
+
+    # All methods failed — return original (may have black background)
+    log.warning("  SMask composite completely failed for xref=%d — image may have black bg", xref)
+    return raw_bytes
+
+
 # ── Image-based equation extraction (OCR-or-save) ────────────────
 
 def _process_equation_image(pdf, img_bytes: bytes, ext: str,
@@ -389,47 +518,28 @@ def _process_equation_image(pdf, img_bytes: bytes, ext: str,
                              bbox_y: float = 0.0) -> dict:
     """
     Process a small image as a math equation.
-    Strategy: try OCR (pix2tex → nougat), fall back to saving the image directly.
-    Returns a formula dict with either 'latex' or 'image_path' set.
+    Strategy: composite on white (fix SMask black bg), save, defer OCR to batch.
+    Returns a formula dict with image_path always set; latex filled later by batch OCR.
     """
     if not img_bytes or len(img_bytes) < 100:
         return None
 
-    # Save image to figures dir (needed for both OCR and fallback)
+    # CRITICAL: Composite alpha onto white to fix SMask black backgrounds
+    img_bytes = _composite_on_white(img_bytes)
+
+    # Save image to figures dir
     fname = f"eq_{page_num}_{counter}.png"
     fpath = os.path.join(fig_dir, fname)
-
-    # For OCR, we need a temp file (or we can use the saved file)
     with open(fpath, "wb") as f:
         f.write(img_bytes)
 
-    # Try OCR: pix2tex → nougat
-    latex = _run_ocr_worker("pix2tex", fpath)
-    if not latex:
-        latex = _run_ocr_worker("nougat", fpath)
-
-    if latex:
-        latex = _sanitize_ocr_latex(latex)
-
-    if latex:
-        confidence = _score_ocr_quality(latex)
-        log.debug("  Equation OCR p%d: conf=%.2f latex=%s", page_num, confidence, latex[:60])
-        if confidence >= 0.45:
-            return {
-                "latex": latex,
-                "image_path": fpath,  # keep image as backup
-                "confidence": confidence,
-                "page": page_num,
-                "label": f"eq_{page_num}_{counter}",
-                "bbox_y": bbox_y,
-            }
-
-    # OCR failed or unavailable → save image as-is for \includegraphics fallback
-    log.debug("  Equation image saved (no OCR) p%d: %s", page_num, fname)
+    # Return dict WITHOUT latex — OCR is deferred to batch phase
+    # (see _batch_ocr_equations called after all images are collected)
+    log.debug("  Equation image saved p%d: %s (%.1f KB)", page_num, fname, len(img_bytes)/1024)
     return {
         "latex": "",
         "image_path": fpath,
-        "confidence": 0.5,   # medium confidence — it IS an equation image
+        "confidence": 0.5,   # medium — it IS an equation image, OCR pending
         "page": page_num,
         "label": f"eq_{page_num}_{counter}",
         "bbox_y": bbox_y,
@@ -439,14 +549,18 @@ def _process_equation_image(pdf, img_bytes: bytes, ext: str,
 # ── Primary image extraction via get_images() ────────────────────
 
 def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
-                              total_pages: int) -> tuple:
+                              total_pages: int,
+                              table_bboxes: list = None) -> tuple:
     """
     Extract ALL images from a page.
     Uses get_images(full=True) for image bytes, and text dict blocks for
     rendered dimensions (PDF points) — critical for correct classification.
+    Skips equation images that overlap with table regions (handled by CELLIMG).
     Returns (figures_list, formulas_list).
     """
     import fitz
+    if table_bboxes is None:
+        table_bboxes = []
 
     figures = []
     formulas = []
@@ -481,6 +595,7 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
 
     for img_info in images:
         xref = img_info[0]
+        smask_xref = img_info[1] if len(img_info) > 1 else 0  # SMask xref
         if xref in seen_xrefs:
             continue
         seen_xrefs.add(xref)
@@ -495,6 +610,11 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
 
             if len(img_bytes) < 100:
                 continue
+
+            # If image has SMask, composite the alpha BEFORE classification/saving
+            if smask_xref and smask_xref > 0:
+                img_bytes = _composite_with_smask(pdf, xref, smask_xref, img_bytes)
+                ext = "png"  # composited output is always PNG
 
             # Use RENDERED dimensions (PDF points) for classification, not pixels
             if xref in xref_to_rendered:
@@ -514,42 +634,70 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
                 continue
 
             elif classification == "equation":
-                # Prefer pixmap rendering (avoids black-box from exotic image formats)
-                eq_bytes = img_bytes
-                eq_ext = ext
+                # Skip equations that are inside table regions — they're
+                # already handled by _render_cell_image() as \CELLIMG markers
+                if xref in xref_to_rendered:
+                    _, _, _, eq_bbox = xref_to_rendered[xref]
+                    if _bbox_overlaps_any(eq_bbox, table_bboxes):
+                        log.debug("  Skip table equation p%d xref=%d (inside table)",
+                                  page_num, xref)
+                        continue
+                elif table_bboxes:
+                    # Image has no rendered bbox (embedded as XObject in table).
+                    # If this page HAS tables, skip small equation-sized images —
+                    # they're almost certainly table cell equations handled by CELLIMG.
+                    log.debug("  Skip equation p%d xref=%d (no bbox, page has tables)",
+                              page_num, xref)
+                    continue
+
+                # ALWAYS prefer pixmap rendering of the page region.
+                # This composites SMask/alpha correctly onto white background,
+                # avoiding the "black spots" bug from raw extract_image() bytes.
+                eq_bytes = None
+                eq_ext = "png"
                 if xref in xref_to_rendered:
                     try:
                         mat = fitz.Matrix(200 / 72, 200 / 72)  # 200 DPI
-                        pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(img_bbox))
+                        pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(img_bbox),
+                                              alpha=False)  # white background
                         eq_bytes = pix.tobytes("png")
-                        eq_ext = "png"
                     except Exception as e:
                         log.debug("  Pixmap render failed p%d xref=%d: %s", page_num, xref, e)
+
+                # Fallback: composite raw bytes onto white (handles SMask)
+                if not eq_bytes:
+                    eq_bytes = _composite_on_white(img_bytes)
+                    eq_ext = ext
+
                 fb = _process_equation_image(
                     pdf, eq_bytes, eq_ext, page_num, len(formulas),
                     fig_dir, bbox_y=bbox_y
                 )
                 if fb:
                     formulas.append(fb)
-                    log.debug("  Equation p%d xref=%d (%.0fx%.0f pt) → %s",
-                              page_num, xref, w, h,
-                              "OCR" if fb.get("latex") else "image")
+                    log.debug("  Equation p%d xref=%d (%.0fx%.0f pt)",
+                              page_num, xref, w, h)
 
             elif classification == "figure":
-                # Prefer pixmap rendering for figures too (avoids black boxes
-                # from exotic image formats like JBIG2, SMask, CMYK)
-                fig_bytes = img_bytes
-                fig_ext = ext
+                # ALWAYS prefer pixmap rendering for figures too — avoids
+                # black boxes from SMask, JBIG2, CMYK, exotic formats.
+                fig_bytes = None
+                fig_ext = "png"
                 if xref in xref_to_rendered:
                     try:
                         mat = fitz.Matrix(150 / 72, 150 / 72)  # 150 DPI for figures
-                        pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(img_bbox))
+                        pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(img_bbox),
+                                              alpha=False)  # white background
                         fig_bytes = pix.tobytes("png")
-                        fig_ext = "png"
                     except Exception as e:
                         log.debug("  Figure pixmap render failed p%d xref=%d: %s",
                                   page_num, xref, e)
-                fname = f"fig_{page_num}_{len(figures)}.{fig_ext}"
+
+                # Fallback: composite raw bytes onto white
+                if not fig_bytes:
+                    fig_bytes = _composite_on_white(img_bytes)
+
+                fname = f"fig_{page_num}_{len(figures)}.png"
                 fpath = os.path.join(fig_dir, fname)
                 with open(fpath, "wb") as f:
                     f.write(fig_bytes)
@@ -576,7 +724,7 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
 
         try:
             mat = fitz.Matrix(200 / 72, 200 / 72)  # 200 DPI
-            pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(bbox))
+            pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(bbox), alpha=False)
             img_bytes = pix.tobytes("png")
 
             if classification == "equation":
@@ -660,16 +808,25 @@ def _extract_image_block(pdf, block: dict, fig_dir: str, counter: int, page_num:
 
 # ── Formula region detection ─────────────────────────────────────
 
-def _detect_formula_regions(page, page_num: int, text_dict: dict) -> list:
+def _detect_formula_regions(page, page_num: int, text_dict: dict,
+                            table_bboxes: list = None) -> list:
     """
     Detect formula regions on a page using math-char analysis.
     Renders each candidate as PNG and OCR's with pix2tex.
+    Skips blocks inside table regions (already handled by CELLIMG).
     Returns list of dicts: {latex, confidence, page, label}
     """
+    if table_bboxes is None:
+        table_bboxes = []
     formulas = []
 
     for block in text_dict.get("blocks", []):
         if block.get("type") != 0:
+            continue
+
+        # Skip blocks inside table regions
+        block_bbox = block.get("bbox", [0, 0, 0, 0])
+        if table_bboxes and _bbox_overlaps_any(block_bbox, table_bboxes):
             continue
 
         block_text = ""
@@ -725,6 +882,11 @@ def _detect_formula_regions(page, page_num: int, text_dict: dict) -> list:
         confidence = _score_ocr_quality(latex)
         log.debug("  Formula p%d: conf=%.2f latex=%s", page_num, confidence, latex[:60])
 
+        # Only include if confidence is high enough
+        if confidence < 0.60:
+            log.debug("  Formula REJECTED p%d: conf=%.2f", page_num, confidence)
+            continue
+
         formulas.append({
             "latex": latex,
             "confidence": confidence,
@@ -740,7 +902,7 @@ def _ocr_formula_region(page, bbox) -> str:
     try:
         import fitz
         mat = fitz.Matrix(200 / 72, 200 / 72)
-        pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(bbox))
+        pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(bbox), alpha=False)
 
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             pix.save(f.name)
@@ -763,6 +925,127 @@ def _ocr_formula_region(page, bbox) -> str:
     except Exception as e:
         log.debug("  OCR region failed: %s", e)
         return ""
+
+
+# ── Batch OCR for equation images ─────────────────────────────────
+
+def _batch_ocr_equations(formulas: list) -> list:
+    """
+    Run pix2tex on ALL collected equation images in a single subprocess.
+    Loads the model once → processes all images → returns updated formulas.
+    Falls back to single-image nougat/tesseract workers if batch fails.
+    """
+    # Collect formulas that need OCR (have image_path, no latex yet)
+    need_ocr = [(i, f) for i, f in enumerate(formulas)
+                if f.get("image_path") and not f.get("latex")]
+
+    if not need_ocr:
+        return formulas
+
+    log.info("  Batch OCR: %d equation images to process", len(need_ocr))
+
+    image_paths = [f["image_path"] for _, f in need_ocr]
+
+    # Try batch pix2tex first
+    batch_results = _run_batch_ocr_worker("pix2tex", image_paths)
+
+    if batch_results:
+        # Apply results back to formula dicts
+        for (idx, formula), result in zip(need_ocr, batch_results):
+            latex = result.get("latex", "")
+            if latex:
+                latex = _sanitize_ocr_latex(latex)
+            if latex:
+                confidence = _score_ocr_quality(latex)
+                if confidence >= 0.60:
+                    formulas[idx]["latex"] = latex
+                    formulas[idx]["confidence"] = confidence
+                    log.debug("  Batch OCR p%d: conf=%.2f latex=%s",
+                              formula.get("page", 0), confidence, latex[:60])
+                else:
+                    # Low confidence — keep image_path fallback, don't use OCR
+                    log.debug("  Batch OCR REJECTED p%d: conf=%.2f latex=%s",
+                              formula.get("page", 0), confidence, latex[:40])
+    else:
+        # Batch failed — fall back to single-image workers
+        log.info("  Batch OCR unavailable, falling back to single-image workers")
+        for idx, formula in need_ocr:
+            fpath = formula["image_path"]
+            latex = _run_ocr_worker("pix2tex", fpath)
+            if not latex:
+                latex = _run_ocr_worker("nougat", fpath)
+            if latex:
+                latex = _sanitize_ocr_latex(latex)
+            if latex:
+                confidence = _score_ocr_quality(latex)
+                if confidence >= 0.60:
+                    formulas[idx]["latex"] = latex
+                    formulas[idx]["confidence"] = confidence
+
+    # Log summary
+    ocr_success = sum(1 for f in formulas if f.get("latex"))
+    img_only = sum(1 for f in formulas if f.get("image_path") and not f.get("latex"))
+    log.info("  Batch OCR done: %d with LaTeX, %d image-only fallback", ocr_success, img_only)
+
+    return formulas
+
+
+def _run_batch_ocr_worker(engine: str, image_paths: list) -> list:
+    """
+    Run batch pix2tex worker: loads model once, processes all images.
+    Returns list of {"path": ..., "latex": ...} or None on failure.
+    """
+    if not image_paths:
+        return []
+
+    # Check if pix2tex is available
+    if not _check_ocr_available(engine):
+        return None
+
+    global _PYTHON_EXE
+    if _PYTHON_EXE is None:
+        _PYTHON_EXE = _get_python_exe()
+
+    worker_dir = os.path.dirname(os.path.abspath(__file__))
+    worker = os.path.join(worker_dir, f"{engine}_batch_worker.py")
+
+    if not os.path.isfile(worker):
+        # Fall back to single-image worker
+        log.debug("  Batch worker not found: %s", worker)
+        return None
+
+    try:
+        import json
+        # Timeout scales with number of images:
+        # 60s for model load + 5s per image
+        timeout = 60 + len(image_paths) * 5
+
+        result = subprocess.run(
+            [_PYTHON_EXE, worker] + image_paths,
+            capture_output=True,
+            timeout=timeout,
+        )
+
+        stdout = result.stdout.decode("utf-8", errors="replace").strip()
+        stderr = result.stderr.decode("utf-8", errors="replace").strip()
+
+        if stderr:
+            log.debug("  Batch %s worker stderr: %s", engine, stderr[:300])
+
+        if result.returncode == 0 and stdout:
+            try:
+                results = json.loads(stdout)
+                log.info("  Batch %s: processed %d images", engine, len(results))
+                return results
+            except json.JSONDecodeError as e:
+                log.debug("  Batch %s: invalid JSON output: %s", engine, e)
+
+    except subprocess.TimeoutExpired:
+        log.warning("  Batch %s worker timed out (%d images)", engine, len(image_paths))
+    except Exception as e:
+        log.debug("  Batch %s worker failed: %s", engine, e)
+
+    return None
 
 
 # ── OCR subprocess runner ────────────────────────────────────────
@@ -947,34 +1230,103 @@ def _is_latex_safe(latex: str) -> bool:
 def _score_ocr_quality(latex: str) -> float:
     """
     Heuristic quality score 0.0–1.0.
-    Penalizes prose-as-math (high \\mathrm ratio, tilde-words, \\scriptstyle).
+    Penalizes prose-as-math, garbage OCR, and common pix2tex artifacts.
     Rewards real math structures (\\frac, ^{}, \\int, etc.)
+
+    Score < 0.45 → rejected. Score >= 0.7 → high confidence.
     """
     if not latex:
         return 0.0
 
     score = 0.5
 
-    # Penalize high \mathrm{...} ratio
+    # ── Penalties ──────────────────────────────────────────────
+
+    # Penalize high \mathrm{...} ratio (prose wrapped as fake math)
     mathrm = re.findall(r"\\mathrm\{([^}]*)\}", latex)
     mathrm_chars = sum(len(m) for m in mathrm)
     if mathrm_chars / max(len(latex), 1) > 0.5:
         score -= 0.3
+    elif mathrm_chars / max(len(latex), 1) > 0.3:
+        score -= 0.15
+
     # Penalize tilde-separated words inside \mathrm (pix2tex space encoding)
     for m in mathrm:
         if m.count("~") >= 2:
             score -= 0.2
             break
+
     # Penalize \scriptstyle wrapping large blocks
     if r"\scriptstyle" in latex and len(latex) > 50:
         score -= 0.15
 
-    # Reward real math
+    # Penalize \to / \rightarrow (pix2tex often misreads = as →)
+    arrow_count = latex.count(r"\to") + latex.count(r"\rightarrow")
+    if arrow_count >= 1:
+        score -= 0.15 * arrow_count
+
+    # Penalize long runs of plain letters (not in commands) — sign of prose
+    # Strip LaTeX commands first, then check remaining plain text ratio
+    stripped = re.sub(r"\\[a-zA-Z]+", "", latex)  # remove commands
+    stripped = re.sub(r"[{}\[\]()^_$\\]", "", stripped)  # remove structure
+    plain_letters = re.findall(r"[a-zA-Z]{4,}", stripped)  # runs of 4+ letters
+    if plain_letters:
+        plain_total = sum(len(w) for w in plain_letters)
+        if plain_total / max(len(latex), 1) > 0.4:
+            score -= 0.3  # mostly prose, not math
+        elif plain_total / max(len(latex), 1) > 0.25:
+            score -= 0.15
+
+    # Penalize many isolated single-letter tokens WITHOUT any = sign
+    # (pix2tex garbage like "l^{*} p \eta ..." has no equation structure)
+    # Real equations like "F = G \frac{m_1 m_2}{r^2}" have = signs
+    if "=" not in latex:
+        isolated_singles = re.findall(r"(?<![\\a-zA-Z])[a-zA-Z](?![a-zA-Z{])", stripped)
+        if len(isolated_singles) >= 4:
+            score -= 0.15
+
+    # Penalize very short output (likely garbage)
+    if len(latex) < 5:
+        score -= 0.2
+
+    # Penalize very long output (likely full page OCR noise)
+    if len(latex) > 500:
+        score -= 0.15
+
+    # Penalize excessive \mathcal usage (pix2tex misclassifies normal letters)
+    mathcal_count = latex.count(r"\mathcal")
+    if mathcal_count >= 3:
+        score -= 0.2
+    elif mathcal_count >= 2:
+        score -= 0.1
+
+    # Penalize \Xi, \Theta etc. rare Greek in combination with other weirdness
+    rare_greek = [r"\Xi", r"\Upsilon", r"\Digamma"]
+    for rg in rare_greek:
+        if rg in latex:
+            score -= 0.1
+
+    # Penalize outputs containing "pout", "REFERENCES", common garbage words
+    garbage_words = ["pout", "REFERENCES", "References", "Abstract",
+                     "Keywords", "Introduction", "equation"]
+    for gw in garbage_words:
+        if gw in latex:
+            score -= 0.3
+            break
+
+    # ── Rewards ──────────────────────────────────────────────
+
+    # Reward real math structures
     for pat in [r"\frac", r"\int", r"\sum", r"\prod", r"\lim",
-                "^{", "_{", r"\alpha", r"\beta", r"\partial"]:
+                "^{", "_{", r"\alpha", r"\beta", r"\partial",
+                r"\sqrt", r"\infty", r"\pi", r"\sigma", r"\omega"]:
         if pat in latex:
             score += 0.05
     if re.search(r"[+\-=<>]", latex):
+        score += 0.05
+
+    # Bonus for balanced equations (has = sign with stuff on both sides)
+    if re.search(r".+=.+", stripped):
         score += 0.05
 
     return max(0.0, min(1.0, score))
@@ -985,21 +1337,27 @@ def _score_ocr_quality(latex: str) -> float:
 # ══════════════════════════════════════════════════════════════════
 
 def _extract_with_pdfplumber(path: str) -> dict:
-    """Extract using pdfplumber. No image or formula extraction."""
+    """
+    Extract using pdfplumber — includes image extraction via page.crop().to_image().
+    This path is used when PyMuPDF is not available.
+    """
     import pdfplumber
 
+    fig_dir = _ensure_fig_dir()
     all_text = []
     all_blocks = []
     all_tables = []
+    all_figures = []
+    all_formulas = []
 
     with pdfplumber.open(path) as pdf:
+        total_pages = len(pdf.pages)
+
         for page_num, page in enumerate(pdf.pages):
 
             # Build blocks from character-level y-position clustering
-            # This gives us proper font size AND paragraph boundaries
             page_blocks, page_text = _build_blocks_from_chars(page, page_num)
 
-            # If char-based extraction fails, fall back to extract_text()
             if not page_blocks:
                 fallback_text = page.extract_text() or ""
                 all_text.append(fallback_text)
@@ -1011,6 +1369,79 @@ def _extract_with_pdfplumber(path: str) -> dict:
             else:
                 all_text.append(page_text)
                 all_blocks.extend(page_blocks)
+
+            # ── Extract images via pdfplumber ────────────────────────
+            # Uses page.crop(bbox).to_image() which renders the region
+            # correctly with white background (no SMask/alpha issues)
+            try:
+                page_images = page.images or []
+                eq_counter = 0
+                fig_counter = 0
+                for img_meta in page_images:
+                    x0 = img_meta.get("x0", 0)
+                    y0 = img_meta.get("top", 0)
+                    x1 = img_meta.get("x1", 0)
+                    y1 = img_meta.get("bottom", 0)
+                    w = x1 - x0
+                    h = y1 - y0
+
+                    classification = _classify_image(w, h, page_num, total_pages)
+                    if classification == "skip":
+                        continue
+
+                    # Render the image region from the page (clean white background)
+                    try:
+                        # Small padding around the crop
+                        pad = 2
+                        crop_box = (
+                            max(0, x0 - pad),
+                            max(0, y0 - pad),
+                            min(page.width or 612, x1 + pad),
+                            min(page.height or 792, y1 + pad),
+                        )
+                        cropped = page.crop(crop_box)
+                        pil_img = cropped.to_image(resolution=200)
+
+                        # Save as PNG
+                        import io
+                        buf = io.BytesIO()
+                        pil_img.save(buf, format="PNG")
+                        img_bytes = buf.getvalue()
+
+                        if classification == "equation":
+                            fname = f"eq_{page_num}_{eq_counter}.png"
+                            fpath = os.path.join(fig_dir, fname)
+                            with open(fpath, "wb") as f:
+                                f.write(img_bytes)
+                            all_formulas.append({
+                                "latex": "",
+                                "image_path": fpath,
+                                "confidence": 0.5,
+                                "page": page_num,
+                                "label": f"eq_{page_num}_{eq_counter}",
+                                "bbox_y": y0,
+                            })
+                            eq_counter += 1
+                            log.debug("  pdfplumber equation p%d: %s (%.0fx%.0f)",
+                                      page_num, fname, w, h)
+
+                        elif classification == "figure":
+                            fname = f"fig_{page_num}_{fig_counter}.png"
+                            fpath = os.path.join(fig_dir, fname)
+                            with open(fpath, "wb") as f:
+                                f.write(img_bytes)
+                            all_figures.append({
+                                "image_path": fpath,
+                                "caption": "",
+                                "label": f"fig_{page_num}_{fig_counter}",
+                            })
+                            fig_counter += 1
+
+                    except Exception as e:
+                        log.debug("  pdfplumber image render failed p%d: %s", page_num, e)
+
+            except Exception as e:
+                log.debug("  pdfplumber image extraction error p%d: %s", page_num, e)
 
             # Tables
             try:
@@ -1025,16 +1456,20 @@ def _extract_with_pdfplumber(path: str) -> dict:
             except Exception as e:
                 log.debug("  pdfplumber table error p%d: %s", page_num, e)
 
+    # ── Batch OCR on all collected equation images ────────────────
+    all_formulas = _batch_ocr_equations(all_formulas)
+
     full_text = "\n\n".join(all_text)
-    log.info("  Extracted %d chars, %d blocks, %d tables (pdfplumber)",
-             len(full_text), len(all_blocks), len(all_tables))
+    log.info("  Extracted %d chars, %d blocks, %d tables, %d figures, %d formulas (pdfplumber)",
+             len(full_text), len(all_blocks), len(all_tables),
+             len(all_figures), len(all_formulas))
 
     return {
         "text": full_text,
         "blocks": all_blocks,
         "tables": all_tables,
-        "figures": [],
-        "formula_blocks": [],
+        "figures": all_figures,
+        "formula_blocks": all_formulas,
     }
 
 
@@ -1191,25 +1626,173 @@ def _recover_spaces_from_chars(page) -> str:
 # ── Table extraction via pdfplumber (called from fitz path) ──────
 
 def _extract_tables_pdfplumber(path: str) -> list:
-    """Extract tables using pdfplumber. Returns list of dicts."""
+    """
+    Extract tables using pdfplumber, with image-cell detection.
+
+    Some table cells contain equation images instead of text. pdfplumber's
+    extract_tables() returns empty strings for these cells. This function:
+    1. Extracts tables normally
+    2. Uses find_tables() to get cell-level bounding boxes
+    3. For empty cells that overlap with page images, renders the cell
+       region as a PNG and stores the image path in the cell text
+    """
     if not _HAS_PDFPLUMBER:
         return []
+
+    fig_dir = _ensure_fig_dir()
     tables = []
+
     try:
         import pdfplumber
+        import io
+
         with pdfplumber.open(path) as pdf:
             for page_num, page in enumerate(pdf.pages):
                 try:
-                    for td in (page.extract_tables() or []):
-                        if td and len(td) >= 2:
-                            tables.append({
-                                "headers": [str(c) if c else "" for c in td[0]],
-                                "rows":    [[str(c) if c else "" for c in row] for row in td[1:]],
-                                "caption": "",
-                                "label":   f"tab_{page_num}_{len(tables)+1}",
-                            })
+                    found_tables = page.find_tables() or []
+                    page_images = page.images or []
+
+                    for table_idx, table in enumerate(found_tables):
+                        td = table.extract()
+                        if not td or len(td) < 2:
+                            continue
+
+                        # Get cell bboxes from the table object
+                        cells = table.cells  # list of (x0, top, x1, bottom) tuples
+
+                        # Build a grid of cell bboxes matching the row/col structure
+                        num_rows = len(td)
+                        num_cols = max(len(row) for row in td) if td else 0
+
+                        # Organize cells into a row×col grid by sorting
+                        # cells are sorted top-to-bottom, left-to-right
+                        cell_bboxes = _build_cell_bbox_grid(cells, num_rows, num_cols)
+
+                        # Process each cell: fill empty cells with equation images
+                        processed_rows = []
+                        for row_idx, row in enumerate(td):
+                            processed_row = []
+                            for col_idx, cell_text in enumerate(row):
+                                cell_str = str(cell_text) if cell_text else ""
+
+                                # If cell is empty or very short, check for overlapping images
+                                if len(cell_str.strip()) <= 2 and cell_bboxes:
+                                    bbox = cell_bboxes.get((row_idx, col_idx))
+                                    if bbox:
+                                        img_path = _render_cell_image(
+                                            page, bbox, page_images,
+                                            page_num, table_idx, row_idx, col_idx,
+                                            fig_dir
+                                        )
+                                        if img_path:
+                                            # Store as special marker for renderer
+                                            cell_str = f"\\CELLIMG{{{img_path}}}"
+                                            log.debug("  Table cell image p%d t%d r%d c%d: %s",
+                                                      page_num, table_idx, row_idx, col_idx,
+                                                      os.path.basename(img_path))
+
+                                processed_row.append(cell_str)
+                            processed_rows.append(processed_row)
+
+                        tables.append({
+                            "headers": processed_rows[0],
+                            "rows": processed_rows[1:],
+                            "caption": "",
+                            "label": f"tab_{page_num}_{len(tables)+1}",
+                        })
+
                 except Exception as e:
                     log.debug("  pdfplumber table error p%d: %s", page_num, e)
     except Exception as e:
         log.warning("  pdfplumber failed: %s", e)
+
     return tables
+
+
+def _build_cell_bbox_grid(cells: list, num_rows: int, num_cols: int) -> dict:
+    """
+    Build a (row, col) → bbox mapping from pdfplumber's flat cell list.
+    Cells from find_tables() are (x0, top, x1, bottom) sorted top→bottom, left→right.
+    """
+    if not cells:
+        return {}
+
+    # Get unique y-positions (rows) and x-positions (cols)
+    y_vals = sorted(set(round(c[1], 1) for c in cells))
+    x_vals = sorted(set(round(c[0], 1) for c in cells))
+
+    grid = {}
+    for cell_bbox in cells:
+        x0, top, x1, bottom = cell_bbox
+        # Find row index: closest y_val
+        row = min(range(len(y_vals)), key=lambda i: abs(y_vals[i] - round(top, 1)))
+        # Find col index: closest x_val
+        col = min(range(len(x_vals)), key=lambda i: abs(x_vals[i] - round(x0, 1)))
+        grid[(row, col)] = (x0, top, x1, bottom)
+
+    return grid
+
+
+def _render_cell_image(page, cell_bbox, page_images, page_num, table_idx,
+                       row_idx, col_idx, fig_dir) -> str:
+    """
+    Check if a table cell bbox overlaps with any page image.
+    If so, render the cell region as PNG and return the path.
+    Returns '' if no image overlaps.
+    """
+    cx0, ctop, cx1, cbottom = cell_bbox
+    cell_area = max((cx1 - cx0) * (cbottom - ctop), 1)
+
+    # Check if any page image overlaps with this cell
+    has_image = False
+    for img in page_images:
+        ix0 = img.get("x0", 0)
+        iy0 = img.get("top", 0)
+        ix1 = img.get("x1", 0)
+        iy1 = img.get("bottom", 0)
+
+        # Compute intersection
+        ox0 = max(cx0, ix0)
+        oy0 = max(ctop, iy0)
+        ox1 = min(cx1, ix1)
+        oy1 = min(cbottom, iy1)
+
+        if ox0 < ox1 and oy0 < oy1:
+            overlap_area = (ox1 - ox0) * (oy1 - oy0)
+            img_area = max((ix1 - ix0) * (iy1 - iy0), 1)
+            # Image must significantly overlap with cell (≥30% of image area)
+            if overlap_area / img_area >= 0.3:
+                has_image = True
+                break
+
+    if not has_image:
+        return ""
+
+    # Render the cell region as PNG
+    # INSET the crop by 2pt to exclude table border/grid lines
+    try:
+        import io
+        inset = 2  # inset to exclude table borders
+        crop_box = (
+            min(cx0 + inset, cx1),
+            min(ctop + inset, cbottom),
+            max(cx1 - inset, cx0),
+            max(cbottom - inset, ctop),
+        )
+        cropped = page.crop(crop_box)
+        pil_img = cropped.to_image(resolution=200)
+
+        fname = f"tcell_{page_num}_{table_idx}_{row_idx}_{col_idx}.png"
+        fpath = os.path.join(fig_dir, fname)
+
+        buf = io.BytesIO()
+        pil_img.save(buf, format="PNG")
+        with open(fpath, "wb") as f:
+            f.write(buf.getvalue())
+
+        return fpath
+
+    except Exception as e:
+        log.debug("  Cell image render failed p%d t%d r%d c%d: %s",
+                  page_num, table_idx, row_idx, col_idx, e)
+        return ""

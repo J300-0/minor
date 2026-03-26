@@ -1418,3 +1418,879 @@ title=0.3(parsed:weak) | authors=0.0(0) | abstract=0.0(0 chars) | sections=0.0(0
 17:37:19 [INFO   ] paper_formatter:   pdflatex pass 1/2...
 17:37:21 [INFO   ] paper_formatter:   pdflatex pass 2/2...
 17:37:22 [INFO   ] paper_formatter:   Output: C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+07:38:03 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+07:38:04 [INFO   ] paper_formatter:   Opening PDF: formulas.pdf
+07:38:04 [DEBUG  ] paper_formatter:   Figure p0 xref=91 (753x286 pt): fig_0_0.png
+07:38:04 [INFO   ] paper_formatter:   OCR engine 'pix2tex' is available
+07:38:46 [DEBUG  ] paper_formatter:   pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip inst
+07:38:56 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check timed out
+07:38:56 [DEBUG  ] paper_formatter:   Equation image saved (no OCR) p0: eq_0_0.png
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 71,187,507,252
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,259,164,272
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 219,286,222,298
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 256,259,509,272
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,313,89,325
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 199,333,201,345
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 268,313,509,325
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,347,505,373
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 214,371,216,383
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 281,361,511,373
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,390,82,403
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 237,401,239,413
+07:38:56 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 284,390,508,403
+07:39:02 [DEBUG  ] paper_formatter:   pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip inst
+07:39:02 [DEBUG  ] paper_formatter:   Equation image saved (no OCR) p1: eq_1_0.png
+07:39:09 [DEBUG  ] paper_formatter:   pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip inst
+07:39:09 [DEBUG  ] paper_formatter:   Equation image saved (no OCR) p1: eq_1_1.png
+07:39:16 [DEBUG  ] paper_formatter:   pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip inst
+07:39:16 [DEBUG  ] paper_formatter:   Equation image saved (no OCR) p1: eq_1_2.png
+07:39:23 [DEBUG  ] paper_formatter:   pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip inst
+07:39:23 [DEBUG  ] paper_formatter:   Equation image saved (no OCR) p1: eq_1_3.png
+07:39:23 [DEBUG  ] paper_formatter:   Figure p2 xref=18 (505x357 pt): fig_2_0.jpeg
+07:39:38 [DEBUG  ] paper_formatter:   Equation OCR p2: conf=0.70 latex=a_{i i}>\Longleftrightarrow_{k=1}^{i}\sum_{l=k+1}^{n}\;a_{k 
+07:39:52 [DEBUG  ] paper_formatter:   Equation OCR p3: conf=0.60 latex=a_{\sigma(i)\pi(i)}+a_{\sigma(j)\pi(k)}\le a_{\sigma(i)\pi(j
+07:40:08 [DEBUG  ] paper_formatter:   Equation OCR p3: conf=0.60 latex=A\quad\mathop{\textrm{a}}\quad\left(\begin{array}{cc}{{A_{11
+07:40:21 [DEBUG  ] paper_formatter:   Equation OCR p3: conf=0.65 latex={\frac{t_{p}+t_{q}}{3}}=\lambda(A)
+07:40:21 [DEBUG  ] paper_formatter:   Figure p3 xref=26 (184x101 pt): fig_3_0.jpeg
+07:40:35 [DEBUG  ] paper_formatter:   Equation OCR p4: conf=0.55 latex=\{\bigotimes\}_{i\in\lbrack\operatorname{ptal}}
+07:40:36 [INFO   ] paper_formatter:   Extracted 11750 chars, 56 blocks, 1 tables, 3 figures, 10 formulas (fitz)
+07:40:36 [INFO   ] paper_formatter: Stage 2/6: Parse
+07:40:36 [INFO   ] paper_formatter:   Using font-aware parsing (56 blocks)
+07:40:36 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=0 chars, 10 sections, 6 references
+07:40:36 [INFO   ] paper_formatter:   Formula blocks: 10 kept / 10 total (conf >= 0.45)
+07:40:36 [INFO   ] paper_formatter:   Figures: 3 extracted
+07:40:36 [INFO   ] paper_formatter: Stage 3/6: Canon
+07:40:36 [DEBUG  ] paper_formatter:   Canon: authors: none found
+07:40:36 [DEBUG  ] paper_formatter:   Canon: abstract: repaired from first body paragraph
+07:40:36 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.3(619 chars) | sections=0.8(10) | refs=0.8(6) | repairs=2
+07:40:36 [INFO   ] paper_formatter: Stage 4/6: Normalize
+07:40:36 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+07:40:36 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+07:40:36 [INFO   ] paper_formatter:   Generated: C:\Users\janme\Desktop\minor\formatter\intermediate\generated.tex
+07:40:36 [INFO   ] paper_formatter: Stage 6/6: Compile
+07:40:36 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+07:40:40 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+07:40:41 [INFO   ] paper_formatter:   Output: C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+07:42:39 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+07:42:39 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+07:42:39 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+07:42:39 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_0.png (72x28)
+07:42:39 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_1.png (30x21)
+07:42:39 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_0.png (115x23)
+07:42:39 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_1.png (74x16)
+07:42:39 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_2.png (85x19)
+07:42:39 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_3.png (150x21)
+07:42:40 [DEBUG  ] paper_formatter:   pdfplumber equation p2: eq_2_0.png (120x42)
+07:42:40 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_0.png (224x33)
+07:42:40 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_1.png (234x46)
+07:42:40 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_2.png (92x37)
+07:42:40 [DEBUG  ] paper_formatter:   pdfplumber equation p4: eq_4_0.png (83x26)
+07:42:40 [INFO   ] paper_formatter:   Batch OCR: 11 equation images to process
+07:42:40 [DEBUG  ] paper_formatter:   OCR worker will use venv Python: /sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe
+07:42:40 [INFO   ] paper_formatter:   OCR engine 'pix2tex' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:42:40 [INFO   ] paper_formatter:   Batch OCR unavailable, falling back to single-image workers
+07:42:40 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:42:40 [INFO   ] paper_formatter:   Batch OCR done: 0 with LaTeX, 11 image-only fallback
+07:42:40 [INFO   ] paper_formatter:   Extracted 12162 chars, 63 blocks, 1 tables, 2 figures, 11 formulas (pdfplumber)
+07:42:40 [INFO   ] paper_formatter: Stage 2/6: Parse
+07:42:40 [INFO   ] paper_formatter:   Using font-aware parsing (63 blocks)
+07:42:40 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=621 chars, 12 sections, 3 references
+07:42:40 [INFO   ] paper_formatter:   Formula blocks: 11 kept / 11 total (conf >= 0.45)
+07:42:40 [INFO   ] paper_formatter:   Figures: 2 extracted
+07:42:40 [INFO   ] paper_formatter: Stage 3/6: Canon
+07:42:40 [DEBUG  ] paper_formatter:   Canon: authors: none found
+07:42:40 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.9(621 chars) | sections=0.8(12) | refs=0.8(3) | repairs=1
+07:42:40 [INFO   ] paper_formatter: Stage 4/6: Normalize
+07:42:40 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+07:42:40 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+07:42:40 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+07:42:40 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+07:42:41 [INFO   ] paper_formatter: Stage 6/6: Compile
+07:42:41 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+07:42:47 [WARNING] paper_formatter:   pdflatex pass 1 had errors (non-fatal):
+! LaTeX Error: Unicode character − (U+2212)
+! LaTeX Error: Unicode character ⊕ (U+2295)
+! LaTeX Error: Unicode character ⊗ (U+2297)
+! LaTeX Error: Unicode character ⊗ (U+2297)
+! LaTeX Error: Unicode character ⊕ (U+2295)
+07:42:47 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+07:42:53 [WARNING] paper_formatter:   pdflatex pass 2 had errors (non-fatal):
+! LaTeX Error: Unicode character − (U+2212)
+! LaTeX Error: Unicode character ⊕ (U+2295)
+! LaTeX Error: Unicode character ⊗ (U+2297)
+! LaTeX Error: Unicode character ⊗ (U+2297)
+! LaTeX Error: Unicode character ⊕ (U+2295)
+07:42:53 [INFO   ] paper_formatter:   Output: /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+07:42:53 [INFO   ] paper_formatter: Done in 14.7s → /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+07:44:22 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+07:44:22 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+07:44:22 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+07:44:23 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_0.png (72x28)
+07:44:23 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_1.png (30x21)
+07:44:23 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_0.png (115x23)
+07:44:23 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_1.png (74x16)
+07:44:23 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_2.png (85x19)
+07:44:23 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_3.png (150x21)
+07:44:23 [DEBUG  ] paper_formatter:   pdfplumber equation p2: eq_2_0.png (120x42)
+07:44:23 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_0.png (224x33)
+07:44:23 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_1.png (234x46)
+07:44:24 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_2.png (92x37)
+07:44:24 [DEBUG  ] paper_formatter:   pdfplumber equation p4: eq_4_0.png (83x26)
+07:44:24 [INFO   ] paper_formatter:   Batch OCR: 11 equation images to process
+07:44:24 [DEBUG  ] paper_formatter:   OCR worker will use venv Python: /sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe
+07:44:24 [INFO   ] paper_formatter:   OCR engine 'pix2tex' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:44:24 [INFO   ] paper_formatter:   Batch OCR unavailable, falling back to single-image workers
+07:44:24 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:44:24 [INFO   ] paper_formatter:   Batch OCR done: 0 with LaTeX, 11 image-only fallback
+07:44:24 [INFO   ] paper_formatter:   Extracted 12162 chars, 63 blocks, 1 tables, 2 figures, 11 formulas (pdfplumber)
+07:44:24 [INFO   ] paper_formatter: Stage 2/6: Parse
+07:44:24 [INFO   ] paper_formatter:   Using font-aware parsing (63 blocks)
+07:44:24 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=621 chars, 12 sections, 3 references
+07:44:24 [INFO   ] paper_formatter:   Formula blocks: 11 kept / 11 total (conf >= 0.45)
+07:44:24 [INFO   ] paper_formatter:   Figures: 2 extracted
+07:44:24 [INFO   ] paper_formatter: Stage 3/6: Canon
+07:44:24 [DEBUG  ] paper_formatter:   Canon: authors: none found
+07:44:24 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.9(621 chars) | sections=0.8(12) | refs=0.8(3) | repairs=1
+07:44:24 [INFO   ] paper_formatter: Stage 4/6: Normalize
+07:44:24 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+07:44:24 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+07:44:25 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+07:44:25 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+07:44:25 [INFO   ] paper_formatter: Stage 6/6: Compile
+07:44:25 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+07:44:31 [WARNING] paper_formatter:   pdflatex pass 1 had errors (non-fatal):
+! Missing $ inserted.
+! Missing $ inserted.
+! Missing $ inserted.
+! Missing $ inserted.
+! Missing $ inserted.
+07:44:31 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+07:44:38 [WARNING] paper_formatter:   pdflatex pass 2 had errors (non-fatal):
+! Missing $ inserted.
+! Missing $ inserted.
+! Missing $ inserted.
+! Missing $ inserted.
+! Missing $ inserted.
+07:44:38 [INFO   ] paper_formatter:   Output: /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+07:44:38 [INFO   ] paper_formatter: Done in 15.8s → /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+07:45:17 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+07:45:18 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+07:45:18 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+07:45:18 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_0.png (72x28)
+07:45:18 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_1.png (30x21)
+07:45:18 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_0.png (115x23)
+07:45:18 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_1.png (74x16)
+07:45:18 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_2.png (85x19)
+07:45:18 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_3.png (150x21)
+07:45:19 [DEBUG  ] paper_formatter:   pdfplumber equation p2: eq_2_0.png (120x42)
+07:45:19 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_0.png (224x33)
+07:45:19 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_1.png (234x46)
+07:45:19 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_2.png (92x37)
+07:45:19 [DEBUG  ] paper_formatter:   pdfplumber equation p4: eq_4_0.png (83x26)
+07:45:19 [INFO   ] paper_formatter:   Batch OCR: 11 equation images to process
+07:45:19 [DEBUG  ] paper_formatter:   OCR worker will use venv Python: /sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe
+07:45:20 [INFO   ] paper_formatter:   OCR engine 'pix2tex' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:45:20 [INFO   ] paper_formatter:   Batch OCR unavailable, falling back to single-image workers
+07:45:20 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:45:20 [INFO   ] paper_formatter:   Batch OCR done: 0 with LaTeX, 11 image-only fallback
+07:45:20 [INFO   ] paper_formatter:   Extracted 12162 chars, 63 blocks, 1 tables, 2 figures, 11 formulas (pdfplumber)
+07:45:20 [INFO   ] paper_formatter: Stage 2/6: Parse
+07:45:20 [INFO   ] paper_formatter:   Using font-aware parsing (63 blocks)
+07:45:20 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=621 chars, 12 sections, 3 references
+07:45:20 [INFO   ] paper_formatter:   Formula blocks: 11 kept / 11 total (conf >= 0.45)
+07:45:20 [INFO   ] paper_formatter:   Figures: 2 extracted
+07:45:20 [INFO   ] paper_formatter: Stage 3/6: Canon
+07:45:20 [DEBUG  ] paper_formatter:   Canon: authors: none found
+07:45:20 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.9(621 chars) | sections=0.8(12) | refs=0.8(3) | repairs=1
+07:45:20 [INFO   ] paper_formatter: Stage 4/6: Normalize
+07:45:20 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+07:45:20 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+07:45:20 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+07:45:20 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+07:45:20 [INFO   ] paper_formatter: Stage 6/6: Compile
+07:45:20 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+07:45:27 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+07:45:34 [INFO   ] paper_formatter:   Output: /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+07:45:34 [INFO   ] paper_formatter: Done in 16.8s → /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+07:47:51 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+07:47:51 [INFO   ] paper_formatter:   Opening PDF: formulas.pdf
+07:47:51 [DEBUG  ] paper_formatter:   Figure p0 xref=91 (753x286 pt): fig_0_0.png
+07:47:51 [DEBUG  ] paper_formatter:   Equation image saved p0: eq_0_0.png (0.1 KB)
+07:47:51 [DEBUG  ] paper_formatter:   Equation p0 xref=93 (60x43 pt)
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 71,187,507,252
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,259,164,272
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 219,286,222,298
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 256,259,509,272
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,313,89,325
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 199,333,201,345
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 268,313,509,325
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,347,505,373
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 214,371,216,383
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 281,361,511,373
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,390,82,403
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 237,401,239,413
+07:47:51 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 284,390,508,403
+07:47:51 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_0.png (0.1 KB)
+07:47:51 [DEBUG  ] paper_formatter:   Equation p1 xref=4 (170x34 pt)
+07:47:51 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_1.png (0.1 KB)
+07:47:51 [DEBUG  ] paper_formatter:   Equation p1 xref=6 (104x23 pt)
+07:47:51 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_2.png (0.2 KB)
+07:47:51 [DEBUG  ] paper_formatter:   Equation p1 xref=8 (170x38 pt)
+07:47:51 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_3.png (0.2 KB)
+07:47:51 [DEBUG  ] paper_formatter:   Equation p1 xref=10 (238x28 pt)
+07:47:51 [DEBUG  ] paper_formatter:   Figure p2 xref=18 (505x357 pt): fig_2_0.png
+07:47:51 [DEBUG  ] paper_formatter:   Equation image saved p2: eq_2_0.png (11.8 KB)
+07:47:51 [DEBUG  ] paper_formatter:   Equation p2 xref=19 (115x41 pt)
+07:47:51 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_0.png (15.5 KB)
+07:47:51 [DEBUG  ] paper_formatter:   Equation p3 xref=23 (216x32 pt)
+07:47:51 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_1.png (19.9 KB)
+07:47:51 [DEBUG  ] paper_formatter:   Equation p3 xref=24 (225x44 pt)
+07:47:51 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_2.png (8.0 KB)
+07:47:51 [DEBUG  ] paper_formatter:   Equation p3 xref=25 (89x36 pt)
+07:47:51 [DEBUG  ] paper_formatter:   Figure p3 xref=26 (184x101 pt): fig_3_0.png
+07:47:51 [DEBUG  ] paper_formatter:   Equation image saved p4: eq_4_0.png (10.7 KB)
+07:47:51 [DEBUG  ] paper_formatter:   Equation p4 xref=33 (193x68 pt)
+07:47:51 [INFO   ] paper_formatter:   Batch OCR: 10 equation images to process
+07:47:51 [INFO   ] paper_formatter:   OCR engine 'pix2tex' is available
+07:48:08 [DEBUG  ] paper_formatter:   Batch pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTA
+07:48:08 [INFO   ] paper_formatter:   Batch pix2tex: processed 10 images
+07:48:08 [DEBUG  ] paper_formatter:   Batch OCR p2: conf=0.70 latex=a_{i i}>\Longleftrightarrow_{k=1}^{i}\sum_{l=k+1}^{n}\;a_{k 
+07:48:08 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.60 latex=a_{\sigma(i)\pi(i)}+a_{\sigma(j)\pi(k)}\le a_{\sigma(i)\pi(j
+07:48:08 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.60 latex=A\quad\mathop{\textrm{a}}\quad\left(\begin{array}{cc}{{A_{11
+07:48:08 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.65 latex={\frac{t_{p}+t_{q}}{3}}=\lambda(A)
+07:48:08 [DEBUG  ] paper_formatter:   Batch OCR p4: conf=0.55 latex=\{\bigotimes\}_{i\in\lbrack\operatorname{ptal}]}
+07:48:08 [INFO   ] paper_formatter:   Batch OCR done: 5 with LaTeX, 5 image-only fallback
+07:48:10 [INFO   ] paper_formatter:   Extracted 11750 chars, 56 blocks, 1 tables, 3 figures, 10 formulas (fitz)
+07:48:10 [INFO   ] paper_formatter: Stage 2/6: Parse
+07:48:10 [INFO   ] paper_formatter:   Using font-aware parsing (56 blocks)
+07:48:10 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=0 chars, 10 sections, 6 references
+07:48:10 [INFO   ] paper_formatter:   Formula blocks: 10 kept / 10 total (conf >= 0.45)
+07:48:10 [INFO   ] paper_formatter:   Figures: 3 extracted
+07:48:10 [INFO   ] paper_formatter: Stage 3/6: Canon
+07:48:10 [DEBUG  ] paper_formatter:   Canon: authors: none found
+07:48:10 [DEBUG  ] paper_formatter:   Canon: abstract: repaired from first body paragraph
+07:48:10 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.3(619 chars) | sections=0.8(10) | refs=0.8(6) | repairs=2
+07:48:10 [INFO   ] paper_formatter: Stage 4/6: Normalize
+07:48:10 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+07:48:10 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+07:48:10 [INFO   ] paper_formatter:   Generated: C:\Users\janme\Desktop\minor\formatter\intermediate\generated.tex
+07:48:10 [INFO   ] paper_formatter: Stage 6/6: Compile
+07:48:10 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+07:48:10 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+07:48:11 [INFO   ] paper_formatter:   Output: C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+07:54:33 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+07:54:33 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+07:54:33 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+07:54:33 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_0.png (72x28)
+07:54:33 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_1.png (30x21)
+07:54:34 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_0.png (115x23)
+07:54:34 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_1.png (74x16)
+07:54:34 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_2.png (85x19)
+07:54:34 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_3.png (150x21)
+07:54:34 [DEBUG  ] paper_formatter:   pdfplumber equation p2: eq_2_0.png (120x42)
+07:54:34 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_0.png (224x33)
+07:54:34 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_1.png (234x46)
+07:54:35 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_2.png (92x37)
+07:54:35 [DEBUG  ] paper_formatter:   pdfplumber equation p4: eq_4_0.png (83x26)
+07:54:35 [INFO   ] paper_formatter:   Batch OCR: 11 equation images to process
+07:54:35 [DEBUG  ] paper_formatter:   OCR worker will use venv Python: /sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe
+07:54:35 [INFO   ] paper_formatter:   OCR engine 'pix2tex' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:54:35 [INFO   ] paper_formatter:   Batch OCR unavailable, falling back to single-image workers
+07:54:35 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:54:35 [INFO   ] paper_formatter:   Batch OCR done: 0 with LaTeX, 11 image-only fallback
+07:54:35 [INFO   ] paper_formatter:   Extracted 12162 chars, 63 blocks, 1 tables, 2 figures, 11 formulas (pdfplumber)
+07:54:35 [INFO   ] paper_formatter: Stage 2/6: Parse
+07:54:35 [INFO   ] paper_formatter:   Using font-aware parsing (63 blocks)
+07:54:35 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=621 chars, 12 sections, 3 references
+07:54:35 [INFO   ] paper_formatter:   Formula blocks: 11 kept / 11 total (conf >= 0.45)
+07:54:35 [INFO   ] paper_formatter:   Figures: 2 extracted
+07:54:35 [INFO   ] paper_formatter: Stage 3/6: Canon
+07:54:35 [DEBUG  ] paper_formatter:   Canon: authors: none found
+07:54:35 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.9(621 chars) | sections=0.8(12) | refs=0.8(3) | repairs=1
+07:54:35 [INFO   ] paper_formatter: Stage 4/6: Normalize
+07:54:35 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+07:54:35 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+07:54:35 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+07:54:35 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+07:54:35 [INFO   ] paper_formatter: Stage 6/6: Compile
+07:54:35 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+07:54:44 [ERROR  ] paper_formatter:   pdflatex fatal failure (pass 1):
+! Text line contains an invalid character.
+! Text line contains an invalid character.
+! Text line contains an invalid character.
+! Text line contains an invalid character.
+! Text line contains an invalid character.
+07:55:54 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+07:55:54 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+07:55:54 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+07:55:54 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_0.png (72x28)
+07:55:54 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_1.png (30x21)
+07:55:54 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_0.png (115x23)
+07:55:54 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_1.png (74x16)
+07:55:54 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_2.png (85x19)
+07:55:55 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_3.png (150x21)
+07:55:55 [DEBUG  ] paper_formatter:   pdfplumber equation p2: eq_2_0.png (120x42)
+07:55:55 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_0.png (224x33)
+07:55:55 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_1.png (234x46)
+07:55:55 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_2.png (92x37)
+07:55:56 [DEBUG  ] paper_formatter:   pdfplumber equation p4: eq_4_0.png (83x26)
+07:55:56 [INFO   ] paper_formatter:   Batch OCR: 11 equation images to process
+07:55:56 [DEBUG  ] paper_formatter:   OCR worker will use venv Python: /sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe
+07:55:56 [INFO   ] paper_formatter:   OCR engine 'pix2tex' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:55:56 [INFO   ] paper_formatter:   Batch OCR unavailable, falling back to single-image workers
+07:55:56 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:55:56 [INFO   ] paper_formatter:   Batch OCR done: 0 with LaTeX, 11 image-only fallback
+07:55:56 [INFO   ] paper_formatter:   Extracted 12162 chars, 63 blocks, 1 tables, 2 figures, 11 formulas (pdfplumber)
+07:55:56 [INFO   ] paper_formatter: Stage 2/6: Parse
+07:55:56 [INFO   ] paper_formatter:   Using font-aware parsing (63 blocks)
+07:55:56 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=621 chars, 12 sections, 3 references
+07:55:56 [INFO   ] paper_formatter:   Formula blocks: 11 kept / 11 total (conf >= 0.45)
+07:55:56 [INFO   ] paper_formatter:   Figures: 2 extracted
+07:55:56 [INFO   ] paper_formatter: Stage 3/6: Canon
+07:55:56 [DEBUG  ] paper_formatter:   Canon: authors: none found
+07:55:56 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.9(621 chars) | sections=0.8(12) | refs=0.8(3) | repairs=1
+07:55:56 [INFO   ] paper_formatter: Stage 4/6: Normalize
+07:55:56 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+07:55:56 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+07:55:57 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+07:55:57 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+07:55:57 [INFO   ] paper_formatter: Stage 6/6: Compile
+07:55:57 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+07:56:05 [ERROR  ] paper_formatter:   pdflatex fatal failure (pass 1):
+! Text line contains an invalid character.
+! Text line contains an invalid character.
+! Text line contains an invalid character.
+! Text line contains an invalid character.
+! Text line contains an invalid character.
+07:57:22 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+07:57:22 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+07:57:22 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+07:57:22 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_0.png (72x28)
+07:57:22 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_1.png (30x21)
+07:57:23 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_0.png (115x23)
+07:57:23 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_1.png (74x16)
+07:57:23 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_2.png (85x19)
+07:57:23 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_3.png (150x21)
+07:57:23 [DEBUG  ] paper_formatter:   pdfplumber equation p2: eq_2_0.png (120x42)
+07:57:23 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_0.png (224x33)
+07:57:23 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_1.png (234x46)
+07:57:23 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_2.png (92x37)
+07:57:24 [DEBUG  ] paper_formatter:   pdfplumber equation p4: eq_4_0.png (83x26)
+07:57:24 [INFO   ] paper_formatter:   Batch OCR: 11 equation images to process
+07:57:24 [DEBUG  ] paper_formatter:   OCR worker will use venv Python: /sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe
+07:57:24 [INFO   ] paper_formatter:   OCR engine 'pix2tex' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:57:24 [INFO   ] paper_formatter:   Batch OCR unavailable, falling back to single-image workers
+07:57:24 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+07:57:24 [INFO   ] paper_formatter:   Batch OCR done: 0 with LaTeX, 11 image-only fallback
+07:57:24 [INFO   ] paper_formatter:   Extracted 12162 chars, 63 blocks, 1 tables, 2 figures, 11 formulas (pdfplumber)
+07:57:24 [INFO   ] paper_formatter: Stage 2/6: Parse
+07:57:24 [INFO   ] paper_formatter:   Using font-aware parsing (63 blocks)
+07:57:24 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=621 chars, 12 sections, 3 references
+07:57:24 [INFO   ] paper_formatter:   Formula blocks: 11 kept / 11 total (conf >= 0.45)
+07:57:24 [INFO   ] paper_formatter:   Figures: 2 extracted
+07:57:24 [INFO   ] paper_formatter: Stage 3/6: Canon
+07:57:24 [DEBUG  ] paper_formatter:   Canon: authors: none found
+07:57:24 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.9(621 chars) | sections=0.8(12) | refs=0.8(3) | repairs=1
+07:57:24 [INFO   ] paper_formatter: Stage 4/6: Normalize
+07:57:24 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+07:57:24 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+07:57:24 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+07:57:24 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+07:57:24 [INFO   ] paper_formatter: Stage 6/6: Compile
+07:57:24 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+07:57:32 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+07:57:42 [INFO   ] paper_formatter:   Output: /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+07:57:42 [INFO   ] paper_formatter: Done in 20.1s → /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+08:09:48 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+08:09:48 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+08:09:49 [DEBUG  ] paper_formatter:   Figure p0 xref=91 (753x286 pt): fig_0_0.png
+08:09:49 [DEBUG  ] paper_formatter:   Equation image saved p0: eq_0_0.png (1.9 KB)
+08:09:49 [DEBUG  ] paper_formatter:   Equation p0 xref=93 (60x43 pt)
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 71,187,507,252
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,259,164,272
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 219,286,222,298
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 256,259,509,272
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,313,89,325
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 199,333,201,345
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 268,313,509,325
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,347,505,373
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 214,371,216,383
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 281,361,511,373
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,390,82,403
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 237,401,239,413
+08:09:49 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 284,390,508,403
+08:09:49 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_0.png (5.2 KB)
+08:09:49 [DEBUG  ] paper_formatter:   Equation p1 xref=4 (170x34 pt)
+08:09:49 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_1.png (2.5 KB)
+08:09:49 [DEBUG  ] paper_formatter:   Equation p1 xref=6 (104x23 pt)
+08:09:49 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_2.png (5.0 KB)
+08:09:49 [DEBUG  ] paper_formatter:   Equation p1 xref=8 (170x38 pt)
+08:09:49 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_3.png (5.7 KB)
+08:09:49 [DEBUG  ] paper_formatter:   Equation p1 xref=10 (238x28 pt)
+08:09:49 [DEBUG  ] paper_formatter:   Figure p2 xref=18 (505x357 pt): fig_2_0.png
+08:09:49 [DEBUG  ] paper_formatter:   Equation image saved p2: eq_2_0.png (11.8 KB)
+08:09:49 [DEBUG  ] paper_formatter:   Equation p2 xref=19 (115x41 pt)
+08:09:49 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_0.png (15.5 KB)
+08:09:49 [DEBUG  ] paper_formatter:   Equation p3 xref=23 (216x32 pt)
+08:09:49 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_1.png (19.9 KB)
+08:09:49 [DEBUG  ] paper_formatter:   Equation p3 xref=24 (225x44 pt)
+08:09:49 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_2.png (8.0 KB)
+08:09:49 [DEBUG  ] paper_formatter:   Equation p3 xref=25 (89x36 pt)
+08:09:49 [DEBUG  ] paper_formatter:   Figure p3 xref=26 (184x101 pt): fig_3_0.png
+08:09:49 [DEBUG  ] paper_formatter:   Equation image saved p4: eq_4_0.png (10.8 KB)
+08:09:49 [DEBUG  ] paper_formatter:   Equation p4 xref=33 (193x68 pt)
+08:09:49 [INFO   ] paper_formatter:   Batch OCR: 10 equation images to process
+08:09:49 [INFO   ] paper_formatter:   OCR engine 'pix2tex' is available
+08:10:04 [DEBUG  ] paper_formatter:   Batch pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTA
+08:10:04 [INFO   ] paper_formatter:   Batch pix2tex: processed 10 images
+08:10:04 [DEBUG  ] paper_formatter:   Batch OCR p0: conf=0.60 latex=\pi\ge\Xi\frac{\cal G}{\frac{\Delta}{\mathcal{D}^{*}}}
+08:10:04 [DEBUG  ] paper_formatter:   Batch OCR p1: conf=0.65 latex=\frac{d f}{d t}\:\longrightarrow\:\frac{l^{*}p\eta\protect\f
+08:10:04 [DEBUG  ] paper_formatter:   Batch OCR p1: conf=0.60 latex=F\sp{}\rightarrow G\frac{m_{1}m_{2}}{r\sp2}
+08:10:04 [DEBUG  ] paper_formatter:   Batch OCR p1: conf=0.65 latex=\Phi\bigl(\mathcal{U}\bigr)\longrightarrow\frac{1}{\sigma\sq
+08:10:04 [DEBUG  ] paper_formatter:   Batch OCR p1: conf=0.70 latex=\widehat{f}\left((\vartheta)\right)\longrightarrow\int_{-\in
+08:10:04 [DEBUG  ] paper_formatter:   Batch OCR p2: conf=0.70 latex=a_{i i}>\underbrace{i}{{\sim}}_{k=1}^{i}\sum_{l=k+1}^{n}a_{k
+08:10:04 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.60 latex=a_{\sigma(i)\pi(i)}+a_{\sigma(j)\pi(k)}\le a_{\sigma(i)\pi(j
+08:10:04 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.60 latex=A\quad\Leftrightarrow\quad\left(\begin{array}{cc}{{A_{11}}}&
+08:10:04 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.65 latex={\frac{t_{p}+t_{q}}{3}}=\lambda(A)
+08:10:04 [DEBUG  ] paper_formatter:   Batch OCR p4: conf=0.65 latex=\mathrm{I(\widehat{S})^{-\frac{1}{20}}\frac{0}{4p\mathrm{out
+08:10:04 [INFO   ] paper_formatter:   Batch OCR done: 10 with LaTeX, 0 image-only fallback
+08:10:04 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r2 c1: tcell_1_0_2_1.png
+08:10:04 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r3 c1: tcell_1_0_3_1.png
+08:10:04 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r5 c1: tcell_1_0_5_1.png
+08:10:04 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r6 c1: tcell_1_0_6_1.png
+08:10:05 [INFO   ] paper_formatter:   Extracted 11750 chars, 56 blocks, 1 tables, 3 figures, 10 formulas (fitz)
+08:10:05 [INFO   ] paper_formatter: Stage 2/6: Parse
+08:10:05 [INFO   ] paper_formatter:   Using font-aware parsing (56 blocks)
+08:10:05 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=0 chars, 10 sections, 6 references
+08:10:05 [INFO   ] paper_formatter:   Formula blocks: 10 kept / 10 total (conf >= 0.45)
+08:10:05 [INFO   ] paper_formatter:   Figures: 3 extracted
+08:10:05 [INFO   ] paper_formatter: Stage 3/6: Canon
+08:10:05 [DEBUG  ] paper_formatter:   Canon: authors: none found
+08:10:05 [DEBUG  ] paper_formatter:   Canon: abstract: repaired from first body paragraph
+08:10:05 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.3(619 chars) | sections=0.8(10) | refs=0.8(6) | repairs=2
+08:10:05 [INFO   ] paper_formatter: Stage 4/6: Normalize
+08:10:05 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+08:10:05 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+08:10:05 [INFO   ] paper_formatter:   Generated: C:\Users\janme\Desktop\minor\formatter\intermediate\generated.tex
+08:10:05 [INFO   ] paper_formatter: Stage 6/6: Compile
+08:10:05 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+08:10:05 [WARNING] paper_formatter:   pdflatex pass 1 had errors (non-fatal):
+! Argument of \end  has an extra }.
+! Paragraph ended before \end  was complete.
+! Missing $ inserted.
+! Missing } inserted.
+! Display math should end with $$.
+08:10:05 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+08:10:06 [WARNING] paper_formatter:   pdflatex pass 2 had errors (non-fatal):
+! Argument of \end  has an extra }.
+! Paragraph ended before \end  was complete.
+! Missing $ inserted.
+! Missing } inserted.
+! Display math should end with $$.
+08:10:06 [INFO   ] paper_formatter:   Output: C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+08:36:17 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+08:36:17 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+08:36:17 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+08:36:17 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_0.png (72x28)
+08:36:18 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_1.png (30x21)
+08:36:18 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_0.png (115x23)
+08:36:18 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_1.png (74x16)
+08:36:18 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_2.png (85x19)
+08:36:18 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_3.png (150x21)
+08:36:18 [DEBUG  ] paper_formatter:   pdfplumber equation p2: eq_2_0.png (120x42)
+08:36:18 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_0.png (224x33)
+08:36:19 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_1.png (234x46)
+08:36:19 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_2.png (92x37)
+08:36:19 [DEBUG  ] paper_formatter:   pdfplumber equation p4: eq_4_0.png (83x26)
+08:36:19 [INFO   ] paper_formatter:   Batch OCR: 11 equation images to process
+08:36:19 [DEBUG  ] paper_formatter:   OCR worker will use venv Python: /sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe
+08:36:19 [INFO   ] paper_formatter:   OCR engine 'pix2tex' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+08:36:19 [INFO   ] paper_formatter:   Batch OCR unavailable, falling back to single-image workers
+08:36:19 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+08:36:19 [INFO   ] paper_formatter:   Batch OCR done: 0 with LaTeX, 11 image-only fallback
+08:36:19 [INFO   ] paper_formatter:   Extracted 12162 chars, 63 blocks, 1 tables, 2 figures, 11 formulas (pdfplumber)
+08:36:19 [INFO   ] paper_formatter: Stage 2/6: Parse
+08:36:19 [INFO   ] paper_formatter:   Using font-aware parsing (63 blocks)
+08:36:19 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=621 chars, 12 sections, 3 references
+08:36:19 [INFO   ] paper_formatter:   Formula blocks: 11 kept / 11 total (conf >= 0.60 or image-only)
+08:36:19 [INFO   ] paper_formatter:   Figures: 2 extracted
+08:36:19 [INFO   ] paper_formatter: Stage 3/6: Canon
+08:36:19 [DEBUG  ] paper_formatter:   Canon: authors: none found
+08:36:19 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.9(621 chars) | sections=0.8(12) | refs=0.8(3) | repairs=1
+08:36:19 [INFO   ] paper_formatter: Stage 4/6: Normalize
+08:36:19 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+08:36:19 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+08:36:20 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+08:36:20 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+08:36:20 [INFO   ] paper_formatter: Stage 6/6: Compile
+08:36:20 [DEBUG  ] paper_formatter:   Removing corrupted .aux (null bytes)
+08:36:20 [DEBUG  ] paper_formatter:   Removing corrupted .out (null bytes)
+08:36:20 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+08:36:27 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+08:36:32 [INFO   ] paper_formatter:   Output: /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+08:36:32 [INFO   ] paper_formatter: Done in 15.3s → /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+08:44:01 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+08:44:01 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+08:44:02 [DEBUG  ] paper_formatter:   Figure p0 xref=91 (753x286 pt): fig_0_0.png
+08:44:02 [DEBUG  ] paper_formatter:   Equation image saved p0: eq_0_0.png (1.9 KB)
+08:44:02 [DEBUG  ] paper_formatter:   Equation p0 xref=93 (60x43 pt)
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 71,187,507,252
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,259,164,272
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 219,286,222,298
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 256,259,509,272
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,313,89,325
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 199,333,201,345
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 268,313,509,325
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,347,505,373
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 214,371,216,383
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 281,361,511,373
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,390,82,403
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 237,401,239,413
+08:44:02 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 284,390,508,403
+08:44:02 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_0.png (5.2 KB)
+08:44:02 [DEBUG  ] paper_formatter:   Equation p1 xref=4 (170x34 pt)
+08:44:02 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_1.png (2.5 KB)
+08:44:02 [DEBUG  ] paper_formatter:   Equation p1 xref=6 (104x23 pt)
+08:44:02 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_2.png (5.0 KB)
+08:44:02 [DEBUG  ] paper_formatter:   Equation p1 xref=8 (170x38 pt)
+08:44:02 [DEBUG  ] paper_formatter:   Equation image saved p1: eq_1_3.png (5.7 KB)
+08:44:02 [DEBUG  ] paper_formatter:   Equation p1 xref=10 (238x28 pt)
+08:44:02 [DEBUG  ] paper_formatter:   Figure p2 xref=18 (505x357 pt): fig_2_0.png
+08:44:02 [DEBUG  ] paper_formatter:   Equation image saved p2: eq_2_0.png (11.8 KB)
+08:44:02 [DEBUG  ] paper_formatter:   Equation p2 xref=19 (115x41 pt)
+08:44:02 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_0.png (15.5 KB)
+08:44:02 [DEBUG  ] paper_formatter:   Equation p3 xref=23 (216x32 pt)
+08:44:02 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_1.png (19.9 KB)
+08:44:02 [DEBUG  ] paper_formatter:   Equation p3 xref=24 (225x44 pt)
+08:44:02 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_2.png (8.0 KB)
+08:44:02 [DEBUG  ] paper_formatter:   Equation p3 xref=25 (89x36 pt)
+08:44:02 [DEBUG  ] paper_formatter:   Figure p3 xref=26 (184x101 pt): fig_3_0.png
+08:44:02 [DEBUG  ] paper_formatter:   Equation image saved p4: eq_4_0.png (10.8 KB)
+08:44:02 [DEBUG  ] paper_formatter:   Equation p4 xref=33 (193x68 pt)
+08:44:02 [INFO   ] paper_formatter:   Batch OCR: 10 equation images to process
+08:44:02 [INFO   ] paper_formatter:   OCR engine 'pix2tex' is available
+08:44:17 [DEBUG  ] paper_formatter:   Batch pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTA
+08:44:17 [INFO   ] paper_formatter:   Batch pix2tex: processed 10 images
+08:44:17 [DEBUG  ] paper_formatter:   Batch OCR REJECTED p0: conf=0.50 latex=\tau\underline{{{\bf\Psi}}}\underline{{{
+08:44:17 [DEBUG  ] paper_formatter:   Batch OCR REJECTED p1: conf=0.45 latex={\frac{d f}{d t}}\ \longrightarrow\ {\fr
+08:44:17 [DEBUG  ] paper_formatter:   Batch OCR REJECTED p1: conf=0.45 latex=F\sp{}\rightarrow G\frac{m_{1}m_{2}}{r\s
+08:44:17 [DEBUG  ] paper_formatter:   Batch OCR p1: conf=0.70 latex=\Phi\bigl(\mathcal{U}\bigr)\longrightarrow\frac{1}{\sigma\sq
+08:44:17 [DEBUG  ] paper_formatter:   Batch OCR p1: conf=0.75 latex=\widehat{f}\left((\vartheta)\right)\longrightarrow\int_{-\in
+08:44:17 [DEBUG  ] paper_formatter:   Batch OCR p2: conf=0.75 latex=a_{i i}>\sup_{k=1}^{i}\sum_{l=k+1}^{n}\;a_{k l}
+08:44:17 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.70 latex=a_{\sigma(i)\pi(i)}+a_{\sigma(j)\pi(k)}\le a_{\sigma(i)\pi(j
+08:44:17 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.75 latex=A\quad\Leftrightarrow\quad\left(\begin{array}{cc}{{A_{11}}}&
+08:44:17 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.70 latex={\frac{t_{p}+t_{q}}{3}}=\lambda(A)
+08:44:17 [DEBUG  ] paper_formatter:   Batch OCR p4: conf=0.65 latex=\mathrm{I(\widehat{S})^{-\frac{1}{20}}\frac{0}{4p\cdot0}}
+08:44:17 [INFO   ] paper_formatter:   Batch OCR done: 7 with LaTeX, 3 image-only fallback
+08:44:17 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r2 c1: tcell_1_0_2_1.png
+08:44:17 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r3 c1: tcell_1_0_3_1.png
+08:44:17 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r5 c1: tcell_1_0_5_1.png
+08:44:17 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r6 c1: tcell_1_0_6_1.png
+08:44:17 [INFO   ] paper_formatter:   Extracted 11750 chars, 56 blocks, 1 tables, 3 figures, 10 formulas (fitz)
+08:44:17 [INFO   ] paper_formatter: Stage 2/6: Parse
+08:44:17 [INFO   ] paper_formatter:   Using font-aware parsing (56 blocks)
+08:44:17 [INFO   ] paper_formatter:   Parsed: title=57 chars, 0 authors, abstract=0 chars, 10 sections, 6 references
+08:44:17 [INFO   ] paper_formatter:   Formula blocks: 10 kept / 10 total (conf >= 0.60 or image-only)
+08:44:17 [INFO   ] paper_formatter:   Figures: 3 extracted
+08:44:17 [INFO   ] paper_formatter: Stage 3/6: Canon
+08:44:17 [DEBUG  ] paper_formatter:   Canon: authors: none found
+08:44:17 [DEBUG  ] paper_formatter:   Canon: abstract: repaired from first body paragraph
+08:44:17 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.0(0) | abstract=0.3(619 chars) | sections=0.8(10) | refs=0.8(6) | repairs=2
+08:44:17 [INFO   ] paper_formatter: Stage 4/6: Normalize
+08:44:17 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+08:44:17 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+08:44:17 [INFO   ] paper_formatter:   Generated: C:\Users\janme\Desktop\minor\formatter\intermediate\generated.tex
+08:44:17 [INFO   ] paper_formatter: Stage 6/6: Compile
+08:44:17 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+08:44:18 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+08:44:19 [INFO   ] paper_formatter:   Output: C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+08:52:13 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+08:52:13 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+08:52:13 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+08:52:14 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_0.png (72x28)
+08:52:14 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_1.png (30x21)
+08:52:14 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_0.png (115x23)
+08:52:14 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_1.png (74x16)
+08:52:14 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_2.png (85x19)
+08:52:14 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_3.png (150x21)
+08:52:14 [DEBUG  ] paper_formatter:   pdfplumber equation p2: eq_2_0.png (120x42)
+08:52:15 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_0.png (224x33)
+08:52:15 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_1.png (234x46)
+08:52:15 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_2.png (92x37)
+08:52:15 [DEBUG  ] paper_formatter:   pdfplumber equation p4: eq_4_0.png (83x26)
+08:52:15 [INFO   ] paper_formatter:   Batch OCR: 11 equation images to process
+08:52:15 [DEBUG  ] paper_formatter:   OCR worker will use venv Python: /sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe
+08:52:15 [INFO   ] paper_formatter:   OCR engine 'pix2tex' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+08:52:15 [INFO   ] paper_formatter:   Batch OCR unavailable, falling back to single-image workers
+08:52:15 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+08:52:15 [INFO   ] paper_formatter:   Batch OCR done: 0 with LaTeX, 11 image-only fallback
+08:52:15 [INFO   ] paper_formatter:   Extracted 12162 chars, 63 blocks, 1 tables, 2 figures, 11 formulas (pdfplumber)
+08:52:15 [INFO   ] paper_formatter: Stage 2/6: Parse
+08:52:15 [INFO   ] paper_formatter:   Using font-aware parsing (63 blocks)
+08:52:15 [INFO   ] paper_formatter:   Parsed: title=12 chars, 2 authors, abstract=621 chars, 12 sections, 3 references
+08:52:15 [INFO   ] paper_formatter:   Formula blocks: 11 kept / 11 total (conf >= 0.60 or image-only)
+08:52:15 [INFO   ] paper_formatter:   Figures: 2 extracted
+08:52:15 [INFO   ] paper_formatter: Stage 3/6: Canon
+08:52:15 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.8(2) | abstract=0.9(621 chars) | sections=0.8(12) | refs=0.8(3)
+08:52:15 [INFO   ] paper_formatter: Stage 4/6: Normalize
+08:52:15 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+08:52:15 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+08:52:16 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+08:52:16 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+08:52:16 [INFO   ] paper_formatter: Stage 6/6: Compile
+08:52:16 [DEBUG  ] paper_formatter:   Removing corrupted .aux (null bytes)
+08:52:16 [DEBUG  ] paper_formatter:   Removing corrupted .out (null bytes)
+08:52:16 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+08:52:21 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+08:52:26 [INFO   ] paper_formatter:   Output: /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+08:52:26 [INFO   ] paper_formatter: Done in 12.9s → /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+08:52:50 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+08:52:50 [INFO   ] paper_formatter:   Opening PDF: example.pdf
+08:52:50 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+08:52:50 [INFO   ] paper_formatter:   Extracted 6748 chars, 89 blocks, 1 tables, 0 figures, 0 formulas (pdfplumber)
+08:52:51 [INFO   ] paper_formatter: Stage 2/6: Parse
+08:52:51 [INFO   ] paper_formatter:   Using font-aware parsing (89 blocks)
+08:52:51 [INFO   ] paper_formatter:   Parsed: title=27 chars, 6 authors, abstract=420 chars, 6 sections, 9 references
+08:52:51 [INFO   ] paper_formatter: Stage 3/6: Canon
+08:52:51 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.8(6) | abstract=0.9(420 chars) | sections=0.8(6) | refs=0.8(9)
+08:52:51 [INFO   ] paper_formatter: Stage 4/6: Normalize
+08:52:51 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+08:52:51 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+08:52:51 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+08:52:51 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+08:52:51 [INFO   ] paper_formatter: Stage 6/6: Compile
+08:52:51 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+08:53:00 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+08:53:11 [INFO   ] paper_formatter:   Output: /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+08:53:11 [INFO   ] paper_formatter: Done in 20.9s → /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+09:00:29 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+09:00:29 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+09:00:30 [DEBUG  ] paper_formatter:   Figure p0 xref=91 (753x286 pt): fig_0_0.png
+09:00:30 [DEBUG  ] paper_formatter:   Equation image saved p0: eq_0_0.png (1.9 KB)
+09:00:30 [DEBUG  ] paper_formatter:   Equation p0 xref=93 (60x43 pt)
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 71,187,507,252
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,259,164,272
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 219,286,222,298
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 256,259,509,272
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,313,89,325
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 199,333,201,345
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 268,313,509,325
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,347,505,373
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 214,371,216,383
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 281,361,511,373
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,390,82,403
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 237,401,239,413
+09:00:30 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 284,390,508,403
+09:00:30 [DEBUG  ] paper_formatter:   Skip equation p1 xref=4 (no bbox, page has tables)
+09:00:30 [DEBUG  ] paper_formatter:   Skip equation p1 xref=6 (no bbox, page has tables)
+09:00:30 [DEBUG  ] paper_formatter:   Skip equation p1 xref=8 (no bbox, page has tables)
+09:00:30 [DEBUG  ] paper_formatter:   Skip equation p1 xref=10 (no bbox, page has tables)
+09:00:30 [DEBUG  ] paper_formatter:   Figure p2 xref=18 (505x357 pt): fig_2_0.png
+09:00:30 [DEBUG  ] paper_formatter:   Equation image saved p2: eq_2_0.png (11.8 KB)
+09:00:30 [DEBUG  ] paper_formatter:   Equation p2 xref=19 (115x41 pt)
+09:00:30 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_0.png (15.5 KB)
+09:00:30 [DEBUG  ] paper_formatter:   Equation p3 xref=23 (216x32 pt)
+09:00:30 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_1.png (19.9 KB)
+09:00:30 [DEBUG  ] paper_formatter:   Equation p3 xref=24 (225x44 pt)
+09:00:30 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_2.png (8.0 KB)
+09:00:30 [DEBUG  ] paper_formatter:   Equation p3 xref=25 (89x36 pt)
+09:00:30 [DEBUG  ] paper_formatter:   Figure p3 xref=26 (184x101 pt): fig_3_0.png
+09:00:30 [DEBUG  ] paper_formatter:   Equation image saved p4: eq_4_0.png (10.8 KB)
+09:00:30 [DEBUG  ] paper_formatter:   Equation p4 xref=33 (193x68 pt)
+09:00:30 [INFO   ] paper_formatter:   Batch OCR: 6 equation images to process
+09:00:30 [INFO   ] paper_formatter:   OCR engine 'pix2tex' is available
+09:01:41 [DEBUG  ] paper_formatter:   Batch pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTA
+09:01:41 [INFO   ] paper_formatter:   Batch pix2tex: processed 6 images
+09:01:41 [DEBUG  ] paper_formatter:   Batch OCR REJECTED p0: conf=0.55 latex=\tau\,\underline{{{\underline{{O}}}}}\,\
+09:01:41 [DEBUG  ] paper_formatter:   Batch OCR p2: conf=0.75 latex=a_{i i}>\Longleftrightarrow_{k=1}^{i}\sum_{l=k+1}^{n}\;a_{k 
+09:01:41 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.70 latex=a_{\sigma(i)\pi(i)}+a_{\sigma(j)\pi(k)}\le a_{\sigma(i)\pi(j
+09:01:41 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.75 latex=A\quad\mathop{\textrm{a}}\quad\left(\begin{array}{cc}{{A_{11
+09:01:41 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.70 latex={\frac{t_{p}+t_{q}}{3}}=\lambda(A)
+09:01:41 [DEBUG  ] paper_formatter:   Batch OCR p4: conf=0.70 latex=\mathrm{I(\widehat{S})^{-\frac{1}{20}}\frac{0}{4\pi}}
+09:01:41 [INFO   ] paper_formatter:   Batch OCR done: 5 with LaTeX, 1 image-only fallback
+09:01:42 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r2 c1: tcell_1_0_2_1.png
+09:01:42 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r3 c1: tcell_1_0_3_1.png
+09:01:42 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r5 c1: tcell_1_0_5_1.png
+09:01:42 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r6 c1: tcell_1_0_6_1.png
+09:01:42 [INFO   ] paper_formatter:   Extracted 11750 chars, 56 blocks, 1 tables, 3 figures, 6 formulas (fitz)
+09:01:42 [INFO   ] paper_formatter: Stage 2/6: Parse
+09:01:43 [INFO   ] paper_formatter:   Using font-aware parsing (56 blocks)
+09:01:43 [INFO   ] paper_formatter:   Parsed: title=12 chars, 2 authors, abstract=0 chars, 10 sections, 6 references
+09:01:43 [INFO   ] paper_formatter:   Formula blocks: 6 kept / 6 total (conf >= 0.60 or image-only)
+09:01:43 [INFO   ] paper_formatter:   Figures: 3 extracted
+09:01:43 [INFO   ] paper_formatter: Stage 3/6: Canon
+09:01:43 [DEBUG  ] paper_formatter:   Canon: abstract: repaired from first body paragraph
+09:01:43 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.8(2) | abstract=0.3(619 chars) | sections=0.8(10) | refs=0.8(6) | repairs=1
+09:01:43 [INFO   ] paper_formatter: Stage 4/6: Normalize
+09:01:43 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+09:01:43 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+09:01:43 [INFO   ] paper_formatter:   Generated: C:\Users\janme\Desktop\minor\formatter\intermediate\generated.tex
+09:01:43 [INFO   ] paper_formatter: Stage 6/6: Compile
+09:01:43 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+09:01:46 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+09:01:47 [INFO   ] paper_formatter:   Output: C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+09:04:54 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+09:04:54 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+09:04:54 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+09:04:55 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_0.png (72x28)
+09:04:55 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_1.png (30x21)
+09:04:55 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_0.png (115x23)
+09:04:55 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_1.png (74x16)
+09:04:55 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_2.png (85x19)
+09:04:55 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_3.png (150x21)
+09:04:55 [DEBUG  ] paper_formatter:   pdfplumber equation p2: eq_2_0.png (120x42)
+09:04:55 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_0.png (224x33)
+09:04:55 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_1.png (234x46)
+09:04:56 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_2.png (92x37)
+09:04:56 [DEBUG  ] paper_formatter:   pdfplumber equation p4: eq_4_0.png (83x26)
+09:04:56 [INFO   ] paper_formatter:   Batch OCR: 11 equation images to process
+09:04:56 [DEBUG  ] paper_formatter:   OCR worker will use venv Python: /sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe
+09:04:56 [INFO   ] paper_formatter:   OCR engine 'pix2tex' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+09:04:56 [INFO   ] paper_formatter:   Batch OCR unavailable, falling back to single-image workers
+09:04:56 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+09:04:56 [INFO   ] paper_formatter:   Batch OCR done: 0 with LaTeX, 11 image-only fallback
+09:04:56 [INFO   ] paper_formatter:   Extracted 12162 chars, 63 blocks, 1 tables, 2 figures, 11 formulas (pdfplumber)
+09:04:56 [INFO   ] paper_formatter: Stage 2/6: Parse
+09:04:56 [INFO   ] paper_formatter:   Using font-aware parsing (63 blocks)
+09:04:56 [INFO   ] paper_formatter:   Parsed: title=12 chars, 2 authors, abstract=621 chars, 12 sections, 3 references
+09:04:56 [INFO   ] paper_formatter:   Formula blocks: 11 kept / 11 total (conf >= 0.60 or image-only)
+09:04:56 [INFO   ] paper_formatter:   Figures: 2 extracted
+09:04:56 [INFO   ] paper_formatter: Stage 3/6: Canon
+09:04:56 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.8(2) | abstract=0.9(621 chars) | sections=0.8(12) | refs=0.8(3)
+09:04:56 [INFO   ] paper_formatter: Stage 4/6: Normalize
+09:04:56 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+09:04:56 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+09:04:56 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+09:04:56 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+09:04:56 [INFO   ] paper_formatter: Stage 6/6: Compile
+09:04:56 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+09:05:03 [WARNING] paper_formatter:   pdflatex pass 1 had errors (non-fatal):
+! File ended while scanning use of \@writefile.
+! File ended while scanning use of \@@BOOKMARK.
+! File ended while scanning use of \@@BOOKMARK.
+09:05:03 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+09:05:13 [INFO   ] paper_formatter:   Output: /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+09:05:13 [INFO   ] paper_formatter: Done in 19.2s → /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+09:06:41 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+09:06:41 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+09:06:41 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+09:06:42 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_0.png (72x28)
+09:06:42 [DEBUG  ] paper_formatter:   pdfplumber equation p0: eq_0_1.png (30x21)
+09:06:42 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_0.png (115x23)
+09:06:42 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_1.png (74x16)
+09:06:42 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_2.png (85x19)
+09:06:42 [DEBUG  ] paper_formatter:   pdfplumber equation p1: eq_1_3.png (150x21)
+09:06:42 [DEBUG  ] paper_formatter:   pdfplumber equation p2: eq_2_0.png (120x42)
+09:06:42 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_0.png (224x33)
+09:06:42 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_1.png (234x46)
+09:06:43 [DEBUG  ] paper_formatter:   pdfplumber equation p3: eq_3_2.png (92x37)
+09:06:43 [DEBUG  ] paper_formatter:   pdfplumber equation p4: eq_4_0.png (83x26)
+09:06:43 [INFO   ] paper_formatter:   Batch OCR: 11 equation images to process
+09:06:43 [DEBUG  ] paper_formatter:   OCR worker will use venv Python: /sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe
+09:06:43 [INFO   ] paper_formatter:   OCR engine 'pix2tex' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+09:06:43 [INFO   ] paper_formatter:   Batch OCR unavailable, falling back to single-image workers
+09:06:43 [INFO   ] paper_formatter:   OCR engine 'nougat' availability check failed: [Errno 8] Exec format error: '/sessions/pensive-lucid-mendel/mnt/formatter/venv/Scripts/python.exe'
+09:06:43 [INFO   ] paper_formatter:   Batch OCR done: 0 with LaTeX, 11 image-only fallback
+09:06:43 [INFO   ] paper_formatter:   Extracted 12162 chars, 63 blocks, 1 tables, 2 figures, 11 formulas (pdfplumber)
+09:06:43 [INFO   ] paper_formatter: Stage 2/6: Parse
+09:06:43 [INFO   ] paper_formatter:   Using font-aware parsing (63 blocks)
+09:06:43 [INFO   ] paper_formatter:   Parsed: title=12 chars, 2 authors, abstract=621 chars, 12 sections, 3 references
+09:06:43 [INFO   ] paper_formatter:   Formula blocks: 11 kept / 11 total (conf >= 0.60 or image-only)
+09:06:43 [INFO   ] paper_formatter:   Figures: 2 extracted
+09:06:43 [INFO   ] paper_formatter: Stage 3/6: Canon
+09:06:43 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.8(2) | abstract=0.9(621 chars) | sections=0.8(12) | refs=0.8(3)
+09:06:43 [INFO   ] paper_formatter: Stage 4/6: Normalize
+09:06:43 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+09:06:43 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+09:06:44 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+09:06:44 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+09:06:44 [INFO   ] paper_formatter: Stage 6/6: Compile
+09:06:44 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+09:06:52 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+09:07:01 [INFO   ] paper_formatter:   Output: /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+09:07:01 [INFO   ] paper_formatter: Done in 19.4s → /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+09:07:16 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+09:07:16 [INFO   ] paper_formatter:   Opening PDF: example.pdf
+09:07:16 [WARNING] paper_formatter:   PyMuPDF not available — using pdfplumber (no formula/image extraction)
+09:07:16 [INFO   ] paper_formatter:   Extracted 6748 chars, 89 blocks, 1 tables, 0 figures, 0 formulas (pdfplumber)
+09:07:16 [INFO   ] paper_formatter: Stage 2/6: Parse
+09:07:16 [INFO   ] paper_formatter:   Using font-aware parsing (89 blocks)
+09:07:16 [INFO   ] paper_formatter:   Parsed: title=27 chars, 6 authors, abstract=420 chars, 6 sections, 9 references
+09:07:16 [INFO   ] paper_formatter: Stage 3/6: Canon
+09:07:16 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.8(6) | abstract=0.9(420 chars) | sections=0.8(6) | refs=0.8(9)
+09:07:16 [INFO   ] paper_formatter: Stage 4/6: Normalize
+09:07:16 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+09:07:16 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+09:07:16 [DEBUG  ] paper_formatter:   Copied IEEEtran.cls → /sessions/pensive-lucid-mendel/mnt/formatter/intermediate
+09:07:16 [INFO   ] paper_formatter:   Generated: /sessions/pensive-lucid-mendel/mnt/formatter/intermediate/generated.tex
+09:07:16 [INFO   ] paper_formatter: Stage 6/6: Compile
+09:07:16 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+09:07:25 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+09:07:33 [INFO   ] paper_formatter:   Output: /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+09:07:33 [INFO   ] paper_formatter: Done in 17.8s → /sessions/pensive-lucid-mendel/mnt/formatter/output/generated_ieee.pdf
+09:08:45 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+09:08:45 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+09:08:46 [DEBUG  ] paper_formatter:   Figure p0 xref=91 (753x286 pt): fig_0_0.png
+09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p0: eq_0_0.png (1.9 KB)
+09:08:46 [DEBUG  ] paper_formatter:   Equation p0 xref=93 (60x43 pt)
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 71,187,507,252
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,259,164,272
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 219,286,222,298
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 256,259,509,272
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,313,89,325
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 199,333,201,345
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 268,313,509,325
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,347,505,373
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 214,371,216,383
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 281,361,511,373
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,390,82,403
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 237,401,239,413
+09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 284,390,508,403
+09:08:46 [DEBUG  ] paper_formatter:   Skip equation p1 xref=4 (no bbox, page has tables)
+09:08:46 [DEBUG  ] paper_formatter:   Skip equation p1 xref=6 (no bbox, page has tables)
+09:08:46 [DEBUG  ] paper_formatter:   Skip equation p1 xref=8 (no bbox, page has tables)
+09:08:46 [DEBUG  ] paper_formatter:   Skip equation p1 xref=10 (no bbox, page has tables)
+09:08:46 [DEBUG  ] paper_formatter:   Figure p2 xref=18 (505x357 pt): fig_2_0.png
+09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p2: eq_2_0.png (11.8 KB)
+09:08:46 [DEBUG  ] paper_formatter:   Equation p2 xref=19 (115x41 pt)
+09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_0.png (15.5 KB)
+09:08:46 [DEBUG  ] paper_formatter:   Equation p3 xref=23 (216x32 pt)
+09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_1.png (19.9 KB)
+09:08:46 [DEBUG  ] paper_formatter:   Equation p3 xref=24 (225x44 pt)
+09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_2.png (8.0 KB)
+09:08:46 [DEBUG  ] paper_formatter:   Equation p3 xref=25 (89x36 pt)
+09:08:46 [DEBUG  ] paper_formatter:   Figure p3 xref=26 (184x101 pt): fig_3_0.png
+09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p4: eq_4_0.png (10.8 KB)
+09:08:46 [DEBUG  ] paper_formatter:   Equation p4 xref=33 (193x68 pt)
+09:08:46 [INFO   ] paper_formatter:   Batch OCR: 6 equation images to process
+09:08:46 [INFO   ] paper_formatter:   OCR engine 'pix2tex' is available
+09:08:57 [DEBUG  ] paper_formatter:   Batch pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTA
+09:08:57 [INFO   ] paper_formatter:   Batch pix2tex: processed 6 images
+09:08:57 [DEBUG  ] paper_formatter:   Batch OCR REJECTED p0: conf=0.50 latex=\tau\,\underline{{{\underline{{O}}}}}\,\
+09:08:57 [DEBUG  ] paper_formatter:   Batch OCR p2: conf=0.75 latex=a_{i i}>\underline{{{\sum_{k=1}^{i}\sum_{k=k+1}^{n}}}}^{i}\:
+09:08:57 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.70 latex=a_{\sigma(i)\pi(i)}+a_{\sigma(j)\pi(k)}\le a_{\sigma(i)\pi(j
+09:08:57 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.75 latex=A\quad\Leftrightarrow\quad\left(\begin{array}{cc}{{A_{11}}}&
+09:08:57 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.70 latex={\frac{t_{p}+t_{q}}{3}}=\lambda(A)
+09:08:57 [DEBUG  ] paper_formatter:   Batch OCR p4: conf=0.60 latex=\{\mathbb{Q}\}{\overset{\underset{\mathrm{a,b}}{}}{\longleft
+09:08:57 [INFO   ] paper_formatter:   Batch OCR done: 5 with LaTeX, 1 image-only fallback
+09:08:57 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r2 c1: tcell_1_0_2_1.png
+09:08:57 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r3 c1: tcell_1_0_3_1.png
+09:08:57 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r5 c1: tcell_1_0_5_1.png
+09:08:57 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r6 c1: tcell_1_0_6_1.png
+09:08:57 [INFO   ] paper_formatter:   Extracted 11750 chars, 56 blocks, 1 tables, 3 figures, 6 formulas (fitz)
+09:08:57 [INFO   ] paper_formatter: Stage 2/6: Parse
+09:08:57 [INFO   ] paper_formatter:   Using font-aware parsing (56 blocks)
+09:08:57 [INFO   ] paper_formatter:   Parsed: title=12 chars, 2 authors, abstract=0 chars, 10 sections, 6 references
+09:08:57 [INFO   ] paper_formatter:   Formula blocks: 6 kept / 6 total (conf >= 0.60 or image-only)
+09:08:57 [INFO   ] paper_formatter:   Figures: 3 extracted
+09:08:57 [INFO   ] paper_formatter: Stage 3/6: Canon
+09:08:57 [DEBUG  ] paper_formatter:   Canon: abstract: repaired from first body paragraph
+09:08:57 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.8(2) | abstract=0.3(619 chars) | sections=0.8(10) | refs=0.8(6) | repairs=1
+09:08:57 [INFO   ] paper_formatter: Stage 4/6: Normalize
+09:08:57 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+09:08:57 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+09:08:57 [INFO   ] paper_formatter:   Generated: C:\Users\janme\Desktop\minor\formatter\intermediate\generated.tex
+09:08:57 [INFO   ] paper_formatter: Stage 6/6: Compile
+09:08:57 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+09:08:58 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+09:08:59 [INFO   ] paper_formatter:   Output: C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf

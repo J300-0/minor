@@ -286,9 +286,9 @@ def _render_table(table) -> str:
         while len(escaped) < num_cols:
             escaped.append("")
         escaped = escaped[:num_cols]
-        lines.append(" & ".join(escaped) + r" \\")
+        lines.append(" & ".join(escaped) + r" \\ \hline")
 
-    lines.append(r"\hline")
+    # No need for final \hline — every row already ends with \hline
     lines.append(r"\end{tabular}")
 
     # Close resizebox
@@ -304,17 +304,37 @@ def _render_table(table) -> str:
     return "\n".join(lines)
 
 
+_CELLIMG_RE = re.compile(r"\\CELLIMG\{(.+?)\}")
+
+
 def _escape_table_cell(text: str) -> str:
     """
-    Escape a table cell, preserving math content ($...$).
+    Escape a table cell, preserving math content ($...$) and cell images.
 
     Table cells may already contain LaTeX math from the normalizer
     (e.g. $a^{2} + b^{2} = c^{2}$). These must NOT be escaped.
+
+    Cells with \\CELLIMG{path} markers are rendered as \\includegraphics.
     """
     if not text:
         return ""
-    # If the entire cell is wrapped in math delimiters, pass through
+
     stripped = text.strip()
+
+    # Handle cell image markers: \CELLIMG{/abs/path/to/image.png}
+    m = _CELLIMG_RE.match(stripped)
+    if m:
+        img_path = m.group(1)
+        # Convert absolute path to relative from intermediate dir
+        if os.path.isabs(img_path):
+            try:
+                img_path = os.path.relpath(img_path, INTERMEDIATE_DIR)
+            except ValueError:
+                pass
+        img_path = img_path.replace("\\", "/")
+        return f"\\includegraphics[max height=1.5cm]{{{img_path}}}"
+
+    # If the entire cell is wrapped in math delimiters, pass through
     if stripped.startswith("$") and stripped.endswith("$"):
         return stripped
     # If cell contains $...$, escape only the non-math parts

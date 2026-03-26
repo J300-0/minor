@@ -1,6 +1,6 @@
 # CLAUDE.md — ai-paper-formatter Project Memory
 > Read this file at the start of every session. Update it when structural changes are made.
-> Last updated: 2026-03-25 — Image extraction overhaul, OCR-or-save fallback, table dedup
+> Last updated: 2026-03-26 — SMask xref compositing, table cell images, corrupted aux cleanup
 
 ---
 
@@ -202,7 +202,8 @@ formatter/
     logger.py                # Rotating + latest log
   extractor/
     pdf_extractor.py         # PyMuPDF primary, pdfplumber tables only, OCR orchestration
-    pix2tex_worker.py        # Subprocess worker — pix2tex LaTeX OCR (primary)
+    pix2tex_worker.py        # Subprocess worker — pix2tex LaTeX OCR (single image)
+    pix2tex_batch_worker.py  # NEW: batch worker — load model once, process all images
     nougat_worker.py         # Subprocess worker — nougat OCR (fallback)
     docx_extractor.py        # python-docx
   parser/
@@ -299,6 +300,42 @@ formatter/
     fitz extraction. Text blocks with ≥ 50% area overlap with a table are skipped from
     body text to prevent table content appearing twice.
 
+14. **Always use `alpha=False` in pixmap rendering.** `page.get_pixmap(alpha=False)` composites
+    onto white background. Without this, SMask images (common in equation PDFs) produce black
+    backgrounds that appear as "black spots" in the output PDF.
+
+15. **Batch OCR preferred over per-image OCR.** `pix2tex_batch_worker.py` loads the model once
+    and processes all equation images. The single-image worker (`pix2tex_worker.py`) reloads
+    the model (~10s) per call. Always use batch OCR via `_batch_ocr_equations()` first.
+
+16. **MATH_SYMBOLS values may contain `$...$`.** When adding new entries to `MATH_SYMBOLS` in
+    `normalizer/cleaner.py`, values already wrapped in `$...$` (e.g. `"$\\oplus$"`) must NOT be
+    double-wrapped. The normalizer checks for this pattern and skips re-wrapping.
+
+17. **SMask xref must be composited.** `get_images(full=True)` returns a tuple where index 1 is
+    the `smask_xref`. When non-zero, call `_composite_with_smask(pdf, xref, smask_xref, raw_bytes)`
+    to reconstruct RGBA from fitz.Pixmap and composite onto white via PIL. Without this, transparent
+    areas in equation/figure images appear as black rectangles.
+
+18. **Table cell images use `\CELLIMG{}` markers.** `_render_cell_image()` detects page images
+    overlapping table cell bboxes and renders them as 200 DPI PNGs. Empty cells get
+    `\CELLIMG{path}` text which `_escape_table_cell()` in the renderer converts to
+    `\includegraphics[max height=1.5cm]{path}`.
+
+19. **Clean corrupted aux files before pdflatex.** Null bytes (^^@) from previous failed runs
+    persist in `.aux`/`.out`/`.toc` files. The compiler scans for `\x00` bytes and removes
+    corrupted files before each compilation to prevent "invalid character" errors.
+
+20. **Skip equation images inside tables.** `_extract_all_page_images()` and `_detect_formula_regions()`
+    both accept `table_bboxes` and skip images/blocks that overlap table regions. Table equations
+    are already handled by `_render_cell_image()` → `\CELLIMG{}` markers. Without this, every table
+    equation would appear TWICE: once in the table and once in "Key Equations".
+
+21. **OCR confidence threshold is 0.60.** Raised from 0.45. Below 0.60, the image fallback is used
+    instead of inserting garbage LaTeX. The scorer penalizes: `\mathrm{}` abuse, `\to`/`\rightarrow`
+    artifacts, `\mathcal` spam, rare Greek (`\Xi`), plain letter runs, and garbage words
+    ("pout", "REFERENCES", etc.). Rewards: `\frac`, `\int`, `\sum`, `^{}`, `_{}`, `=` sign.
+
 ---
 
 ## Dependencies
@@ -392,16 +429,106 @@ KEY TECHNICAL RULES (add rule 4 to the rules section in claude.md):
    Bad OCR output inserted verbatim into LaTeX is worse than no formula at all.
 ---
 
-## Known Issues (as of 2026-03-21)
+## Known Issues (as of 2026-03-26)
 
 1. **Overfull hbox** — wide tables overflow column width despite `\resizebox` for >5 columns
 2. **ACM .cls file** — needs verification that acmart-tagged.cls is correct version
 3. **Multi-column extraction** — hyphenation artifacts from column layout in double-column PDFs
 4. **Reference cleaning** — incomplete; some entries still contain in-text citation noise
+5. **Table cell images (needs fitz testing)** — `_render_cell_image()` implemented but untested with PyMuPDF; overlap detection may need tuning for fitz's image coordinate system
+6. **Acta Avionica logo** — misclassified as equation (minor)
+7. **pix2tex borderline garbage** — some structurally valid but semantically wrong LaTeX (e.g. `l^{*} p \eta \frac{...}{}`) can still pass the 0.60 threshold if it has `\frac`, `^{}` etc. Table overlap check prevents most of these from appearing in output.
 
 ---
 
 ## Changelog
+
+### 2026-03-26 — Table rendering, header formulas, author extraction, Key Equations dedup
+- **Problem (table header formulas)**: First table row (e.g. `a2 + b2 = c2`) treated as header
+  and cleaned with `_clean()` instead of `_clean_table_cell()` — formula patterns never applied.
+- **Problem (row merging)**: Only header row had `\hline` — data rows used `\\` without separator,
+  causing rows with tall equation images to appear merged.
+- **Problem (table cell borders)**: `_render_cell_image()` cropped at exact cell bbox, capturing
+  table grid lines as visible borders around equation images in cells.
+- **Problem (missing authors)**: "SZABÓ*\nPeter" format (SURNAME on one line, given name on next)
+  wasn't detected — `_is_plausible_author()` requires 2+ words per line.
+- **Problem (DOI as title)**: "Volume XXIV... DOI:" line wasn't detected as metadata, so it
+  became the title instead of "THE FORMULAS".
+- **Table cell crop inset** (`pdf_extractor.py`): Changed `pad=1` to `inset=2` — crop now
+  excludes 2pt border on all sides, removing table grid lines from cell equation images.
+- **Equation dedup for unknown-bbox images** (`pdf_extractor.py`): When equation images lack
+  a rendered bbox (embedded as XObjects), skip them if the page has tables — they're handled
+  by CELLIMG already.
+- **Author SURNAME/GivenName merging** (`parser/heuristic.py`): Pre-pass on block lines
+  combines adjacent single-word UPPERCASE + single-word Titlecase into "GivenName SURNAME".
+- **Metadata detection** (`parser/heuristic.py`): Added `Volume XXIV...` and `DOI:...anywhere`
+  patterns to METADATA_PATTERNS. DOI lines now correctly filtered before title extraction.
+- **Author zone triggers** (`parser/heuristic.py`): Lowered font threshold from 1.2→1.15x body
+  size. Added Trigger 3: block matching detected title text enters author zone.
+- **Table header formula fix** (`normalizer/cleaner.py`): Changed `table.headers` cleanup from
+  `_clean()` to `_clean_table_cell()` — header cells now get formula pattern matching.
+- **Table row separators** (`renderer/jinja_renderer.py`): Added `\hline` after every data row
+  (was header-only). Prevents visual row merging when cells contain tall equation images.
+
+### 2026-03-26 — Table equation dedup, OCR quality overhaul
+- **Problem (duplicate equations)**: Equation images inside the table were extracted BOTH as
+  `\CELLIMG{}` table cell images AND as standalone `FormulaBlock`s in "Key Equations" — double rendering.
+- **Problem (garbage OCR)**: pix2tex produced garbage LaTeX (arrows, wrong symbols, prose) that
+  passed the 0.45 confidence filter and rendered as nonsensical equations.
+- **Table equation dedup** (`pdf_extractor.py`):
+  - `_extract_all_page_images()` now accepts `table_bboxes` parameter
+  - Equation images overlapping table regions are skipped (already handled by CELLIMG)
+  - `_detect_formula_regions()` also skips text blocks inside table regions
+- **OCR quality scorer overhaul** (`_score_ocr_quality()`):
+  - New penalties: `\to`/`\rightarrow` artifacts, `\mathcal` spam (≥2-3 uses),
+    rare Greek (`\Xi`, `\Upsilon`), plain letter runs (>25-40% of content),
+    garbage words ("pout", "REFERENCES", "equation"), isolated single-letters without `=`
+  - New rewards: `\sqrt`, `\infty`, `\pi`, `\sigma`, balanced equations
+  - Threshold raised from 0.45 → 0.60 across all OCR paths (batch + single-image + text-region)
+- **Pipeline filter** (`pipeline.py`):
+  - Formula blocks now accepted if: OCR confidence ≥ 0.60, OR image-only fallback (no latex)
+  - Image-only formulas rendered as `\includegraphics` (better than garbage LaTeX)
+
+### 2026-03-26 — SMask xref compositing, table cell images, corrupted aux cleanup
+- **Problem (black spots)**: `fitz.extract_image(xref)` returns raw RGB; alpha mask is in a SEPARATE
+  `smask_xref` (index 1 of `get_images(full=True)` tuple). Without reconstructing RGBA from both
+  xrefs and compositing onto white, transparent areas render as black rectangles.
+- **Problem (empty table cells)**: Table cells containing equation images (derivative, gravity, etc.)
+  rendered as empty — no image detection for table cell regions.
+- **Problem (corrupted aux)**: Null bytes from failed pdflatex runs persisted in `.aux` files,
+  causing "invalid character" errors on subsequent runs.
+- **SMask xref compositing** (`pdf_extractor.py`):
+  - Added `_composite_with_smask(pdf, xref, smask_xref, raw_bytes)` — reconstructs RGBA from
+    `fitz.Pixmap(pdf, xref)` + `fitz.Pixmap(pdf, smask_xref)`, composites via PIL onto white
+  - Image extraction loop now extracts `smask_xref = img_info[1]` and calls compositing early
+  - `_composite_on_white()` — PIL fallback for RGBA images without separate smask
+  - All `page.get_pixmap()` calls now use `alpha=False` (composites on white by default)
+- **Batch pix2tex worker** (`pix2tex_batch_worker.py`) — NEW FILE:
+  - Loads model ONCE, processes all image paths from CLI args
+  - Outputs JSON array: `[{"path": "...", "latex": "..."}, ...]`
+  - ~10x faster than per-equation subprocess spawning
+- **Batch OCR integration** (`pdf_extractor.py`):
+  - `_batch_ocr_equations()`: collects all equation images, runs batch worker
+  - `_run_batch_ocr_worker()`: subprocess runner with scaled timeout (60s + 5s/img)
+  - `_process_equation_image()`: defers OCR to batch phase (saves image only)
+  - Falls back to single-image workers if batch unavailable
+- **pdfplumber image extraction** (`pdf_extractor.py`):
+  - `_extract_with_pdfplumber()` now extracts images via `page.crop().to_image(resolution=200)`
+  - Classifies images as equation/figure/skip using `_classify_image()`
+  - Also calls `_batch_ocr_equations()` for OCR
+  - Previously returned empty `figures: [], formula_blocks: []`
+- **Unicode math fixes** (`normalizer/cleaner.py`):
+  - Added 15+ missing symbols to `MATH_SYMBOLS`: − (U+2212), ⊕, ⊗, ⊖, ∘, ⟨, ⟩, ′, ″, ∝, ≡, ≅, ≪, ≫
+  - Fixed double-wrapping bug: symbols already containing `$...$` were wrapped again
+- **Table cell equation images** (`pdf_extractor.py`, `jinja_renderer.py`):
+  - Rewrote `_extract_tables_pdfplumber()` to use `find_tables()` for cell-level bboxes
+  - Added `_build_cell_bbox_grid()`: maps (row, col) → cell bbox from pdfplumber's flat cell list
+  - Added `_render_cell_image()`: checks page image/cell bbox overlap, renders as 200 DPI PNG
+  - Empty cells with overlapping images get `\CELLIMG{path}` marker text
+  - Renderer `_escape_table_cell()` detects `\CELLIMG{path}` → `\includegraphics[max height=1.5cm]`
+- **Corrupted aux cleanup** (`latex_compiler.py`):
+  - Before compilation, scans `.aux`, `.out`, `.toc`, `.lof`, `.lot`, `.log` for null bytes
+  - Removes files containing `\x00` to prevent "invalid character" errors from previous runs
 
 ### 2026-03-25 — Image extraction overhaul, OCR-or-save fallback, table dedup
 - **Problem**: Formulas.pdf has equations as embedded images, not Unicode text.

@@ -1,6 +1,23 @@
 {
-  "title": "Volume XXIV, 46 – No. 1, 2022, DOI: 10.35116/aa.2022.0017",
-  "authors": [],
+  "title": "THE FORMULAS",
+  "authors": [
+    {
+      "name": "Peter SZABÓ",
+      "department": "Technical University of Košice, Faculty of Aeronautics",
+      "organization": "Department of Aviation Technical Studies, Rampová 7, 040 01 Košice",
+      "city": "",
+      "country": "Slovak Republic",
+      "email": ""
+    },
+    {
+      "name": "Miroslava FERENCOVÁ",
+      "department": "Technical University of Košice, Faculty of Aeronautics",
+      "organization": "Department of Air Transport Management, Rampová 7, 040 01 Košice",
+      "city": "",
+      "country": "Slovak Republic",
+      "email": "peter.szabo@tuke.sk"
+    }
+  ],
   "abstract": "",
   "keywords": [
     "mathematical formulas",
@@ -28,13 +45,13 @@
             ],
             [
               "3",
-              "",
+              "\\CELLIMG{C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\tcell_1_0_2_1.png}",
               "Derivative, differential calculus",
               "I. Newton, 1668"
             ],
             [
               "4",
-              "",
+              "\\CELLIMG{C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\tcell_1_0_3_1.png}",
               "Newton’s Law of Gravity",
               "I. Newton, 1687"
             ],
@@ -46,13 +63,13 @@
             ],
             [
               "6",
-              "",
+              "\\CELLIMG{C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\tcell_1_0_5_1.png}",
               "Normal distribution",
               "C.F. Gauss, 1810"
             ],
             [
               "7",
-              "",
+              "\\CELLIMG{C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\tcell_1_0_6_1.png}",
               "Fourier Transform",
               "J. Fourier, 1822"
             ],
@@ -84,7 +101,7 @@
       "tables": [],
       "figures": [
         {
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_2_0.jpeg",
+          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_2_0.png",
           "caption": "Figure 1 The orbit of a miniature satellite around the Earth - main parameters",
           "label": "fig_2_0"
         }
@@ -108,7 +125,7 @@
       "tables": [],
       "figures": [
         {
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_3_0.jpeg",
+          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_3_0.png",
           "caption": "",
           "label": "fig_3_0"
         }
@@ -131,40 +148,7 @@
       "body": "The formulas listed in Table 1 have been and are being applied for calculations in various fields of \nscience. In our example, there is an application of the Law of Gravity (formula 4) to calculate the orbit \nof a miniature satellite. The Law of Gravity was also expressed using Kepler’s Laws, which originated \nin the early 17th century (around 1610). The final formulaic form of the Law of Gravity was \ndeveloped after 200 years. Kepler’s third law describes the relationship between the orbital period of \nthe planets around the Sun and the longitude of the major semi-axis of their elliptical orbits. The\n\nThe Formulas \n                                                                        3.\n\ngeneralized form of these laws we have applied to the calculation of the orbit of a miniature satellite \naround the Earth in [8]. Specific calculations and applications are contained in the program [7].\n\nFigure 1 The orbit of a miniature satellite around the Earth - main parameters",
       "tables": [],
       "figures": [],
-      "formula_blocks": [
-        {
-          "latex": "",
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_1_0.png",
-          "confidence": 0.5,
-          "page": 1,
-          "label": "eq_1_0",
-          "bbox_y": 0.0
-        },
-        {
-          "latex": "",
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_1_1.png",
-          "confidence": 0.5,
-          "page": 1,
-          "label": "eq_1_1",
-          "bbox_y": 0.0
-        },
-        {
-          "latex": "",
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_1_2.png",
-          "confidence": 0.5,
-          "page": 1,
-          "label": "eq_1_2",
-          "bbox_y": 0.0
-        },
-        {
-          "latex": "",
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_1_3.png",
-          "confidence": 0.5,
-          "page": 1,
-          "label": "eq_1_3",
-          "bbox_y": 0.0
-        }
-      ],
+      "formula_blocks": [],
       "start_page": 1
     },
     {
@@ -184,9 +168,9 @@
       "figures": [],
       "formula_blocks": [
         {
-          "latex": "a_{i i}>\\Longleftrightarrow_{k=1}^{i}\\sum_{l=k+1}^{n}\\;a_{k l}",
+          "latex": "a_{i i}>\\underline{{{\\sum_{k=1}^{i}\\sum_{k=k+1}^{n}}}}^{i}\\:a_{k l}\\;\\;\\;",
           "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_2_0.png",
-          "confidence": 0.7000000000000002,
+          "confidence": 0.7500000000000002,
           "page": 2,
           "label": "eq_2_0",
           "bbox_y": 0.0
@@ -213,15 +197,15 @@
         {
           "latex": "a_{\\sigma(i)\\pi(i)}+a_{\\sigma(j)\\pi(k)}\\le a_{\\sigma(i)\\pi(j)}+a_{\\sigma(k)\\pi(i)}",
           "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_3_0.png",
-          "confidence": 0.6000000000000001,
+          "confidence": 0.7000000000000002,
           "page": 3,
           "label": "eq_3_0",
           "bbox_y": 0.0
         },
         {
-          "latex": "A\\quad\\mathop{\\textrm{a}}\\quad\\left(\\begin{array}{cc}{{A_{11}}}&{{A_{12}}}\\\\ {{A_{21}}}&{{A_{22}}}\\end{array}\\right),A_{11}=(a_{\\sigma(1)\\pi(1)})",
+          "latex": "A\\quad\\Leftrightarrow\\quad\\left(\\begin{array}{cc}{{A_{11}}}&{{A_{12}}}\\\\ {{A_{21}}}&{{A_{22}}}\\end{array}\\right),A_{11}=(a_{\\sigma(1)\\pi(1)})",
           "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_3_1.png",
-          "confidence": 0.6000000000000001,
+          "confidence": 0.7500000000000002,
           "page": 3,
           "label": "eq_3_1",
           "bbox_y": 0.0
@@ -229,7 +213,7 @@
         {
           "latex": "{\\frac{t_{p}+t_{q}}{3}}=\\lambda(A)",
           "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_3_2.png",
-          "confidence": 0.6500000000000001,
+          "confidence": 0.7000000000000002,
           "page": 3,
           "label": "eq_3_2",
           "bbox_y": 0.0
@@ -245,9 +229,9 @@
       "figures": [],
       "formula_blocks": [
         {
-          "latex": "\\{\\bigotimes\\}_{i\\in\\lbrack\\operatorname{prit})}",
+          "latex": "\\{\\mathbb{Q}\\}{\\overset{\\underset{\\mathrm{a,b}}{}}{\\longleftrightarrow}}{\\frac{\\mathbb{Q}}{\\mathbb{Q}}\\mathbb{\\mathrm{=}}}",
           "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_4_0.png",
-          "confidence": 0.55,
+          "confidence": 0.6000000000000001,
           "page": 4,
           "label": "eq_4_0",
           "bbox_y": 0.0

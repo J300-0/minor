@@ -12,8 +12,24 @@
 
 \begin{document}
 
-\title{Volume XXIV, 46 -- No. 1, 2022, DOI: 10.35116/aa.2022.0017}
+\title{THE FORMULAS}
 
+\author{
+  \IEEEauthorblockN{Peter SZABÓ}
+  \IEEEauthorblockA{
+    \textit{Technical University of Košice, Faculty of Aeronautics}\\
+    Department of Aviation Technical Studies, Rampová 7, 040 01 Košice\\
+    Slovak Republic\\
+  }
+  \and
+  \IEEEauthorblockN{Miroslava FERENCOVÁ}
+  \IEEEauthorblockA{
+    \textit{Technical University of Košice, Faculty of Aeronautics}\\
+    Department of Air Transport Management, Rampová 7, 040 01 Košice\\
+    Slovak Republic\\
+    peter.szabo@tuke.sk
+  }
+}
 \maketitle
 
 \begin{abstract}
@@ -43,16 +59,15 @@ that can be concrete or abstract.
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{|l|l|l|l|}
 \hline
-1 & a2 + b2 = c2 & Pythagoras theorem & Pythagoras,
+1 & $a^{2} + b^{2} = c^{2}$ & Pythagoras theorem & Pythagoras,
 Bc 560 \\ \hline
-2 & $\log(xy) = \log(x) + \log(y)$ & Logarithm & J. Napier, 1610 \\
-3 &  & Derivative, differential calculus & I. Newton, 1668 \\
-4 &  & Newton's Law of Gravity & I. Newton, 1687 \\
-5 & $i^{2} = -1$ & Complex numbers & L. Euler, 1750 \\
-6 &  & Normal distribution & C.F. Gauss, 1810 \\
-7 &  & Fourier Transform & J. Fourier, 1822 \\
-8 & $E = mc^{2}$ & Relativity & A. Einstein, 1905 \\
-\hline
+2 & $\log(xy) = \log(x) + \log(y)$ & Logarithm & J. Napier, 1610 \\ \hline
+3 & \includegraphics[max height=1.5cm]{figures/tcell_1_0_2_1.png} & Derivative, differential calculus & I. Newton, 1668 \\ \hline
+4 & \includegraphics[max height=1.5cm]{figures/tcell_1_0_3_1.png} & Newton's Law of Gravity & I. Newton, 1687 \\ \hline
+5 & $i^{2} = -1$ & Complex numbers & L. Euler, 1750 \\ \hline
+6 & \includegraphics[max height=1.5cm]{figures/tcell_1_0_5_1.png} & Normal distribution & C.F. Gauss, 1810 \\ \hline
+7 & \includegraphics[max height=1.5cm]{figures/tcell_1_0_6_1.png} & Fourier Transform & J. Fourier, 1822 \\ \hline
+8 & $E = mc^{2}$ & Relativity & A. Einstein, 1905 \\ \hline
 \end{tabular}
 }
 \label{tab_1_1}
@@ -82,7 +97,7 @@ constants used in astronomy can be found in the publication [3].
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{figures/fig_2_0.jpeg}
+\includegraphics[width=\columnwidth]{figures/fig_2_0.png}
 \caption{Figure 1 The orbit of a miniature satellite around the Earth - main parameters}
 \label{fig_2_0}
 \end{figure}
@@ -114,7 +129,7 @@ Mathematical formulas are universal, they have universal validity.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{figures/fig_3_0.jpeg}
+\includegraphics[width=\columnwidth]{figures/fig_3_0.png}
 \label{fig_3_0}
 \end{figure}
 \subsection{Physical formulas}
@@ -142,26 +157,6 @@ around the Earth in [8]. Specific calculations and applications are contained in
 
 Figure 1 The orbit of a miniature satellite around the Earth - main parameters
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[max width=0.85\columnwidth, max height=3cm]{figures/eq_1_0.png}
-\label{eq_1_0}
-\end{figure}
-\begin{figure}[htbp]
-\centering
-\includegraphics[max width=0.85\columnwidth, max height=3cm]{figures/eq_1_1.png}
-\label{eq_1_1}
-\end{figure}
-\begin{figure}[htbp]
-\centering
-\includegraphics[max width=0.85\columnwidth, max height=3cm]{figures/eq_1_2.png}
-\label{eq_1_2}
-\end{figure}
-\begin{figure}[htbp]
-\centering
-\includegraphics[max width=0.85\columnwidth, max height=3cm]{figures/eq_1_3.png}
-\label{eq_1_3}
-\end{figure}
 \section{THE AUTHOR'S FORMULAS}
 
 The book [3] inspired us to write some of our scientific results using formulas. Of course, the 
@@ -173,10 +168,10 @@ description of the problems addressed.
 
 The paper [1] deals with the solvability of the system of equations Ax = b in the Bottleneck 
 algebra. By Bottleneck algebra, we mean an algebra in which the basic arithmetic operations of linear 
-algebra (+, $\times$) are replaced by the operations (⊕, ⊗) = (maximum, minimum). Here we have 
+algebra (+, $\times$) are replaced by the operations ($\oplus , \otimes$) = (maximum, minimum). Here we have 
 addressed the question: when does a system of equations
 
-A ⊗ x = b 
+A $\otimes$ x = b 
 (2) 
  
 has a unique solution or in other words, when the matrix A is strongly regular in the Bottleneck 
@@ -200,7 +195,7 @@ aii + ajk $\leq$ aij + aki
 
 \begin{equation}
 \label{eq_2_0}
-a_{i i}>\Longleftrightarrow_{k=1}^{i}\sum_{l=k+1}^{n}\;a_{k l}
+a_{i i}>\underline{{{\sum_{k=1}^{i}\sum_{k=k+1}^{n}}}}^{i}\:a_{k l}\;\;\;
 \end{equation}
 \section{Peter Szabó, Miroslava Ferencová}
 
@@ -225,7 +220,7 @@ complexity no greater than O(n3). This work is the result of the cooperation of 
 \subsection{Goldbach's Conjecture in Max-Algebra}
 
 In max-algebra, the basic arithmetic operations of linear algebra (+, $\times$) are replaced by the 
-operations (⊕, ⊗) = (maximum, +). The well-known Goldbach conjecture states that every even 
+operations ($\oplus , \otimes$) = (maximum, +). The well-known Goldbach conjecture states that every even 
 integer greater than 2 can be expressed as the sum of two primes. So far, no one has proved this nearly 
 300-year-old conjecture. In max algebra, we can successfully solve some polynomially 
 indecomposable linear algebra problems (e.g. the problem of computing an eigenvalue and an 
@@ -240,8 +235,8 @@ and proofs are found in the work [6]. To illustrate, we state that matrix A is o
 
 (8) 
  
-where vector t = (t0,t1,...,tn−1)T is defined such that ti = 0 a tj = 1 just when j is prime, for each i, j 
-= 0,1,...,n − 1.
+where vector t = (t0,t1,...,tn - 1)T is defined such that ti = 0 a tj = 1 just when j is prime, for each i, j 
+= 0,1,...,n  -  1.
 
 The Formulas 
  5.
@@ -252,7 +247,7 @@ a_{\sigma(i)\pi(i)}+a_{\sigma(j)\pi(k)}\le a_{\sigma(i)\pi(j)}+a_{\sigma(k)\pi(i
 \end{equation}
 \begin{equation}
 \label{eq_3_1}
-A\quad\mathop{\textrm{a}}\quad\left(\begin{array}{cc}{{A_{11}}}&{{A_{12}}}\\ {{A_{21}}}&{{A_{22}}}\end{array}\right),A_{11}=(a_{\sigma(1)\pi(1)})
+A\quad\Leftrightarrow\quad\left(\begin{array}{cc}{{A_{11}}}&{{A_{12}}}\\ {{A_{21}}}&{{A_{22}}}\end{array}\right),A_{11}=(a_{\sigma(1)\pi(1)})
 \end{equation}
 \begin{equation}
 \label{eq_3_2}
@@ -269,7 +264,7 @@ also contains some formulas discovered by the authors (3, 6, 7).
 
 \begin{equation}
 \label{eq_4_0}
-\{\bigotimes\}_{i\in\lbrack\operatorname{prit})}
+\{\mathbb{Q}\}{\overset{\underset{\mathrm{a,b}}{}}{\longleftrightarrow}}{\frac{\mathbb{Q}}{\mathbb{Q}}\mathbb{\mathrm{=}}}
 \end{equation}
 \begin{thebibliography}{99}
 \bibitem{ref1} Peter Butkovič, Katarína Cechlárová, and Peter Szabó. Strong linear independence in bottleneck

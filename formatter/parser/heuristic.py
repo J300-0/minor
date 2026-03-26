@@ -31,7 +31,9 @@ KEYWORD_HEADINGS = {
 METADATA_PATTERNS = [
     re.compile(r"^\d+\s*$"),                          # page numbers
     re.compile(r"^vol\.\s*\d+", re.I),                # volume numbers
-    re.compile(r"^doi:\s*", re.I),                     # DOIs
+    re.compile(r"^volume\s+[IVXLC\d]+", re.I),       # "Volume XXIV, ..."
+    re.compile(r"^doi:\s*", re.I),                     # DOIs starting with DOI
+    re.compile(r"DOI:\s*10\.\d+", re.I),              # DOI anywhere in line
     re.compile(r"^\d{4}\s+(IEEE|ACM|Springer)", re.I), # year + publisher
     re.compile(r"^©\s*\d{4}", re.I),                   # copyright
     re.compile(r"ISSN\s*[\d-]+", re.I),                # ISSN
@@ -102,7 +104,7 @@ def _parse_with_fonts(blocks: list, full_text: str) -> Document:
     title = _extract_title_from_blocks(blocks, body_size)
 
     # Authors: blocks between title and abstract
-    authors = _extract_authors_from_blocks(blocks, body_size)
+    authors = _extract_authors_from_blocks(blocks, body_size, title=title)
 
     # Abstract
     abstract = _extract_abstract_from_blocks(blocks)
@@ -148,7 +150,8 @@ def _extract_title_from_blocks(blocks: list, body_size: float) -> str:
     return ""
 
 
-def _extract_authors_from_blocks(blocks: list, body_size: float) -> List[Author]:
+def _extract_authors_from_blocks(blocks: list, body_size: float,
+                                  title: str = "") -> List[Author]:
     """
     Extract authors from blocks between title and abstract.
 
@@ -176,7 +179,12 @@ def _extract_authors_from_blocks(blocks: list, body_size: float) -> List[Author]
             continue
 
         # Trigger 2: title-sized font — we're past the title, authors follow
-        if b["size"] > body_size * 1.2:
+        if b["size"] > body_size * 1.15:
+            in_author_zone = True
+            continue
+
+        # Trigger 3: block text matches the detected title — authors follow it
+        if title and text.strip() == title.strip():
             in_author_zone = True
             continue
 
@@ -196,6 +204,36 @@ def _extract_authors_from_blocks(blocks: list, body_size: float) -> List[Author]
         # may contain "AuthorName\nDepartment\nUniversity, Country\nemail".
         # We must classify EACH line, not the whole block.
         lines = text.split("\n")
+
+        # Pre-pass: merge SURNAME / GivenName pairs on adjacent lines.
+        # Pattern: line is single UPPERCASE word (surname), next line is
+        # single Titlecase word (given name). E.g. "SZABÓ*" + "Peter"
+        merged_lines = []
+        i = 0
+        while i < len(lines):
+            ln = lines[i].strip()
+            ln_clean = re.sub(r"[*†‡§¹²³⁴⁵⁶⁷⁸⁹⁰\d]", "", ln).strip()
+            # Check: single word, uppercase, 2-20 chars
+            if (ln_clean and len(ln_clean.split()) == 1
+                    and ln_clean[0].isupper()
+                    and 2 <= len(ln_clean) <= 20
+                    and not any(w in ln_clean.lower() for w in AFFILIATION_WORDS)
+                    and i + 1 < len(lines)):
+                next_ln = lines[i + 1].strip()
+                next_clean = re.sub(r"[*†‡§¹²³⁴⁵⁶⁷⁸⁹⁰\d]", "", next_ln).strip()
+                # Next line is a single Titlecase word (given name)
+                if (next_clean and len(next_clean.split()) == 1
+                        and next_clean[0].isupper()
+                        and 2 <= len(next_clean) <= 20
+                        and not any(w in next_clean.lower() for w in AFFILIATION_WORDS)):
+                    # Combine as "GivenName SURNAME"
+                    merged_lines.append(f"{next_clean} {ln_clean}")
+                    i += 2
+                    continue
+            merged_lines.append(ln)
+            i += 1
+        lines = merged_lines
+
         for line in lines:
             line = line.strip()
             if not line:

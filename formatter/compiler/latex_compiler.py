@@ -29,6 +29,22 @@ def compile_latex(tex_path: str, output_dir: str, template_name: str) -> str:
 
     tex_dir = os.path.dirname(os.path.abspath(tex_path))
     tex_name = os.path.basename(tex_path)
+    tex_stem = os.path.splitext(tex_name)[0]
+
+    # Clean stale auxiliary files that may contain null bytes from previous runs.
+    # Corrupted .aux files cause "Text line contains an invalid character" errors.
+    for ext in (".aux", ".out", ".toc", ".lof", ".lot", ".log"):
+        stale = os.path.join(tex_dir, tex_stem + ext)
+        if os.path.isfile(stale):
+            try:
+                # Check for null bytes — sign of corruption
+                with open(stale, "rb") as f:
+                    data = f.read()
+                if b"\x00" in data:
+                    log.debug("  Removing corrupted %s (null bytes)", ext)
+                    os.remove(stale)
+            except Exception:
+                pass
 
     cmd = [
         "pdflatex",

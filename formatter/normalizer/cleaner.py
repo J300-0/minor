@@ -61,6 +61,25 @@ MATH_SYMBOLS = {
     "⇒": r"\Rightarrow", "⇐": r"\Leftarrow",
     "↔": r"\leftrightarrow", "⇔": r"\Leftrightarrow",
     "°": r"\degree",
+    # Additional math operators that pdflatex can't handle as raw Unicode
+    "−": r"-",           # U+2212 MINUS SIGN → ASCII hyphen-minus
+    "⊕": r"$\oplus$",    # U+2295 CIRCLED PLUS
+    "⊗": r"$\otimes$",   # U+2297 CIRCLED TIMES
+    "⊖": r"$\ominus$",   # U+2296 CIRCLED MINUS
+    "⊘": r"$\oslash$",   # U+2298 CIRCLED DIVISION SLASH
+    "⊙": r"$\odot$",     # U+2299 CIRCLED DOT
+    "∘": r"$\circ$",     # U+2218 RING OPERATOR
+    "⟨": r"$\langle$",   # U+27E8 LEFT ANGLE BRACKET
+    "⟩": r"$\rangle$",   # U+27E9 RIGHT ANGLE BRACKET
+    "‖": r"\|",          # U+2016 DOUBLE VERTICAL LINE
+    "′": r"'",           # U+2032 PRIME
+    "″": r"''",          # U+2033 DOUBLE PRIME
+    "∝": r"$\propto$",   # U+221D PROPORTIONAL TO
+    "∥": r"\|",          # U+2225 PARALLEL TO
+    "≡": r"$\equiv$",    # U+2261 IDENTICAL TO
+    "≅": r"$\cong$",     # U+2245 APPROXIMATELY EQUAL TO
+    "≪": r"$\ll$",       # U+226A MUCH LESS-THAN
+    "≫": r"$\gg$",       # U+226B MUCH GREATER-THAN
 }
 
 # Superscript/subscript digits
@@ -90,7 +109,7 @@ def normalize(doc: Document) -> Document:
 
         # Clean table cells — use _clean_with_math for formula-heavy tables
         for table in section.tables:
-            table.headers = [_clean(h) for h in table.headers]
+            table.headers = [_clean_table_cell(h) for h in table.headers]
             table.rows = [[_clean_table_cell(c) for c in row] for row in table.rows]
             table.caption = _clean(table.caption)
 
@@ -135,7 +154,12 @@ def _clean_with_math(text: str) -> str:
     # Step 5: Math symbols → LaTeX
     for char, cmd in MATH_SYMBOLS.items():
         if char in text:
-            text = text.replace(char, f"${cmd}$")
+            # Some replacements already include $...$ (e.g. $\oplus$)
+            # Don't double-wrap those
+            if cmd.startswith("$") and cmd.endswith("$"):
+                text = text.replace(char, cmd)
+            else:
+                text = text.replace(char, f"${cmd}$")
 
     # Step 6: Super/subscript unicode chars — attached-aware conversion
     # x² → $x^{2}$  (NOT  x$^{2}$)
