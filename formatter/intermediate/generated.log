@@ -145,15 +145,15 @@ opdf-sys.cfg)) (generated.out) (generated.out)
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
 .fd)
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
-.fd)
-Underfull \hbox (badness 1383) in paragraph at lines 124--129
+.fd) [1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pd
+ftex.map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvip
+s/base/8r.enc} <./figures/tcell_1_0_2_1.png (PNG copy)> <./figures/tcell_1_0_3_
+1.png (PNG copy)> <./figures/tcell_1_0_5_1.png (PNG copy)> <./figures/tcell_1_0
+_6_1.png (PNG copy)> <./figures/fig_0_0.png (PNG copy)> <./figures/eq_0_0.png (
+PNG copy)>]
+Underfull \hbox (badness 1383) in paragraph at lines 122--127
 []\T1/ptm/m/n/10 Mathematical for-mu-las con-tain math-e-mat-i-cal con-stants,
-[1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdftex.
-map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/bas
-e/8r.enc} <./figures/tcell_1_0_2_1.png> <./figures/tcell_1_0_3_1.png> <./figure
-s/tcell_1_0_5_1.png> <./figures/tcell_1_0_6_1.png> <./figures/fig_0_0.png (PNG 
-copy)>] [2 <./figures/fig_2_0.png (PNG copy)> <./figures/eq_0_0.png (PNG copy)>
- <./figures/fig_3_0.png (PNG copy)>]
+[2 <./figures/fig_2_0.png (PNG copy)> <./figures/fig_3_0.png (PNG copy)>]
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -165,30 +165,26 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[3] (generated.aux) )
+[3 <./figures/eq_4_0.png (PNG copy)>] (generated.aux) )
 (see the transcript file for additional information)<C:/Users/janme/scoop/apps/
 latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/User
 s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/
 cmmi10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/
-public/amsfonts/cm/cmmi5.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/in
-stall/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Users/janme/scoop/apps/latex
-/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/janm
-e/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr10.
-pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/
-amsfonts/cm/cmr5.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
-nts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/janme/scoop/apps/latex/current/
-texmfs/install/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Users/janme/scoop/ap
-ps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Use
-rs/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm
-/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1
-/public/amsfonts/cm/cmsy8.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/i
-nstall/fonts/type1/public/amsfonts/symbols/msbm10.pfb><C:/Users/janme/scoop/app
-s/latex/current/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme
-/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/
-Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr8
-a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/t
-imes/utmri8a.pfb>
+public/amsfonts/cm/cmmi7.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/in
+stall/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/janme/scoop/apps/latex
+/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/janm
+e/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr6.p
+fb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/a
+msfonts/cm/cmr7.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fon
+ts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/janme/scoop/apps/latex/current/t
+exmfs/install/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/a
+pps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/U
+sers/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmb8a
+.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/ti
+mes/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/t
+ype1/urw/times/utmr8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/insta
+ll/fonts/type1/urw/times/utmri8a.pfb>
 Output written on C:\Users\janme\Desktop\minor\formatter\intermediate\generated
-.pdf (3 pages, 798265 bytes).
+.pdf (3 pages, 795999 bytes).
 Transcript written on C:\Users\janme\Desktop\minor\formatter\intermediate\gener
 ated.log.

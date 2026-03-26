@@ -136,6 +136,9 @@ python main.py input/paper.docx --template springer
 14. **Clean corrupted aux files before pdflatex** — null bytes from previous runs crash compilation
 15. **Skip equation images inside tables** — `_extract_all_page_images()` and `_detect_formula_regions()` check table bboxes; table equations are handled by `\CELLIMG{}` already
 16. **OCR confidence threshold is 0.60** — raised from 0.45; borderline OCR falls back to image rendering
+17. **Equation images saved with 200 DPI metadata** — prevents LaTeX from rendering at 72 DPI (2-3x too large)
+18. **Template uses `max width`/`max height` from adjustbox** — images stay at natural size, only shrink if needed
+19. **Arrow commands penalized in OCR scorer** — `\leftrightarrow`, `\longleftrightarrow`, `↔`, `{X}\to` patterns rejected
 
 ## Tasks Completed
 - [x] Table header formula fix: headers now use `_clean_table_cell` (was `_clean` — skipped formula patterns)

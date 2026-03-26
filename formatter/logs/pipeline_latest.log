@@ -1,66 +1,66 @@
-09:08:45 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
-09:08:45 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
-09:08:46 [DEBUG  ] paper_formatter:   Figure p0 xref=91 (753x286 pt): fig_0_0.png
-09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p0: eq_0_0.png (1.9 KB)
-09:08:46 [DEBUG  ] paper_formatter:   Equation p0 xref=93 (60x43 pt)
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 71,187,507,252
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,259,164,272
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 219,286,222,298
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 256,259,509,272
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,313,89,325
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 199,333,201,345
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 268,313,509,325
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,347,505,373
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 214,371,216,383
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 281,361,511,373
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,390,82,403
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 237,401,239,413
-09:08:46 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 284,390,508,403
-09:08:46 [DEBUG  ] paper_formatter:   Skip equation p1 xref=4 (no bbox, page has tables)
-09:08:46 [DEBUG  ] paper_formatter:   Skip equation p1 xref=6 (no bbox, page has tables)
-09:08:46 [DEBUG  ] paper_formatter:   Skip equation p1 xref=8 (no bbox, page has tables)
-09:08:46 [DEBUG  ] paper_formatter:   Skip equation p1 xref=10 (no bbox, page has tables)
-09:08:46 [DEBUG  ] paper_formatter:   Figure p2 xref=18 (505x357 pt): fig_2_0.png
-09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p2: eq_2_0.png (11.8 KB)
-09:08:46 [DEBUG  ] paper_formatter:   Equation p2 xref=19 (115x41 pt)
-09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_0.png (15.5 KB)
-09:08:46 [DEBUG  ] paper_formatter:   Equation p3 xref=23 (216x32 pt)
-09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_1.png (19.9 KB)
-09:08:46 [DEBUG  ] paper_formatter:   Equation p3 xref=24 (225x44 pt)
-09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_2.png (8.0 KB)
-09:08:46 [DEBUG  ] paper_formatter:   Equation p3 xref=25 (89x36 pt)
-09:08:46 [DEBUG  ] paper_formatter:   Figure p3 xref=26 (184x101 pt): fig_3_0.png
-09:08:46 [DEBUG  ] paper_formatter:   Equation image saved p4: eq_4_0.png (10.8 KB)
-09:08:46 [DEBUG  ] paper_formatter:   Equation p4 xref=33 (193x68 pt)
-09:08:46 [INFO   ] paper_formatter:   Batch OCR: 6 equation images to process
-09:08:46 [INFO   ] paper_formatter:   OCR engine 'pix2tex' is available
-09:08:57 [DEBUG  ] paper_formatter:   Batch pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTA
-09:08:57 [INFO   ] paper_formatter:   Batch pix2tex: processed 6 images
-09:08:57 [DEBUG  ] paper_formatter:   Batch OCR REJECTED p0: conf=0.50 latex=\tau\,\underline{{{\underline{{O}}}}}\,\
-09:08:57 [DEBUG  ] paper_formatter:   Batch OCR p2: conf=0.75 latex=a_{i i}>\underline{{{\sum_{k=1}^{i}\sum_{k=k+1}^{n}}}}^{i}\:
-09:08:57 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.70 latex=a_{\sigma(i)\pi(i)}+a_{\sigma(j)\pi(k)}\le a_{\sigma(i)\pi(j
-09:08:57 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.75 latex=A\quad\Leftrightarrow\quad\left(\begin{array}{cc}{{A_{11}}}&
-09:08:57 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.70 latex={\frac{t_{p}+t_{q}}{3}}=\lambda(A)
-09:08:57 [DEBUG  ] paper_formatter:   Batch OCR p4: conf=0.60 latex=\{\mathbb{Q}\}{\overset{\underset{\mathrm{a,b}}{}}{\longleft
-09:08:57 [INFO   ] paper_formatter:   Batch OCR done: 5 with LaTeX, 1 image-only fallback
-09:08:57 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r2 c1: tcell_1_0_2_1.png
-09:08:57 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r3 c1: tcell_1_0_3_1.png
-09:08:57 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r5 c1: tcell_1_0_5_1.png
-09:08:57 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r6 c1: tcell_1_0_6_1.png
-09:08:57 [INFO   ] paper_formatter:   Extracted 11750 chars, 56 blocks, 1 tables, 3 figures, 6 formulas (fitz)
-09:08:57 [INFO   ] paper_formatter: Stage 2/6: Parse
-09:08:57 [INFO   ] paper_formatter:   Using font-aware parsing (56 blocks)
-09:08:57 [INFO   ] paper_formatter:   Parsed: title=12 chars, 2 authors, abstract=0 chars, 10 sections, 6 references
-09:08:57 [INFO   ] paper_formatter:   Formula blocks: 6 kept / 6 total (conf >= 0.60 or image-only)
-09:08:57 [INFO   ] paper_formatter:   Figures: 3 extracted
-09:08:57 [INFO   ] paper_formatter: Stage 3/6: Canon
-09:08:57 [DEBUG  ] paper_formatter:   Canon: abstract: repaired from first body paragraph
-09:08:57 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.8(2) | abstract=0.3(619 chars) | sections=0.8(10) | refs=0.8(6) | repairs=1
-09:08:57 [INFO   ] paper_formatter: Stage 4/6: Normalize
-09:08:57 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
-09:08:57 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
-09:08:57 [INFO   ] paper_formatter:   Generated: C:\Users\janme\Desktop\minor\formatter\intermediate\generated.tex
-09:08:57 [INFO   ] paper_formatter: Stage 6/6: Compile
-09:08:57 [INFO   ] paper_formatter:   pdflatex pass 1/2...
-09:08:58 [INFO   ] paper_formatter:   pdflatex pass 2/2...
-09:08:59 [INFO   ] paper_formatter:   Output: C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf
+13:20:30 [INFO   ] paper_formatter: Stage 1/6: Extract (.pdf)
+13:20:31 [INFO   ] paper_formatter:   Opening PDF: Formulas.pdf
+13:20:31 [DEBUG  ] paper_formatter:   Figure p0 xref=91 (753x286 pt): fig_0_0.png
+13:20:31 [DEBUG  ] paper_formatter:   Equation image saved p0: eq_0_0.png (1.9 KB)
+13:20:31 [DEBUG  ] paper_formatter:   Equation p0 xref=93 (60x43 pt)
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 71,187,507,252
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,259,164,272
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 219,286,222,298
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 256,259,509,272
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,313,89,325
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 199,333,201,345
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 268,313,509,325
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,347,505,373
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 214,371,216,383
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 281,361,511,373
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 74,390,82,403
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 237,401,239,413
+13:20:31 [DEBUG  ] paper_formatter:   Skipping text block overlapping table on p1: 284,390,508,403
+13:20:31 [DEBUG  ] paper_formatter:   Skip equation p1 xref=4 (no bbox, page has tables)
+13:20:31 [DEBUG  ] paper_formatter:   Skip equation p1 xref=6 (no bbox, page has tables)
+13:20:31 [DEBUG  ] paper_formatter:   Skip equation p1 xref=8 (no bbox, page has tables)
+13:20:31 [DEBUG  ] paper_formatter:   Skip equation p1 xref=10 (no bbox, page has tables)
+13:20:31 [DEBUG  ] paper_formatter:   Figure p2 xref=18 (505x357 pt): fig_2_0.png
+13:20:31 [DEBUG  ] paper_formatter:   Equation image saved p2: eq_2_0.png (11.8 KB)
+13:20:31 [DEBUG  ] paper_formatter:   Equation p2 xref=19 (115x41 pt)
+13:20:31 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_0.png (15.5 KB)
+13:20:31 [DEBUG  ] paper_formatter:   Equation p3 xref=23 (216x32 pt)
+13:20:31 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_1.png (19.9 KB)
+13:20:31 [DEBUG  ] paper_formatter:   Equation p3 xref=24 (225x44 pt)
+13:20:31 [DEBUG  ] paper_formatter:   Equation image saved p3: eq_3_2.png (8.0 KB)
+13:20:31 [DEBUG  ] paper_formatter:   Equation p3 xref=25 (89x36 pt)
+13:20:31 [DEBUG  ] paper_formatter:   Figure p3 xref=26 (184x101 pt): fig_3_0.png
+13:20:31 [DEBUG  ] paper_formatter:   Equation image saved p4: eq_4_0.png (10.8 KB)
+13:20:31 [DEBUG  ] paper_formatter:   Equation p4 xref=33 (193x68 pt)
+13:20:31 [INFO   ] paper_formatter:   Batch OCR: 6 equation images to process
+13:20:31 [INFO   ] paper_formatter:   OCR engine 'pix2tex' is available
+13:20:44 [DEBUG  ] paper_formatter:   Batch pix2tex worker stderr: C:\Users\janme\Desktop\minor\formatter\venv\Lib\site-packages\albumentations\__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTA
+13:20:44 [INFO   ] paper_formatter:   Batch pix2tex: processed 6 images
+13:20:44 [DEBUG  ] paper_formatter:   Batch OCR REJECTED p0: conf=0.50 latex=\tau\underline{{{\Sigma}}}\underline{{{\
+13:20:44 [DEBUG  ] paper_formatter:   Batch OCR p2: conf=0.75 latex=a_{i i}>\Longleftrightarrow_{k=1}^{i}\sum_{l=k+1}^{n}\;a_{k 
+13:20:44 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.70 latex=a_{\sigma(i)\pi(i)}+a_{\sigma(j)\pi(k)}\le a_{\sigma(i)\pi(j
+13:20:44 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.75 latex=A\quad\mathop{\textrm{a}}\quad\left(\begin{array}{cc}{{A_{11
+13:20:44 [DEBUG  ] paper_formatter:   Batch OCR p3: conf=0.70 latex={\frac{t_{p}+t_{q}}{3}}=\lambda(A)
+13:20:44 [DEBUG  ] paper_formatter:   Batch OCR REJECTED p4: conf=0.45 latex=\{\mathbb{Q}\}{\overset{\underset{\mathr
+13:20:44 [INFO   ] paper_formatter:   Batch OCR done: 4 with LaTeX, 2 image-only fallback
+13:20:44 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r2 c1: tcell_1_0_2_1.png
+13:20:44 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r3 c1: tcell_1_0_3_1.png
+13:20:44 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r5 c1: tcell_1_0_5_1.png
+13:20:44 [DEBUG  ] paper_formatter:   Table cell image p1 t0 r6 c1: tcell_1_0_6_1.png
+13:20:44 [INFO   ] paper_formatter:   Extracted 11750 chars, 56 blocks, 1 tables, 3 figures, 6 formulas (fitz)
+13:20:44 [INFO   ] paper_formatter: Stage 2/6: Parse
+13:20:44 [INFO   ] paper_formatter:   Using font-aware parsing (56 blocks)
+13:20:44 [INFO   ] paper_formatter:   Parsed: title=12 chars, 2 authors, abstract=0 chars, 10 sections, 6 references
+13:20:44 [INFO   ] paper_formatter:   Formula blocks: 6 kept / 6 total (conf >= 0.60 or image-only)
+13:20:44 [INFO   ] paper_formatter:   Figures: 3 extracted
+13:20:44 [INFO   ] paper_formatter: Stage 3/6: Canon
+13:20:44 [DEBUG  ] paper_formatter:   Canon: abstract: repaired from first body paragraph
+13:20:44 [INFO   ] paper_formatter:   Canon OK: title=0.9(parsed) | authors=0.8(2) | abstract=0.3(619 chars) | sections=0.8(10) | refs=0.8(6) | repairs=1
+13:20:44 [INFO   ] paper_formatter: Stage 4/6: Normalize
+13:20:44 [INFO   ] paper_formatter:   Cleaning title, abstract, section bodies...
+13:20:44 [INFO   ] paper_formatter: Stage 5/6: Render (ieee)
+13:20:44 [INFO   ] paper_formatter:   Generated: C:\Users\janme\Desktop\minor\formatter\intermediate\generated.tex
+13:20:44 [INFO   ] paper_formatter: Stage 6/6: Compile
+13:20:44 [INFO   ] paper_formatter:   pdflatex pass 1/2...
+13:20:45 [INFO   ] paper_formatter:   pdflatex pass 2/2...
+13:20:46 [INFO   ] paper_formatter:   Output: C:\Users\janme\Desktop\minor\formatter\output\generated_ieee.pdf

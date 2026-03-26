@@ -527,11 +527,18 @@ def _process_equation_image(pdf, img_bytes: bytes, ext: str,
     # CRITICAL: Composite alpha onto white to fix SMask black backgrounds
     img_bytes = _composite_on_white(img_bytes)
 
-    # Save image to figures dir
+    # Save image to figures dir WITH 200 DPI metadata
+    # Without DPI, LaTeX assumes 72 DPI → images render 2-3x too large
     fname = f"eq_{page_num}_{counter}.png"
     fpath = os.path.join(fig_dir, fname)
-    with open(fpath, "wb") as f:
-        f.write(img_bytes)
+    try:
+        from PIL import Image
+        import io
+        img = Image.open(io.BytesIO(img_bytes))
+        img.save(fpath, "PNG", dpi=(200, 200))
+    except Exception:
+        with open(fpath, "wb") as f:
+            f.write(img_bytes)
 
     # Return dict WITHOUT latex — OCR is deferred to batch phase
     # (see _batch_ocr_equations called after all images are collected)
@@ -1260,8 +1267,17 @@ def _score_ocr_quality(latex: str) -> float:
     if r"\scriptstyle" in latex and len(latex) > 50:
         score -= 0.15
 
-    # Penalize \to / \rightarrow (pix2tex often misreads = as →)
-    arrow_count = latex.count(r"\to") + latex.count(r"\rightarrow")
+    # Penalize \to / \rightarrow / \leftrightarrow (pix2tex misreads = as arrows)
+    # BUT don't penalize \to when inside \lim context (legitimate usage)
+    arrow_count = (latex.count(r"\rightarrow")
+                   + latex.count(r"\leftrightarrow") + latex.count(r"\longleftrightarrow")
+                   + latex.count(r"\Leftrightarrow") + latex.count(r"\longrightarrow")
+                   + latex.count(r"\hookrightarrow"))
+    # Count \to separately — skip if \lim present (e.g. \lim_{x \to 0})
+    to_count = len(re.findall(r"\\to(?![a-zA-Z])", latex))
+    if r"\lim" in latex:
+        to_count = max(0, to_count - 1)  # allow one \to for the \lim
+    arrow_count += to_count
     if arrow_count >= 1:
         score -= 0.15 * arrow_count
 
@@ -1313,6 +1329,21 @@ def _score_ocr_quality(latex: str) -> float:
         if gw in latex:
             score -= 0.3
             break
+
+    # Penalize Unicode arrows (↔, →, ←) — pix2tex garbage artifacts
+    unicode_arrows = ["↔", "→", "←", "⟶", "⟵", "⟷"]
+    for ua in unicode_arrows:
+        if ua in latex:
+            score -= 0.15
+
+    # Penalize {X}↔ or {X}\to patterns — single-letter braced groups with arrows
+    # Pattern like {Q}↔ Q/Q = is nonsensical
+    if re.search(r"\{[A-Za-z]\}\\?(to|leftrightarrow|rightarrow|longrightarrow)", latex):
+        score -= 0.2
+
+    # Penalize equations that are just X/X = or single-var ratios
+    if re.search(r"^[{\\A-Za-z]{1,5}\s*/\s*[{\\A-Za-z]{1,5}\s*=", stripped):
+        score -= 0.15
 
     # ── Rewards ──────────────────────────────────────────────
 
@@ -1785,8 +1816,13 @@ def _render_cell_image(page, cell_bbox, page_images, page_num, table_idx,
         fname = f"tcell_{page_num}_{table_idx}_{row_idx}_{col_idx}.png"
         fpath = os.path.join(fig_dir, fname)
 
+        # pil_img from pdfplumber is a CroppedPageImage, get PIL Image
+        try:
+            actual_img = pil_img.original  # pdfplumber's underlying PIL Image
+        except AttributeError:
+            actual_img = pil_img
         buf = io.BytesIO()
-        pil_img.save(buf, format="PNG")
+        actual_img.save(buf, format="PNG", dpi=(200, 200))
         with open(fpath, "wb") as f:
             f.write(buf.getvalue())
 
