@@ -39,8 +39,28 @@ MIN_MATH_RATIO = 0.08     # math chars must be >= 8% of block text
 MAX_BLOCK_CHARS = 300     # skip long body paragraphs
 MIN_CROP_W = 60           # minimum rendered crop width (pixels)
 MIN_CROP_H = 20           # minimum rendered crop height (pixels)
-MAX_PER_PAGE = 8          # cap per page
-MAX_TOTAL = 40            # cap total
+MAX_PER_PAGE = 3          # cap per page (was 8 — 8 × 12s = 96s per page alone)
+MAX_TOTAL = 10            # cap total   (was 40 — 40 × 12s = 480s = 8 min)
+
+# Global OCR time budget — stops formula-region OCR after this many seconds.
+# Formulas that didn't get OCR'd fall back to image-only rendering (still appear
+# in the PDF, just as includegraphics rather than selectable LaTeX).
+OCR_BUDGET_SECONDS = 90   # default; overridable via set_ocr_budget()
+_ocr_budget: dict = {"start": None, "exhausted": False, "enabled": True}
+
+
+def set_ocr_budget(seconds):
+    """
+    Configure the OCR time budget before running extraction.
+    Pass None or a large value to disable the budget.
+    Pass 0 to disable OCR entirely (--no-ocr mode).
+    """
+    _ocr_budget["enabled"] = seconds is None or seconds > 0
+    _ocr_budget["start"] = None
+    _ocr_budget["exhausted"] = (seconds is not None and seconds <= 0)
+    global OCR_BUDGET_SECONDS
+    if seconds is not None and seconds > 0:
+        OCR_BUDGET_SECONDS = seconds
 
 # TeX-specific math font substrings (conservative — avoids false STIX hits)
 MATH_FONT_HINTS = {"cmex", "cmsy", "cmmi", "euler", "mathit", "mathsy"}
@@ -191,6 +211,9 @@ def _extract_with_fitz(path: str) -> dict:
     # Tables via pdfplumber
     all_tables = _extract_tables_pdfplumber(path)
 
+    # OCR table cell images → convert \CELLIMG{} to \CELLEQ{latex} for selectability
+    all_tables = _ocr_table_cells(all_tables)
+
     # Detect figure captions from nearby text blocks
     _detect_figure_captions(all_figures, all_blocks)
 
@@ -212,9 +235,10 @@ def _extract_with_fitz(path: str) -> dict:
 
 # ── Figure caption detection ──────────────────────────────────────
 
-# Caption patterns: "Fig. 1. Caption text", "Figure 1: Caption text", etc.
+# Caption patterns: "Fig. 1. Caption text", "Figure 1: Caption text",
+# "Fig 6 Caption text" (no period/colon after number), etc.
 _CAPTION_RE = re.compile(
-    r"^(?:Fig(?:ure)?\.?\s*\d+[\.:]\s*)(.+)",
+    r"^(?:Fig(?:ure)?\.?\s*\d+[\s\.:]+)(.+)",
     re.IGNORECASE | re.DOTALL
 )
 _CAPTION_START_RE = re.compile(
@@ -906,23 +930,40 @@ def _detect_formula_regions(page, page_num: int, text_dict: dict,
 
 def _ocr_formula_region(page, bbox) -> str:
     """Render a page region at 200 DPI and OCR with pix2tex → nougat fallback."""
+    import time as _time
+
+    # ── OCR time-budget gate ───────────────────────────────────────
+    if _ocr_budget.get("exhausted"):
+        return ""
+    if not _ocr_budget.get("enabled", True):
+        return ""
+    if _ocr_budget.get("start") is None:
+        _ocr_budget["start"] = _time.time()
+    elif _time.time() - _ocr_budget["start"] > OCR_BUDGET_SECONDS:
+        log.info(
+            "  OCR time budget (%.0fs) reached — skipping remaining formula regions "
+            "(they will render as images instead of LaTeX).",
+            OCR_BUDGET_SECONDS,
+        )
+        _ocr_budget["exhausted"] = True
+        return ""
+    # ─────────────────────────────────────────────────────────────
+
+    tmp_path = None
     try:
         import fitz
         mat = fitz.Matrix(200 / 72, 200 / 72)
         pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(bbox), alpha=False)
 
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            pix.save(f.name)
-            tmp_path = f.name
+        # Create temp file, close it FIRST, then write — avoids Windows file lock
+        f = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        tmp_path = f.name
+        f.close()  # Close handle BEFORE writing to avoid Windows Permission Denied
+        pix.save(tmp_path)
 
         latex = _run_ocr_worker("pix2tex", tmp_path)
         if not latex:
             latex = _run_ocr_worker("nougat", tmp_path)
-
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
 
         if latex:
             latex = _sanitize_ocr_latex(latex)
@@ -932,6 +973,16 @@ def _ocr_formula_region(page, bbox) -> str:
     except Exception as e:
         log.debug("  OCR region failed: %s", e)
         return ""
+    finally:
+        # Clean up temp file — retry with delay on Windows for locked files
+        if tmp_path:
+            for _ in range(3):
+                try:
+                    os.unlink(tmp_path)
+                    break
+                except OSError:
+                    import time
+                    time.sleep(0.1)
 
 
 # ── Batch OCR for equation images ─────────────────────────────────
@@ -997,6 +1048,113 @@ def _batch_ocr_equations(formulas: list) -> list:
     return formulas
 
 
+def _ocr_table_cells(tables: list) -> list:
+    """
+    Scan all table rows/headers for \\CELLIMG{path} markers.
+    Run pix2tex batch OCR on the collected images.
+    Replace \\CELLIMG{path} with \\CELLEQ{latex} where OCR succeeds.
+
+    This makes table formula cells selectable text instead of images.
+    """
+    import re as _re
+
+    _cellimg_re = _re.compile(r"^\\CELLIMG\{(.+?)\}$")
+
+    # Phase 1: collect all CELLIMG paths and their positions
+    # positions: list of (table_idx, 'header'|'row', row_idx, col_idx, image_path)
+    collected = []
+
+    for ti, table in enumerate(tables):
+        headers = table.get("headers", [])
+        for ci, cell in enumerate(headers):
+            m = _cellimg_re.match(str(cell).strip())
+            if m:
+                collected.append((ti, "header", 0, ci, m.group(1)))
+
+        rows = table.get("rows", [])
+        for ri, row in enumerate(rows):
+            for ci, cell in enumerate(row):
+                m = _cellimg_re.match(str(cell).strip())
+                if m:
+                    collected.append((ti, "row", ri, ci, m.group(1)))
+
+    if not collected:
+        return tables
+
+    log.info("  Table cell OCR: %d cell images to process", len(collected))
+
+    # Table cell OCR threshold is LOWER than standalone formulas (0.40 vs 0.60)
+    # because a slightly imperfect selectable formula is better than an image.
+    # The user wants to copy/edit formulas — images are a last resort.
+    TABLE_CELL_OCR_THRESHOLD = 0.40
+
+    # Phase 2: batch OCR all collected images via pix2tex
+    image_paths = [c[4] for c in collected]
+    batch_results = _run_batch_ocr_worker("pix2tex", image_paths)
+
+    if not batch_results:
+        # Batch failed entirely — try single-image pix2tex
+        batch_results = []
+        for path in image_paths:
+            latex = _run_ocr_worker("pix2tex", path)
+            batch_results.append({"path": path, "latex": latex or ""})
+
+    # Phase 3: apply OCR results; track which cells still need help
+    ocr_success = 0
+    still_need_ocr = []  # indices into collected that failed pix2tex
+
+    for idx, ((ti, kind, ri, ci, img_path), result) in enumerate(
+            zip(collected, batch_results)):
+        latex = result.get("latex", "")
+        if latex:
+            latex = _sanitize_ocr_latex(latex)
+        if latex:
+            conf = _score_ocr_quality(latex)
+            if conf >= TABLE_CELL_OCR_THRESHOLD:
+                marker = f"\\CELLEQ{{{latex}}}"
+                if kind == "header":
+                    tables[ti]["headers"][ci] = marker
+                else:
+                    tables[ti]["rows"][ri][ci] = marker
+                ocr_success += 1
+                log.debug("  Table cell OCR t%d r%d c%d: conf=%.2f latex=%s",
+                          ti, ri, ci, conf, latex[:50])
+            else:
+                log.debug("  Table cell pix2tex REJECTED t%d r%d c%d: conf=%.2f",
+                          ti, ri, ci, conf)
+                still_need_ocr.append(idx)
+        else:
+            still_need_ocr.append(idx)
+
+    # Phase 4: nougat fallback for cells where pix2tex failed
+    if still_need_ocr:
+        log.info("  Table cell OCR: %d cells failed pix2tex, trying nougat",
+                 len(still_need_ocr))
+        for idx in still_need_ocr:
+            ti, kind, ri, ci, img_path = collected[idx]
+            latex = _run_ocr_worker("nougat", img_path)
+            if latex:
+                latex = _sanitize_ocr_latex(latex)
+            if latex:
+                conf = _score_ocr_quality(latex)
+                if conf >= TABLE_CELL_OCR_THRESHOLD:
+                    marker = f"\\CELLEQ{{{latex}}}"
+                    if kind == "header":
+                        tables[ti]["headers"][ci] = marker
+                    else:
+                        tables[ti]["rows"][ri][ci] = marker
+                    ocr_success += 1
+                    log.debug("  Table cell nougat t%d r%d c%d: conf=%.2f latex=%s",
+                              ti, ri, ci, conf, latex[:50])
+                else:
+                    log.debug("  Table cell nougat REJECTED t%d r%d c%d: conf=%.2f",
+                              ti, ri, ci, conf)
+
+    log.info("  Table cell OCR done: %d/%d converted to LaTeX (threshold=%.2f)",
+             ocr_success, len(collected), TABLE_CELL_OCR_THRESHOLD)
+    return tables
+
+
 def _run_batch_ocr_worker(engine: str, image_paths: list) -> list:
     """
     Run batch pix2tex worker: loads model once, processes all images.
@@ -1004,6 +1162,19 @@ def _run_batch_ocr_worker(engine: str, image_paths: list) -> list:
     """
     if not image_paths:
         return []
+
+    # ── OCR time-budget gate ──────────────────────────────────────
+    if _ocr_budget.get("exhausted") or not _ocr_budget.get("enabled", True):
+        log.info("  Batch OCR skipped — OCR budget exhausted or disabled")
+        return None
+    import time as _time
+    if _ocr_budget.get("start") is None:
+        _ocr_budget["start"] = _time.time()
+    elif _time.time() - _ocr_budget["start"] > OCR_BUDGET_SECONDS:
+        log.info("  Batch OCR skipped — OCR budget (%.0fs) reached", OCR_BUDGET_SECONDS)
+        _ocr_budget["exhausted"] = True
+        return None
+    # ─────────────────────────────────────────────────────────────
 
     # Check if pix2tex is available
     if not _check_ocr_available(engine):
@@ -1024,8 +1195,9 @@ def _run_batch_ocr_worker(engine: str, image_paths: list) -> list:
     try:
         import json
         # Timeout scales with number of images:
-        # 60s for model load + 5s per image
-        timeout = 60 + len(image_paths) * 5
+        # 60s for model load + 15s per image (pix2tex takes 10-15s each on CPU)
+        # Also cap at OCR_BUDGET_SECONDS + 60 so the batch can't run longer than the budget
+        timeout = min(60 + len(image_paths) * 15, OCR_BUDGET_SECONDS + 60)
 
         result = subprocess.run(
             [_PYTHON_EXE, worker] + image_paths,
@@ -1130,6 +1302,18 @@ def _check_ocr_available(engine: str) -> bool:
 
 def _run_ocr_worker(engine: str, image_path: str) -> str:
     """Run pix2tex or nougat worker in a subprocess. Returns LaTeX or ''."""
+    # ── OCR time-budget gate ──────────────────────────────────────
+    if _ocr_budget.get("exhausted") or not _ocr_budget.get("enabled", True):
+        return ""
+    import time as _time
+    if _ocr_budget.get("start") is None:
+        _ocr_budget["start"] = _time.time()
+    elif _time.time() - _ocr_budget["start"] > OCR_BUDGET_SECONDS:
+        log.info("  OCR budget (%.0fs) reached — skipping %s worker", OCR_BUDGET_SECONDS, engine)
+        _ocr_budget["exhausted"] = True
+        return ""
+    # ─────────────────────────────────────────────────────────────
+
     # Fast path: skip if engine is known to be unavailable
     if not _check_ocr_available(engine):
         return ""
@@ -1345,6 +1529,48 @@ def _score_ocr_quality(latex: str) -> float:
     if re.search(r"^[{\\A-Za-z]{1,5}\s*/\s*[{\\A-Za-z]{1,5}\s*=", stripped):
         score -= 0.15
 
+    # ── pix2tex garble patterns ──────────────────────────────
+    # These are structurally valid LaTeX but semantically wrong.
+    # pix2tex produces them when it misreads complex formulas.
+
+    # Comma after open paren: \Phi(,r) — syntactically broken math
+    if re.search(r"\(\s*,", latex):
+        score -= 0.2
+
+    # Trivial fractions: \frac{1}{1}, \frac{0}{1} etc. — never appear in real math
+    if re.search(r"\\frac\{[01]\}\{[01]\}", latex):
+        score -= 0.15
+
+    # \div inside \frac — pix2tex misreads fraction bars as \div
+    if r"\div" in latex:
+        score -= 0.15
+
+    # \sim used as separator (not \sim alone) — pix2tex uses it for unrecognized symbols
+    sim_count = latex.count(r"\sim")
+    if sim_count >= 1:
+        score -= 0.1 * sim_count
+
+    # \ldots or ... inside \frac{} — garbled denominators/numerators
+    if re.search(r"\\frac\{[^}]*\\?(?:ldots|cdots|dots|\.\.\.).*?\}", latex):
+        score -= 0.2
+
+    # \hat{\wedge} or \hat{\\cmd} — nonsensical nesting
+    if re.search(r"\\hat\{\\[a-zA-Z]+\}", latex):
+        score -= 0.15
+
+    # \varrho — extremely rare in real math, common pix2tex artifact
+    if r"\varrho" in latex:
+        score -= 0.15
+
+    # Consecutive digit subscripts like _{012} or _{0123} — garbage indices
+    if re.search(r"_\{?\d{3,}\}?", latex):
+        score -= 0.15
+
+    # No = sign in a formula with \frac — most real equations have = somewhere
+    # (e.g. F = G\frac{...}{...}) but garbled OCR often omits it
+    if r"\frac" in latex and "=" not in latex and r"\int" not in latex:
+        score -= 0.1
+
     # ── Rewards ──────────────────────────────────────────────
 
     # Reward real math structures
@@ -1489,6 +1715,9 @@ def _extract_with_pdfplumber(path: str) -> dict:
 
     # ── Batch OCR on all collected equation images ────────────────
     all_formulas = _batch_ocr_equations(all_formulas)
+
+    # OCR table cell images → convert \CELLIMG{} to \CELLEQ{latex} for selectability
+    all_tables = _ocr_table_cells(all_tables)
 
     full_text = "\n\n".join(all_text)
     log.info("  Extracted %d chars, %d blocks, %d tables, %d figures, %d formulas (pdfplumber)",
@@ -1699,15 +1928,19 @@ def _extract_tables_pdfplumber(path: str) -> list:
                         # cells are sorted top-to-bottom, left-to-right
                         cell_bboxes = _build_cell_bbox_grid(cells, num_rows, num_cols)
 
-                        # Process each cell: fill empty cells with equation images
+                        # Process each cell: check ALL cells for overlapping images.
+                        # pdfplumber often extracts garbled Unicode text from cells
+                        # that contain equation images. The image is the real content;
+                        # the text is unreliable. Always prefer image/OCR path when
+                        # an image overlaps with the cell.
                         processed_rows = []
                         for row_idx, row in enumerate(td):
                             processed_row = []
                             for col_idx, cell_text in enumerate(row):
                                 cell_str = str(cell_text) if cell_text else ""
 
-                                # If cell is empty or very short, check for overlapping images
-                                if len(cell_str.strip()) <= 2 and cell_bboxes:
+                                # Always check for overlapping images in every cell
+                                if cell_bboxes:
                                     bbox = cell_bboxes.get((row_idx, col_idx))
                                     if bbox:
                                         img_path = _render_cell_image(
@@ -1716,7 +1949,7 @@ def _extract_tables_pdfplumber(path: str) -> list:
                                             fig_dir
                                         )
                                         if img_path:
-                                            # Store as special marker for renderer
+                                            # Image found — use it instead of garbled text
                                             cell_str = f"\\CELLIMG{{{img_path}}}"
                                             log.debug("  Table cell image p%d t%d r%d c%d: %s",
                                                       page_num, table_idx, row_idx, col_idx,

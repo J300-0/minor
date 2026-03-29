@@ -41,8 +41,31 @@ def main():
         default=None,
         help="Output directory (default: output/)",
     )
+    parser.add_argument(
+        "--no-ocr",
+        action="store_true",
+        default=False,
+        help="Disable formula OCR entirely — fast mode, formulas render as images",
+    )
+    parser.add_argument(
+        "--ocr-budget",
+        type=float,
+        default=90.0,
+        metavar="SECONDS",
+        help="Max seconds to spend on formula OCR (default: 90). Use 0 for --no-ocr.",
+    )
 
     args = parser.parse_args()
+
+    # Configure OCR budget before extraction runs
+    from extractor.pdf_extractor import set_ocr_budget
+    if args.no_ocr:
+        set_ocr_budget(0)
+        print("[main] OCR disabled (--no-ocr)", file=sys.stderr, flush=True)
+    else:
+        set_ocr_budget(args.ocr_budget)
+        if args.ocr_budget < 900:
+            print(f"[main] OCR budget: {args.ocr_budget:.0f}s", file=sys.stderr, flush=True)
 
     # Safety print to stderr (not buffered like log handlers)
     print(f"[main] Starting: {args.input} → {args.template}", file=sys.stderr, flush=True)

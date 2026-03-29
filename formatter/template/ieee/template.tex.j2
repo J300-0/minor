@@ -9,6 +9,13 @@
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{url}
+% placeins removed — \FloatBarrier causes large white gaps in two-column layout
+% stfloats removed — not installed on all TeX distributions
 
 \begin{document}
 
@@ -58,17 +65,14 @@
 %% endif
 
 %% for section in sections
+
 \VAR{section.depth | section_cmd}{\VAR{section.heading | e}}
 
 \VAR{section.body | paras}
 
-%% for table in section.tables
-\VAR{table | render_table}
-%% endfor
-
 %% for figure in section.figures
 %% if figure.image_path
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\columnwidth]{\VAR{figure.image_path}}
 %% if figure.caption
@@ -79,6 +83,10 @@
 %% endif
 \end{figure}
 %% endif
+%% endfor
+
+%% for table in section.tables
+\VAR{table | render_table}
 %% endfor
 
 %% for fb in section.formula_blocks
@@ -95,6 +103,7 @@
 %% endfor
 
 %% endfor
+
 
 %% if formula_blocks
 \section*{Key Equations}
@@ -113,9 +122,11 @@
 %% endif
 
 %% if references
-\begin{thebibliography}{99}
+\begin{thebibliography}{\VAR{references | length}}
 %% for ref in references
-\bibitem{ref\VAR{ref.index}} \VAR{ref.text | e}
+\bibitem{ref\VAR{ref.index}}
+\VAR{ref.text | e}
+
 %% endfor
 \end{thebibliography}
 %% endif

@@ -118,6 +118,12 @@ def _figure_to_dict(f):
 
     caption = f.get("caption", "") if isinstance(f, dict) else f.caption
     label = f.get("label", "") if isinstance(f, dict) else f.label
+    # Strip residual "Fig. N." / "Figure N:" prefix — LaTeX \caption adds its own
+    if caption:
+        caption = re.sub(
+            r"^(?:Fig(?:ure)?\.?\s*\d+[\s\.:]*)",
+            "", caption, flags=re.IGNORECASE
+        ).strip()
     return {"image_path": img_path, "caption": caption, "label": label}
 
 def _ref_to_dict(r):
@@ -243,8 +249,32 @@ def _latex_paragraphs(text: str) -> str:
     return "\n\n".join(escaped)
 
 
+def _is_numeric_table(headers, rows) -> bool:
+    """Check if a table is mostly numeric data (like results tables)."""
+    numeric_count = 0
+    total_count = 0
+    for row in rows:
+        for cell in row:
+            cell_str = str(cell).strip()
+            if cell_str:
+                total_count += 1
+                # Match numbers with optional decimals, signs, daggers, arrows
+                if re.match(r"^[\d\.\-\+±↑↓⇑⇓†‡§\s\*\^]+$", cell_str):
+                    numeric_count += 1
+    if total_count == 0:
+        return False
+    return numeric_count / total_count > 0.4
+
+
 def _render_table(table) -> str:
-    """Render a Table object as LaTeX tabular environment."""
+    """
+    Render a Table object as LaTeX tabular environment.
+
+    Uses IEEE-style formatting:
+    - Wide tables: use table* for two-column span
+    - Numeric tables: center-aligned columns with booktabs-style rules
+    - Adaptive column spec based on content
+    """
     if isinstance(table, dict):
         headers = table.get("headers", [])
         rows = table.get("rows", [])
@@ -263,22 +293,45 @@ def _render_table(table) -> str:
     if num_cols == 0:
         return ""
 
-    col_spec = "|".join(["l"] * num_cols)
+    # Always use single-column table — adjustbox scales to fit
+    is_numeric = _is_numeric_table(headers, rows)
+
+    # Build column spec: first column left-aligned, rest centered for numeric tables
+    if is_numeric and num_cols > 2:
+        col_spec = "l" + "c" * (num_cols - 1)
+    else:
+        col_spec = "l" * num_cols
+
     lines = []
 
-    lines.append(r"\begin{table}[htbp]")
+    lines.append(r"\begin{table}[!htbp]")
+
+    # Caption at top for IEEE style
+    if caption:
+        lines.append(f"\\caption{{{_latex_escape(caption)}}}")
+    if label:
+        lines.append(f"\\label{{{label}}}")
+
     lines.append(r"\centering")
 
-    # Always use resizebox to prevent overflow — math content in cells
-    # can be very wide even with few columns
-    lines.append(r"\resizebox{\columnwidth}{!}{")
+    # Use smaller font for wide tables
+    if num_cols > 4:
+        lines.append(r"\footnotesize")
+    if num_cols > 8:
+        lines.append(r"\scriptsize")
 
-    lines.append(f"\\begin{{tabular}}{{|{col_spec}|}}")
+    lines.append(r"\renewcommand{\arraystretch}{1.2}")
+
+    # adjustbox scales down to fit within single column
+    lines.append(r"\adjustbox{max width=\columnwidth}{")
+
+    lines.append(f"\\begin{{tabular}}{{{col_spec}}}")
     lines.append(r"\hline")
 
     if headers:
-        escaped = [_escape_table_cell(h) for h in headers]
-        lines.append(" & ".join(escaped) + r" \\ \hline")
+        escaped = [f"\\textbf{{{_escape_table_cell(h)}}}" for h in headers]
+        lines.append(" & ".join(escaped) + r" \\")
+        lines.append(r"\hline")
 
     for row in rows:
         escaped = [_escape_table_cell(str(c)) for c in row]
@@ -286,42 +339,44 @@ def _render_table(table) -> str:
         while len(escaped) < num_cols:
             escaped.append("")
         escaped = escaped[:num_cols]
-        lines.append(" & ".join(escaped) + r" \\ \hline")
+        lines.append(" & ".join(escaped) + r" \\")
 
-    # No need for final \hline — every row already ends with \hline
+    lines.append(r"\hline")
     lines.append(r"\end{tabular}")
-
-    # Close resizebox
-    lines.append("}")
-
-    if caption:
-        lines.append(f"\\caption{{{_latex_escape(caption)}}}")
-    if label:
-        lines.append(f"\\label{{{label}}}")
+    lines.append("}")  # Close adjustbox
 
     lines.append(r"\end{table}")
 
     return "\n".join(lines)
 
 
-_CELLIMG_RE = re.compile(r"\\CELLIMG\{(.+?)\}")
+_CELLIMG_RE = re.compile(r"^\\CELLIMG\{(.+?)\}$")
+_CELLEQ_RE  = re.compile(r"^\\CELLEQ\{(.+)\}$", re.DOTALL)
 
 
 def _escape_table_cell(text: str) -> str:
     """
-    Escape a table cell, preserving math content ($...$) and cell images.
+    Escape a table cell, preserving math content ($...$) and cell images/equations.
 
     Table cells may already contain LaTeX math from the normalizer
     (e.g. $a^{2} + b^{2} = c^{2}$). These must NOT be escaped.
 
-    Cells with \\CELLIMG{path} markers are rendered as \\includegraphics.
+    Cells with \\CELLEQ{latex} markers are rendered as display math (selectable text).
+    Cells with \\CELLIMG{path} markers fall back to \\includegraphics (image).
     """
     if not text:
         return ""
 
     stripped = text.strip()
 
+    # Handle pix2tex OCR result: \CELLEQ{latex} → \[ latex \] (display math, selectable)
+    m = _CELLEQ_RE.match(stripped)
+    if m:
+        latex = m.group(1).strip()
+        return f"$\\displaystyle {latex}$"
+
     # Handle cell image markers: \CELLIMG{/abs/path/to/image.png}
+    # Use \raisebox for vertical centering + constrained height for consistent row sizing
     m = _CELLIMG_RE.match(stripped)
     if m:
         img_path = m.group(1)
@@ -332,7 +387,8 @@ def _escape_table_cell(text: str) -> str:
             except ValueError:
                 pass
         img_path = img_path.replace("\\", "/")
-        return f"\\includegraphics[max height=1.5cm]{{{img_path}}}"
+        return (f"\\raisebox{{-0.3\\height}}{{"
+                f"\\includegraphics[max height=0.9cm]{{{img_path}}}}}")
 
     # If the entire cell is wrapped in math delimiters, pass through
     if stripped.startswith("$") and stripped.endswith("$"):
