@@ -30,6 +30,8 @@ class Figure:
     image_path: str = ""
     caption: str = ""
     label: str = ""
+    page: int = -1             # page where figure appears (-1 = unknown)
+    bbox_y: float = 0.0        # y-position on page for placement ordering
 
 
 @dataclass
@@ -40,6 +42,8 @@ class FormulaBlock:
     page: int = 0
     label: str = ""
     bbox_y: float = 0.0        # y-position on page for placement ordering
+    bbox_h: float = 0.0        # height of equation image for y-matching tolerance
+    equation_number: str = ""  # original equation number from input doc, e.g. "7"
 
 
 @dataclass

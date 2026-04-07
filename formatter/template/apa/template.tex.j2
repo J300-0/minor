@@ -51,7 +51,38 @@
 
 %% for section in sections
 \VAR{section.depth | section_cmd}{\VAR{section.heading | e}}
-\VAR{section.body | paras}
+
+%% for block in section.content_blocks
+%% if block.type == "text"
+\VAR{block.content}
+
+%% elif block.type == "raw_latex"
+\VAR{block.content}
+
+%% elif block.type == "equation"
+\smallskip
+%% if block.latex
+%% if block.equation_number
+\begin{equation*}\tag{\VAR{block.equation_number}}
+\VAR{block.latex}
+\end{equation*}
+%% else
+\begin{equation*}
+\VAR{block.latex}
+\end{equation*}
+%% endif
+%% elif block.image_path
+%% if block.equation_number
+\noindent\hfill\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{block.image_path}}\hfill(\VAR{block.equation_number})\hspace*{0pt}
+%% else
+\begin{center}
+\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{block.image_path}}
+\end{center}
+%% endif
+%% endif
+\smallskip\noindent
+%% endif
+%% endfor
 
 %% for table in section.tables
 \VAR{table | render_table}
@@ -60,7 +91,7 @@
 %% for figure in section.figures
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{\VAR{figure.image_path}}
+\includegraphics[max width=\columnwidth, max height=0.4\textheight]{\VAR{figure.image_path}}
 %% if figure.caption
 \caption{\VAR{figure.caption | e}}
 %% endif
@@ -68,19 +99,6 @@
 \label{\VAR{figure.label}}
 %% endif
 \end{figure}
-%% endfor
-
-%% for fb in section.formula_blocks
-%% if fb.latex
-\begin{equation}
-\label{\VAR{fb.label}}
-\VAR{fb.latex}
-\end{equation}
-%% elif fb.image_path
-\begin{center}
-\includegraphics[max width=0.45\columnwidth, max height=1.5cm]{\VAR{fb.image_path}}
-\end{center}
-%% endif
 %% endfor
 
 %% endfor
@@ -95,17 +113,26 @@
 %% endif
 
 %% if formula_blocks
-\section*{Key Equations}
+\smallskip
 %% for fb in formula_blocks
 %% if fb.latex
-\begin{equation}
-\label{\VAR{fb.label}}
+%% if fb.equation_number
+\begin{equation*}\tag{\VAR{fb.equation_number}}
 \VAR{fb.latex}
-\end{equation}
+\end{equation*}
+%% else
+\begin{equation*}
+\VAR{fb.latex}
+\end{equation*}
+%% endif
 %% elif fb.image_path
+%% if fb.equation_number
+\noindent\hfill\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{fb.image_path}}\hfill(\VAR{fb.equation_number})\hspace*{0pt}
+%% else
 \begin{center}
-\includegraphics[max width=0.45\columnwidth, max height=1.5cm]{\VAR{fb.image_path}}
+\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{fb.image_path}}
 \end{center}
+%% endif
 %% endif
 %% endfor
 %% endif

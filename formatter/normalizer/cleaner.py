@@ -7,6 +7,7 @@ Greek letters, operators, arrows, sub/superscripts.
 import re
 import logging
 from core.models import Document
+from core.shared import MATH_CHARS as SHARED_MATH_CHARS, count_real_words
 
 log = logging.getLogger("paper_formatter")
 
@@ -147,10 +148,7 @@ def _merge_orphan_symbol_lines(text: str) -> str:
         return text
 
     # Characters that commonly appear as orphaned math symbols
-    MATH_CHARS = set("αβγδεζηθικλμνξπρστυφχψωΓΔΘΛΞΠΣΦΨΩ"
-                     "∑∏∫∂∇∀∃∈∉⊂⊃∪∩±×÷√∞≈≠≤≥→←⇒⇐↔⇔"
-                     "∼⊤⊥⊕⊗∘⟨⟩‖′″∝≡≅≪≫"
-                     "ϕϵϑϱϖ")  # variant Greek forms
+    MATH_CHARS = SHARED_MATH_CHARS
 
     lines = text.split("\n")
     if len(lines) <= 1:
@@ -170,7 +168,9 @@ def _merge_orphan_symbol_lines(text: str) -> str:
         if stripped and len(stripped) <= 15:
             non_space = stripped.replace(" ", "").replace(",", "").replace("(", "").replace(")", "")
             if non_space and all(
-                c in MATH_CHARS or c.isalpha() and len(non_space) <= 6
+                c in MATH_CHARS
+                or (c.isalpha() and len(non_space) <= 6)
+                or c.isdigit()  # subscript/superscript indices: σ(1)π(1), n4, etc.
                 or c in ".,;:=+-*/^_{}|[]<>"
                 for c in non_space
             ):
@@ -179,18 +179,41 @@ def _merge_orphan_symbol_lines(text: str) -> str:
                 words = stripped.split()
                 if all(len(w) <= 3 or any(c in MATH_CHARS for c in w) for w in words):
                     # Don't merge if it looks like a real word
-                    real_words = [w for w in words if w.isalpha() and len(w) >= 4
-                                  and w.lower() not in ("true", "false")]
+                    real_words = count_real_words(words)
                     if not real_words:
-                        is_orphan = True
+                        # Digit-only lines (like "4", "22") must contain math
+                        # context or be adjacent to math — skip pure page numbers
+                        if non_space.isdigit() and len(non_space) > 3:
+                            pass  # likely page number, not a subscript
+                        else:
+                            is_orphan = True
 
         if is_orphan and result:
-            # Merge into the previous line if it has a gap (multiple spaces)
             prev = result[-1]
             prev_stripped = prev.rstrip()
 
-            # Check if the previous line ends with a gap (spaces before line end)
-            # or if the line naturally continues
+            # For digit-only orphans, decide merge direction:
+            # If previous line has a dangling variable (e.g., "O(n )" or "A"),
+            # it's likely a super/subscript → merge up. Otherwise try merging down
+            # to see if it belongs with the next line.
+            if stripped.replace(" ", "").isdigit() and i + 1 < len(lines):
+                next_stripped = lines[i + 1].strip()
+                # Check if prev ends with a single-letter variable or "letter )"
+                # suggesting the digit is a subscript/superscript
+                # e.g., "matrix A" → "A22", "O(n )" → "O(n⁴)"
+                # Must be a SINGLE letter (not end of a word like "we")
+                prev_wants_digit = bool(re.search(
+                    r"(?:^|\s|\()([a-zA-Z])\s*$"        # trailing single letter
+                    r"|[a-zA-Z]\s*\)\s*$",               # letter followed by )
+                    prev_stripped
+                ))
+                if not prev_wants_digit and next_stripped:
+                    # Merge downward instead (prepend with space)
+                    lines[i + 1] = stripped + " " + lines[i + 1].lstrip()
+                    i += 1
+                    continue
+
+            # Merge into the previous line
             if prev_stripped.endswith("-"):
                 # Hyphenated line break — symbol goes after dehyphenation
                 result[-1] = prev_stripped[:-1] + stripped
@@ -296,76 +319,95 @@ def _remove_garbled_math_blocks(text: str) -> str:
     return "\n".join(result)
 
 
-def _is_garbled_math_line(line: str) -> bool:
+def _is_math_garbage(line: str, mode: str = "block") -> bool:
     """
-    Check if a line looks like garbled equation text.
+    Unified detector for garbled equation text.
+
+    mode="block": detects garbled multi-line equation blocks (from _remove_garbled_math_blocks)
+        - More permissive length (150 chars), needs stronger signals
+    mode="fragment": detects single-line equation fragments (from _remove_fragmented_equations)
+        - Stricter length (60 chars), catches isolated symbols/operators
 
     Returns True for lines that are equation fragments extracted as text,
     which cannot be meaningfully rendered and should be replaced by OCR images.
     """
     if not line:
+        return mode == "fragment"  # empty lines are fragments, not blocks
+
+    max_len = 150 if mode == "block" else 60
+    if len(line) > max_len:
         return False
 
-    # Too long = probably a real paragraph
-    if len(line) > 150:
-        return False
+    # ── Definite indicators (block mode) ──────────────────────
+    if mode == "block":
+        # · · · (cdots pattern)
+        if "· · ·" in line or ("..." in line and ("k(" in line or "||" in line)):
+            return True
+        # Repeated function-call patterns: k(x1, x1) k(x2, x1) etc.
+        func_calls = re.findall(r'[a-zA-Z]\([^)]{1,20}\)', line)
+        if len(func_calls) >= 3:
+            return True
+        # Norm notation fragments: ||..|| or ]||2
+        if re.search(r'\|\|.*\|\|', line):
+            return True
+        # Lines that are just "N terms" (underbrace labels)
+        if re.match(r'^[\d\w\s\-\+\(\)]*\bterms\b\s*$', line, re.IGNORECASE):
+            return True
+        # Lines starting with = (continuation of multi-line equation)
+        if line.startswith("=") and len(line) < 100:
+            words = line.split()
+            real_words = count_real_words(words)
+            if len(real_words) <= 1:
+                return True
 
-    # Definite indicators of garbled equations
-    # · · · (cdots pattern)
-    if "· · ·" in line or "..." in line and ("k(" in line or "||" in line):
-        return True
+    # ── Character composition analysis (both modes) ───────────
+    chars = line.replace(" ", "")
+    if not chars:
+        return mode == "fragment"
 
-    # Repeated function-call patterns: k(x1, x1) k(x2, x1) etc.
-    func_calls = re.findall(r'[a-zA-Z]\([^)]{1,20}\)', line)
-    if len(func_calls) >= 3:
-        return True
+    math_count = sum(1 for c in chars if c in SHARED_MATH_CHARS)
+    letter_count = sum(1 for c in chars if c.isalpha() and c.isascii())
+    digit_count = sum(1 for c in chars if c.isdigit())
+    operator_count = sum(1 for c in chars if c in "=+-*/(){}[]|,;:.<>^_\\¯")
+    total = len(chars)
 
-    # Norm notation fragments: ||..|| or ]||2
-    if re.search(r'\|\|.*\|\|', line):
-        return True
-
-    # Lines that are just "N terms" (underbrace labels)
-    if re.match(r'^[\d\w\s\-\+\(\)]*\bterms\b\s*$', line, re.IGNORECASE):
-        return True
-
-    # Lines starting with = (continuation of multi-line equation)
-    if line.startswith("=") and len(line) < 100:
+    # Fragment-specific checks
+    if mode == "fragment":
+        # Equation number like "(16)" or "(17)"
+        if re.match(r"^\(\d+\)$", line):
+            return True
+        # Pure math symbols
+        if math_count > 0 and math_count + operator_count >= total * 0.5 and total <= 20:
+            return True
+        # Mostly single letters and operators (like "c c c" or "= log ( ( ); )")
         words = line.split()
-        real_words = [w for w in words if w.isalpha() and len(w) >= 4
-                      and w.lower() not in ("sin", "cos", "tan", "log", "exp",
-                                             "max", "min", "flatten", "terms",
-                                             "where", "true", "false", "with")]
-        if len(real_words) <= 1:
+        single_chars = sum(1 for w in words if len(w) <= 2)
+        if len(words) >= 2 and single_chars >= len(words) * 0.6 and total <= 40:
+            real_words = count_real_words(words)
+            if not real_words:
+                return True
+        # Line is just operators and parens
+        if operator_count >= total * 0.6 and total <= 25:
             return True
 
-    # General: short line, heavy on math operators/parens, few real words
-    if len(line) < 100:
+    # Block-specific: general short-line math analysis
+    if mode == "block" and len(line) < 100:
         words = line.split()
-        real_words = [w for w in words if w.isalpha() and len(w) >= 4
-                      and w.lower() not in ("sin", "cos", "tan", "log", "exp",
-                                             "max", "min", "flatten", "terms",
-                                             "where", "true", "false", "with",
-                                             "prior", "posterior", "prediction")]
+        real_words = count_real_words(words)
         if len(real_words) >= 3:
             return False
 
-        chars = line.replace(" ", "")
-        if not chars:
-            return False
-
-        # Count math-heavy characters
-        math_op_count = sum(1 for c in chars
-                           if c in "(){}[]|=+-*/^_,;.<>·∑∏∫∂∇∀∃∈≤≥≈≠∼→←⊤⊥"
-                           or c in "αβγδεζηθικλμνξπρστυφχψωΓΔΘΛΞΠΣΦΨΩ")
-        digit_count = sum(1 for c in chars if c.isdigit())
-
-        ratio = (math_op_count + digit_count) / len(chars)
-        # If >40% of chars are math/operators/digits AND line is short
-        # AND few real words → likely equation fragment
+        math_op_count = math_count + operator_count
+        ratio = (math_op_count + digit_count) / max(total, 1)
         if ratio > 0.35 and len(real_words) <= 1 and len(line) < 80:
             return True
 
     return False
+
+
+def _is_garbled_math_line(line: str) -> bool:
+    """Backwards-compatible wrapper."""
+    return _is_math_garbage(line, mode="block")
 
 
 def _remove_fragmented_equations(text: str) -> str:
@@ -386,9 +428,7 @@ def _remove_fragmented_equations(text: str) -> str:
     if not text:
         return text
 
-    MATH_CHARS = set("αβγδεζηθικλμνξπρστυφχψωΓΔΘΛΞΠΣΦΨΩ"
-                     "∑∏∫∂∇∀∃∈∉⊂⊃∪∩±×÷√∞≈≠≤≥→←⇒⇐↔⇔"
-                     "∼⊤⊥⊕⊗∘⟨⟩‖′″∝≡≅≪≫ϕϵϑϱϖ")
+    MATH_CHARS = SHARED_MATH_CHARS
 
     lines = text.split("\n")
     result = []
@@ -433,44 +473,7 @@ def _remove_fragmented_equations(text: str) -> str:
 
 def _is_equation_fragment(line: str, math_chars: set) -> bool:
     """Check if a line looks like a fragment from a broken equation."""
-    if not line or len(line) > 60:
-        return False
-
-    # Check character composition
-    chars = line.replace(" ", "")
-    if not chars:
-        return True  # empty/whitespace
-
-    # Count different character types
-    math_count = sum(1 for c in chars if c in math_chars)
-    letter_count = sum(1 for c in chars if c.isalpha() and c.isascii())
-    digit_count = sum(1 for c in chars if c.isdigit())
-    operator_count = sum(1 for c in chars if c in "=+-*/(){}[]|,;:.<>^_\\¯")
-    total = len(chars)
-
-    # Equation number like "(16)" or "(17)"
-    if re.match(r"^\(\d+\)$", line):
-        return True
-
-    # Pure math symbols
-    if math_count > 0 and math_count + operator_count >= total * 0.5 and total <= 20:
-        return True
-
-    # Mostly single letters and operators (like "c c c" or "= log ( ( ); )")
-    words = line.split()
-    single_chars = sum(1 for w in words if len(w) <= 2)
-    if len(words) >= 2 and single_chars >= len(words) * 0.6 and total <= 40:
-        # But not if it looks like a real sentence fragment
-        real_words = [w for w in words if w.isalpha() and len(w) >= 4
-                      and w.lower() not in ("true", "false", "that", "this", "with")]
-        if not real_words:
-            return True
-
-    # Line is just operators and parens
-    if operator_count >= total * 0.6 and total <= 25:
-        return True
-
-    return False
+    return _is_math_garbage(line, mode="fragment")
 
 
 def _remove_charperline_garbage(text: str) -> str:
@@ -538,6 +541,88 @@ def _remove_repeated_table_captions(text: str, table_captions: list) -> str:
     return text
 
 
+def _remove_running_headers(text: str, title: str) -> str:
+    """
+    Remove running headers that match the document title.
+
+    Many journals repeat the paper title (or a shortened version) as a running
+    header on every page. PyMuPDF extracts these into the body text, producing
+    orphan lines like:
+
+        The Formulas
+                                                                        3.
+        ISSN 1339-9853 (online)
+        http://acta-avionica.tuke.sk
+        ISSN 1335-9479 (print)
+
+    This function detects lines that match the title (case-insensitive) and
+    removes them along with adjacent page numbers, ISSN lines, and URLs that
+    are part of the running header block.
+    """
+    if not text or not title:
+        return text
+
+    # Normalize title for comparison
+    title_clean = re.sub(r"\s+", " ", title).strip().lower()
+    if len(title_clean) < 3:
+        return text
+
+    lines = text.split("\n")
+    result = []
+    i = 0
+    removed = 0
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        stripped_lower = re.sub(r"\s+", " ", stripped).strip().lower()
+
+        # Check if this line matches the title (exact or contained)
+        is_title_header = False
+        if stripped_lower and (
+            stripped_lower == title_clean
+            or (len(title_clean) >= 5 and title_clean in stripped_lower
+                and len(stripped_lower) < len(title_clean) + 10)
+        ):
+            is_title_header = True
+
+        if is_title_header:
+            removed += 1
+            log.debug("  Removing running header line: %r", stripped)
+            i += 1
+            # Also skip adjacent metadata lines (page numbers, ISSN, URLs)
+            while i < len(lines):
+                next_stripped = lines[i].strip()
+                if not next_stripped:
+                    i += 1  # skip blank lines in header block
+                    continue
+                # Page number (just digits, possibly with dots/spaces)
+                if re.match(r"^\d{1,3}\.\s*$", next_stripped):
+                    log.debug("  Removing running header page number: %r", next_stripped)
+                    i += 1
+                    continue
+                # ISSN line
+                if re.match(r"ISSN\s*[\d-]+", next_stripped, re.I):
+                    log.debug("  Removing running header ISSN: %r", next_stripped)
+                    i += 1
+                    continue
+                # URL line
+                if re.match(r"https?://", next_stripped, re.I):
+                    log.debug("  Removing running header URL: %r", next_stripped)
+                    i += 1
+                    continue
+                break  # not part of running header anymore
+            continue
+
+        result.append(line)
+        i += 1
+
+    if removed > 0:
+        log.info("  Removed %d running header block(s) matching title %r", removed, title_clean)
+
+    return "\n".join(result)
+
+
 def normalize(doc: Document) -> Document:
     """Apply all text normalization transforms to a Document."""
     log.info("  Cleaning title, abstract, section bodies...")
@@ -555,6 +640,7 @@ def normalize(doc: Document) -> Document:
 
     for section in doc.sections:
         section.heading = _clean(section.heading)
+        section.body = _remove_running_headers(section.body, doc.title)
         section.body = _remove_charperline_garbage(section.body)
         section.body = _remove_repeated_table_captions(section.body, table_captions)
         section.body = _merge_orphan_symbol_lines(section.body)
@@ -633,12 +719,38 @@ def _clean_with_math(text: str) -> str:
     # individual char replacements (so the whole line becomes one math block)
     text = _convert_numbered_equations(text)
 
+    # Step 3c: Convert Greek-subscript patterns BEFORE individual Greek
+    # char replacements (so ασ(1)π(1) becomes $\alpha_{\sigma(1)\pi(1)}$
+    # before σ/π/α get individually wrapped in $...$)
+    text = _fix_greek_subscript_patterns(text)
+
     # Step 4: Greek letters → $\alpha$ etc.
+    # First, convert Greek chars INSIDE existing $...$ to bare LaTeX commands
+    # (no extra $ wrapping since they're already in math mode)
+    def _convert_greek_in_math(m):
+        inner = m.group(1)
+        for ch, cmd in GREEK_TO_LATEX.items():
+            inner = inner.replace(ch, cmd)
+        return f"${inner}$"
+    text = re.sub(r"\$([^$]+)\$", _convert_greek_in_math, text)
+
+    # Then convert remaining Greek chars (outside math mode) with $ wrapping
     for char, cmd in GREEK_TO_LATEX.items():
         if char in text:
             text = text.replace(char, f"${cmd}$")
 
     # Step 5: Math symbols → LaTeX
+    # First convert math symbols inside existing $...$ (no extra $ wrapping)
+    def _convert_symbols_in_math(m):
+        inner = m.group(1)
+        for ch, cmd in MATH_SYMBOLS.items():
+            if ch in inner:
+                bare = cmd[1:-1] if cmd.startswith("$") and cmd.endswith("$") else cmd
+                inner = inner.replace(ch, bare)
+        return f"${inner}$"
+    text = re.sub(r"\$([^$]+)\$", _convert_symbols_in_math, text)
+
+    # Then convert remaining math symbols (outside math mode)
     for char, cmd in MATH_SYMBOLS.items():
         if char in text:
             # Some replacements already include $...$ (e.g. $\oplus$)
@@ -655,6 +767,9 @@ def _clean_with_math(text: str) -> str:
 
     # Step 7: Wrap short ASCII subscript patterns: x_i → $x_i$, a_1 → $a_1$
     text = _wrap_ascii_subscripts(text)
+
+    # Step 7b: Equation-context implicit subscripts: aij → $a_{ij}$ when near math operators
+    text = _fix_implicit_subscripts(text)
 
     # Step 8: Fix decimal spaces: "3 . 14" → "3.14"
     text = _fix_decimal_spaces(text)
@@ -729,16 +844,28 @@ def _convert_numbered_equations(text: str) -> str:
         # Check if the body has math content
         math_count = sum(1 for ch in body if ch in _math_chars)
         has_parens = "(" in body and ")" in body
-        has_eq = "=" in body or "∼" in body or "~" in body
+        has_eq = "=" in body or "∼" in body or "~" in body or "≤" in body or "≥" in body or "<" in body or ">" in body
 
-        # Need at least some math indicators
-        if math_count < 1 and not (has_parens and has_eq):
+        # Need at least some math indicators — must have BOTH:
+        # (a) math characters or comparison operators
+        # (b) equation-like structure (parens, equals, operators)
+        if math_count < 1 and not has_eq:
             result.append(line)
             continue
 
-        # Skip lines that look like prose citations: "(Smith et al., 2020) (3)"
-        word_count = len([w for w in body.split() if w.isalpha() and len(w) >= 5])
-        if word_count > 4:
+        # Skip lines that look like prose with a reference number at end
+        # e.g. "The Formulas (5)." or "as shown in equation (3)"
+        # Real equations have few English words; prose has many
+        words = body.split()
+        real_words = count_real_words(words)
+        # If most tokens are real English words, this is prose with a ref number
+        if len(real_words) >= 2 and len(real_words) >= len(words) * 0.4:
+            result.append(line)
+            continue
+
+        # Also skip if body is very short and looks like a caption/label
+        # e.g. "The Formulas" or "See equation"
+        if len(body) < 30 and math_count == 0 and not has_eq:
             result.append(line)
             continue
 
@@ -809,16 +936,29 @@ def _convert_numbered_equations(text: str) -> str:
             trail_text = trail_m.group(0).strip().rstrip(",").strip()
             math_body = math_body[:trail_m.start()].strip()
 
-        # Build the output: label as text, equation as display math
+        # Strip $...$ wrappers from math_body — we're going into equation* (math mode)
+        # The extractor may have wrapped subscripts as $t_{i}$ which would break inside equation*
+        math_body = re.sub(r"\$([^$]+)\$", r"\1", math_body)
+
+        # Build the output as a proper display equation with original numbering
         suffix = f" {trail_text}" if trail_text else ""
         if label:
-            eq_line = f"{label} $\\displaystyle {math_body}${suffix} \\hfill ({eq_num})"
+            result.append("")
+            result.append(label)
+            result.append(f"\\begin{{equation*}}\\tag{{{eq_num}}}")
+            result.append(f"  {math_body}")
+            result.append("\\end{equation*}")
+            if suffix.strip():
+                result.append(suffix.strip())
+            result.append("")
         else:
-            eq_line = f"$\\displaystyle {math_body}${suffix} \\hfill ({eq_num})"
-
-        result.append("")
-        result.append(eq_line)
-        result.append("")
+            result.append("")
+            result.append(f"\\begin{{equation*}}\\tag{{{eq_num}}}")
+            result.append(f"  {math_body}")
+            result.append("\\end{equation*}")
+            if suffix.strip():
+                result.append(suffix.strip())
+            result.append("")
 
     return "\n".join(result)
 
@@ -874,9 +1014,7 @@ def _wrap_math_lines(text: str) -> str:
         # Count words vs math tokens
         words = stripped.split()
         short_tokens = sum(1 for w in words if len(w) <= 2)
-        real_words = [w for w in words if w.isalpha() and len(w) >= 4
-                      and w.lower() not in ("sin", "cos", "tan", "log", "exp", "max", "min",
-                                             "lim", "sup", "inf", "flatten", "terms")]
+        real_words = count_real_words(words)
 
         # Math line detection: short line with math patterns and few real English words
         is_math_line = (
@@ -1011,6 +1149,206 @@ def _wrap_ascii_subscripts(text: str) -> str:
     return _apply_outside_math(text, _ASCII_SUB_RE, _replace)
 
 
+# ── Equation-context implicit subscripts ────────────────────────
+# ── Greek-subscript patterns ────────────────────────────────────
+# Patterns like  ασ(1)π(1)  →  $\alpha_{\sigma(1)\pi(1)}$
+# These appear in permutation/matrix contexts where Greek letters
+# with parenthesized arguments act as subscripts of a base variable.
+
+# Greek chars used as subscript functions (σ, π are most common)
+_GREEK_CHARS = set("αβγδεζηθικλμνξπρσςτυφχψωΓΔΘΛΞΠΣΦΨΩ")
+_LATIN_AND_GREEK = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") | _GREEK_CHARS
+
+# Pattern: base letter (Latin/Greek) + one or more Greek(arg) subscripts
+# e.g., ασ(1)π(1), aσ(i)π(j), ασ(i), Aπ(k)
+# Allows optional whitespace between base and first subscript (PDF extraction artifact)
+_GREEK_SUBSCRIPT_RE = re.compile(
+    r"(?<![a-zA-Z])"                        # base must NOT be part of a word
+    r"([a-zA-Zαβγδεζηθικλμνξπρσςτυφχψω"
+    r"ΓΔΘΛΞΠΣΦΨΩ])"                        # base letter (Latin or Greek)
+    r"\s?"                                  # optional space (extraction artifact)
+    r"((?:[αβγδεζηθικλμνξπρσςτυφχψω"
+    r"ΓΔΘΛΞΠΣΦΨΩ]\([^)]{1,10}\)){1,4})"    # 1-4 Greek(arg) subscripts
+)
+
+
+def _fix_greek_subscript_patterns(text: str) -> str:
+    """
+    Convert Greek-subscript patterns to proper LaTeX subscript notation.
+
+    Input:  ασ(1)π(1)
+    Output: $\alpha_{\sigma(1)\pi(1)}$
+
+    Input:  ασ(i)
+    Output: $\alpha_{\sigma(i)}$
+
+    These patterns appear in permutation/matrix contexts (common in
+    combinatorics and optimization papers).
+
+    MUST run before individual Greek→LaTeX replacement, otherwise σ becomes
+    $\sigma$ and the subscript structure is lost.
+    """
+    if not text:
+        return text
+
+    # Quick check: need at least one Greek char followed by (
+    # preceded by a standalone letter (not part of a longer word)
+    has_pattern = False
+    for i, ch in enumerate(text):
+        if ch in _GREEK_CHARS and i + 1 < len(text) and text[i + 1] == "(":
+            # Check for standalone base letter before this Greek(arg) pattern
+            # Must be a single letter, NOT the tail of a multi-letter word
+            if i > 0 and text[i - 1] in _LATIN_AND_GREEK:
+                # The base letter must itself NOT be preceded by another letter
+                if i < 2 or text[i - 2] not in _LATIN_AND_GREEK:
+                    has_pattern = True
+                    break
+            elif (i > 1 and text[i - 1] == " "
+                  and text[i - 2] in _LATIN_AND_GREEK):
+                # Space between base and Greek — base must be standalone
+                if i < 3 or text[i - 3] not in _LATIN_AND_GREEK:
+                    has_pattern = True
+                    break
+    if not has_pattern:
+        return text
+
+    def _replace_greek_sub(m):
+        base = m.group(1)
+        subscript_part = m.group(2)
+
+        # Convert base to LaTeX
+        base_latex = GREEK_TO_LATEX.get(base, base)
+
+        # Convert each Greek letter in the subscript part
+        sub_latex = subscript_part
+        for char, cmd in GREEK_TO_LATEX.items():
+            sub_latex = sub_latex.replace(char, cmd)
+
+        return f"${base_latex}_{{{sub_latex}}}$"
+
+    text = _GREEK_SUBSCRIPT_RE.sub(_replace_greek_sub, text)
+    return text
+
+
+# Patterns like  aij + ajk ≤ aij + aki  →  $a_{ij}$ + $a_{jk}$ $\leq$ $a_{ij}$ + $a_{ki}$
+# Also handles: A22 (matrix element), σ(1)π(1) patterns
+#
+# These are single uppercase/lowercase letters followed by 2-3 lowercase letters/digits
+# that represent matrix subscripts, BUT only in equation-context lines
+# (lines containing math operators like ≤, ≥, =, +, ×, etc.)
+
+_IMPLICIT_SUB_RE = re.compile(
+    r"(?<![a-zA-Z])"           # not preceded by a letter (avoids mid-word matches)
+    r"([a-zA-Z])"              # single letter base (the variable)
+    r"([ijklmnpqrs]{2,3})"     # 2-3 common subscript index letters
+    r"(?![a-zA-Z])"            # not followed by more letters (avoids real words)
+)
+
+# Also handle uppercase letter + digits like A22 → $A_{22}$
+_IMPLICIT_DIGIT_SUB_RE = re.compile(
+    r"(?<![a-zA-Z])"           # not preceded by letter
+    r"([A-Za-z])"              # single letter base
+    r"(\d{1,3})"               # 1-3 digit subscript
+    r"(?![a-zA-Z0-9])"         # not followed by alphanumeric
+)
+
+# Single-letter subscript: ti → $t_i$, xn → $x_n$ — very conservative
+# Only matches: variable letter + single subscript letter from {i,j,k,n,m,p,q}
+# Requires STRONG equation context (line has "= digit" assignment pattern)
+_SINGLE_SUB_RE = re.compile(
+    r"(?<![a-zA-Z])"           # not preceded by letter
+    r"([a-zA-Z])"              # single letter base
+    r"([ijknmpq])"             # single subscript index letter
+    r"(?![a-zA-Z])"            # not followed by more letters
+)
+# Words that could be false-matched by _SINGLE_SUB_RE
+_SINGLE_SUB_EXCLUDE = {"an", "am", "in", "on", "up", "if", "is", "it", "ok",
+                        "no", "so", "to", "we", "he", "me", "be", "or", "at",
+                        "of", "as", "by", "do", "go", "hi", "mi"}
+
+# Words that look like subscript patterns but aren't (English words)
+_IMPLICIT_SUB_EXCLUDE = {
+    "aim", "air", "all", "ami", "ask", "nil", "sir", "ski", "slim",
+    "sin", "kin", "pin", "rim", "pis", "sim", "lip", "rip", "sip",
+    "inn", "ink", "ill", "iris", "mini", "kiss", "miss", "risk",
+    "slim", "skip", "skin", "spin", "slip", "grin", "grip", "trim",
+    "trip", "milk", "silk", "kill", "fill", "pill", "till", "will",
+    "mill", "hill", "bill", "nil", "Jim", "Kim", "Tim",
+}
+
+# Math context indicators — line must contain at least one
+_MATH_CONTEXT_CHARS = set("≤≥≠≈∈∉⊂⊃∪∩∧∨¬∀∃∅∇∂√∫∑∏±×÷→←↔⊤⊥⊕⊗∼")
+
+
+def _fix_implicit_subscripts(text: str) -> str:
+    """
+    Detect implicit matrix subscripts in equation-context lines.
+
+    'aij + ajk ≤ aij + aki' → '$a_{ij}$ + $a_{jk}$ $\\leq$ $a_{ij}$ + $a_{ki}$'
+
+    Only applies to lines that contain math operators (≤, =, +, etc. with
+    at least one non-ASCII math symbol or already-converted $...$ math),
+    preventing false positives on English prose.
+    """
+    if not text:
+        return text
+
+    lines = text.split("\n")
+    result = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Check for equation context: must have math operators or existing $...$ math
+        has_math_context = bool(_MATH_CONTEXT_CHARS & set(stripped))
+        has_dollar_math = "$" in stripped
+        has_eq_sign_with_vars = bool(re.search(r'[a-z]\s*[+\-=<>]\s*[a-z]', stripped))
+        has_assignment = bool(re.search(r'=\s*\d', stripped))
+
+        # Need at least one strong math indicator AND some operator
+        if not (has_math_context or has_assignment
+                or (has_dollar_math and has_eq_sign_with_vars)):
+            result.append(line)
+            continue
+
+        # Apply implicit letter-subscript pattern (aij → $a_{ij}$)
+        def _replace_implicit(m):
+            full = m.group(0)
+            if full.lower() in _IMPLICIT_SUB_EXCLUDE:
+                return full  # it's an English word, leave it
+            base = m.group(1)
+            sub = m.group(2)
+            return f"${base}_{{{sub}}}$"
+
+        new_line = _apply_outside_math(line, _IMPLICIT_SUB_RE, _replace_implicit)
+
+        # Apply digit-subscript pattern in equation context (A22 → $A_{22}$)
+        # Only when near math context, not arbitrary numbers like "page 22"
+        if has_math_context:
+            def _replace_digit_sub(m):
+                base = m.group(1)
+                digits = m.group(2)
+                return f"${base}_{{{digits}}}$"
+            new_line = _apply_outside_math(new_line, _IMPLICIT_DIGIT_SUB_RE, _replace_digit_sub)
+
+        # Apply single-letter subscript in STRONG equation context only
+        # "ti = 0 a tj = 1" → "$t_i$ = 0 a $t_j$ = 1"
+        # Requires "= digit" pattern (assignment-like) to avoid false positives
+        if has_assignment or has_math_context:
+            def _replace_single_sub(m):
+                full = m.group(0).lower()
+                if full in _SINGLE_SUB_EXCLUDE:
+                    return m.group(0)
+                base = m.group(1)
+                sub = m.group(2)
+                return f"${base}_{{{sub}}}$"
+            new_line = _apply_outside_math(new_line, _SINGLE_SUB_RE, _replace_single_sub)
+
+        result.append(new_line)
+
+    return "\n".join(result)
+
+
 def _apply_outside_math(text: str, pattern: re.Pattern, replacement) -> str:
     """
     Apply a regex substitution only to text that is outside $...$ math regions.
@@ -1109,6 +1447,7 @@ def _merge_adjacent_math(text: str) -> str:
 
     $a^{2}$ + $b^{2}$ = $c^{2}$  →  $a^{2} + b^{2} = c^{2}$
     $a^{2}$$b^{2}$                →  $a^{2} b^{2}$
+    $\\lambda$(A)                 →  $\\lambda(A)$
     """
     # Step 1: Merge directly adjacent $X$$Y$ → $X Y$
     text = re.sub(r"\$\s*\$", " ", text)
@@ -1122,6 +1461,16 @@ def _merge_adjacent_math(text: str) -> str:
     text = re.sub(
         r"\$\s*([+\-=<>×÷·,])\s*\$",
         _merge_op,
+        text,
+    )
+
+    # Step 3: Absorb trailing (args) into math mode for function-like patterns.
+    # $\lambda$(A)  →  $\lambda(A)$
+    # $\sigma$(i)   →  $\sigma(i)$
+    # This handles Greek letter function calls where the argument was not wrapped.
+    text = re.sub(
+        r"\$(\\\w+)\$(\([^)]{1,20}\))",
+        r"$\1\2$",
         text,
     )
 

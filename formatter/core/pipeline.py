@@ -14,6 +14,7 @@ from core.config import (
 )
 from core.logger import get_logger
 from core.models import Document
+from core.shared import OCR_CONFIDENCE_THRESHOLD
 
 log = get_logger()
 
@@ -63,34 +64,41 @@ def run(input_file: str, template: str = "ieee", output_dir: str = None) -> str:
     formula_blocks = raw.get("formula_blocks", [])
     if formula_blocks:
         from core.models import FormulaBlock
+        # Convert all dicts to dataclasses upfront — single type from here on
+        formula_blocks = [
+            FormulaBlock(**fb) if isinstance(fb, dict) else fb
+            for fb in formula_blocks
+        ]
         good_fbs = []
         for fb in formula_blocks:
-            conf = fb.get("confidence", 0) if isinstance(fb, dict) else fb.confidence
-            has_latex = (fb.get("latex", "") if isinstance(fb, dict) else fb.latex)
-            has_img = (fb.get("image_path", "") if isinstance(fb, dict) else fb.image_path)
-            # Accept if: has good OCR (conf >= 0.60), or has image fallback (no latex)
-            if has_latex and conf >= 0.60:
-                good_fbs.append(FormulaBlock(**fb) if isinstance(fb, dict) else fb)
-            elif has_img and not has_latex:
+            # Accept if: has good OCR (conf >= threshold), or has image fallback (no latex)
+            if fb.latex and fb.confidence >= OCR_CONFIDENCE_THRESHOLD:
+                good_fbs.append(fb)
+            elif fb.image_path and not fb.latex:
                 # Image-only fallback — keep it (rendered as \includegraphics)
-                good_fbs.append(FormulaBlock(**fb) if isinstance(fb, dict) else fb)
+                good_fbs.append(fb)
         kept = len(good_fbs)
         total = len(formula_blocks)
-        log.info("  Formula blocks: %d kept / %d total (conf >= 0.60 or image-only)", kept, total)
+        log.info("  Formula blocks: %d kept / %d total (conf >= %.2f or image-only)", kept, total, OCR_CONFIDENCE_THRESHOLD)
 
         # Distribute formula blocks into sections by page proximity
-        _attach_formulas_to_sections(doc, good_fbs)
+        _distribute_to_sections(doc, good_fbs, "formula_blocks")
 
-        # Any formulas that couldn't be placed go into the document-level list
-        # (rendered as "Key Equations" at the end by templates)
+        # Force unplaced formulas into the last body section
+        # (avoids a disconnected "Key Equations" section at the end)
         placed = set()
         for s in doc.sections:
             for fb in s.formula_blocks:
                 placed.add(id(fb))
-        doc.formula_blocks = [fb for fb in good_fbs if id(fb) not in placed]
-        if doc.formula_blocks:
-            log.info("  %d formula blocks placed in sections, %d in Key Equations",
-                     kept - len(doc.formula_blocks), len(doc.formula_blocks))
+        unplaced = [fb for fb in good_fbs if id(fb) not in placed]
+        if unplaced:
+            body_sections = [s for s in doc.sections if s.body.strip()]
+            target = body_sections[-1] if body_sections else doc.sections[-1]
+            for fb in unplaced:
+                target.formula_blocks.append(fb)
+            log.info("  %d formula blocks placed in sections, %d forced into last section",
+                     kept - len(unplaced), len(unplaced))
+        doc.formula_blocks = []  # nothing left for global rendering
 
     # Attach extracted figures to sections (distribute by page proximity)
     raw_figures = raw.get("figures", [])
@@ -100,7 +108,7 @@ def run(input_file: str, template: str = "ieee", output_dir: str = None) -> str:
             Figure(**fig) if isinstance(fig, dict) else fig
             for fig in raw_figures
         ]
-        _attach_figures_to_sections(doc, figures)
+        _distribute_to_sections(doc, figures, "figures")
         log.info("  Figures: %d extracted", len(figures))
 
     # Save structured JSON
@@ -143,78 +151,87 @@ def run(input_file: str, template: str = "ieee", output_dir: str = None) -> str:
     return pdf_path
 
 
-def _attach_formulas_to_sections(doc: Document, formula_blocks: list):
+def _distribute_to_sections(doc: Document, items: list, target_attr: str,
+                             page_fn=None, sort_key=None):
     """
-    Distribute formula blocks into sections by page proximity.
+    Distribute items (formulas, figures, etc.) into sections by page proximity.
 
-    Each FormulaBlock has a `page` field. Each Section has a `start_page` field.
-    We assign each formula to the section whose page range contains the formula's page.
-    A section's page range is [start_page, next_section.start_page).
+    Args:
+        doc: Document with sections
+        items: list of items to distribute (dataclass or dict objects)
+        target_attr: section attribute name to append to (e.g. 'formula_blocks', 'figures')
+        page_fn: callable(item) -> page number (default: item.page or item["page"])
+        sort_key: callable for sorting items before distribution (default: by page, bbox_y)
     """
-    if not formula_blocks or not doc.sections:
+    if not items or not doc.sections:
         return
+
+    # Default page accessor
+    if page_fn is None:
+        def page_fn(item):
+            return item.page if hasattr(item, 'page') else item.get("page", -1)
+
+    # Default sort key
+    if sort_key is None:
+        def sort_key(item):
+            page = page_fn(item)
+            y = item.bbox_y if hasattr(item, 'bbox_y') else item.get("bbox_y", 0)
+            return (page, y)
 
     # Build page ranges for sections
     sections_with_pages = []
-    for i, s in enumerate(doc.sections):
-        if s.start_page >= 0:
+    for s in doc.sections:
+        if s.start_page >= 0 and s.body.strip():
             sections_with_pages.append((s, s.start_page))
-
-    if not sections_with_pages:
-        # No page info — fall back to even distribution
-        body_sections = [s for s in doc.sections if s.body.strip()]
-        if body_sections:
-            for i, fb in enumerate(formula_blocks):
-                idx = i % len(body_sections)
-                body_sections[idx].formula_blocks.append(fb)
-        return
-
-    # Sort formula blocks by page, then y-position
-    formula_blocks.sort(key=lambda fb: (fb.page, fb.bbox_y))
-
-    for fb in formula_blocks:
-        best_section = None
-        best_distance = float("inf")
-
-        for i, (section, page) in enumerate(sections_with_pages):
-            # Compute next section's start page (for range)
-            if i + 1 < len(sections_with_pages):
-                next_page = sections_with_pages[i + 1][1]
-            else:
-                next_page = float("inf")
-
-            # Formula is within this section's page range
-            if page <= fb.page < next_page:
-                best_section = section
-                break
-
-            # Otherwise find closest by page distance
-            dist = abs(fb.page - page)
-            if dist < best_distance:
-                best_distance = dist
-                best_section = section
-
-        if best_section:
-            best_section.formula_blocks.append(fb)
-
-
-def _attach_figures_to_sections(doc: Document, figures: list):
-    """
-    Distribute extracted figures across sections.
-    Simple strategy: spread evenly across sections that have body text.
-    On Windows with fitz, figures come with page numbers so we can do
-    page-proximity matching in a future improvement.
-    """
-    if not figures or not doc.sections:
-        return
 
     body_sections = [s for s in doc.sections if s.body.strip()]
     if not body_sections:
         return
 
-    for i, fig in enumerate(figures):
-        idx = i % len(body_sections)
-        body_sections[idx].figures.append(fig)
+    # Check if we have page info
+    has_page_info = sections_with_pages and any(page_fn(item) >= 0 for item in items)
+
+    if not has_page_info:
+        # No page info — fall back to even distribution
+        for i, item in enumerate(items):
+            idx = i % len(body_sections)
+            getattr(body_sections[idx], target_attr).append(item)
+        return
+
+    # Sort items by position
+    sorted_items = sorted(items, key=sort_key)
+
+    for item in sorted_items:
+        item_page = page_fn(item)
+
+        if item_page < 0:
+            # No page info — put in first section
+            getattr(body_sections[0], target_attr).append(item)
+            continue
+
+        best_section = None
+        best_distance = float("inf")
+
+        for i, (section, page) in enumerate(sections_with_pages):
+            if i + 1 < len(sections_with_pages):
+                next_page = sections_with_pages[i + 1][1]
+            else:
+                next_page = float("inf")
+
+            # Item is within this section's page range
+            if page <= item_page < next_page:
+                best_section = section
+                break
+
+            dist = abs(item_page - page)
+            if dist < best_distance:
+                best_distance = dist
+                best_section = section
+
+        if best_section:
+            getattr(best_section, target_attr).append(item)
+        else:
+            getattr(body_sections[-1], target_attr).append(item)
 
 
 def _flush_log(logger):

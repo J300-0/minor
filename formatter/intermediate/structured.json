@@ -29,13 +29,7 @@
       "depth": 1,
       "body": "Science is the cornerstone of civilization. We capture the knowledge of the world around us;\nconsequently, we pass this knowledge on to the next generation. Scientific knowledge present solved\nproblems that we can express as procedures, methods, algorithms. There are diverse areas of\nknowledge; they vary from exploring the oceans to flying and discovering space, but there are also\nmedical procedures that are used to cure diseases. Algorithms and procedures can be expressed most\nsuccinctly using formulas that contain mathematical operations and relationships between numbers\nthat can be concrete or abstract.",
       "tables": [],
-      "figures": [
-        {
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_0_0.png",
-          "caption": "",
-          "label": "fig_0_0"
-        }
-      ],
+      "figures": [],
       "formula_blocks": [],
       "start_page": 0
     },
@@ -46,21 +40,14 @@
       "tables": [],
       "figures": [
         {
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_2_0.png",
-          "caption": "The orbit of a miniature satellite around the Earth - main parameters",
-          "label": "fig_2_0"
-        }
-      ],
-      "formula_blocks": [
-        {
-          "latex": "",
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_0_0.png",
-          "confidence": 0.5,
+          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_0_0.png",
+          "caption": "",
+          "label": "fig_0_0",
           "page": 0,
-          "label": "eq_0_0",
           "bbox_y": 0.0
         }
       ],
+      "formula_blocks": [],
       "start_page": 0
     },
     {
@@ -68,13 +55,7 @@
       "depth": 1,
       "body": "In this chapter, we will list some of the formulas that have had a major impact on the development\nof scientific knowledge and we may encounter them in the study of mathematics, physics but also in\nother scientific disciplines. The formulas can be found in publication [5]. This publication contains 17\nof the most important formulas with a description of the historical background of their origin. In this\narticle, we list 8 of them.\n\nE = mc2\nRelativity\nA. Einstein, 1905\n3.1. Mathematical formulas\n\nMathematical formulas contain mathematical constants, variables, and operations. All formulas\n(except 4 and 8) are mathematical formulas; formulas 4 and 8 are physical. Mathematical formulas\ncontain only mathematical constants, variables. The number π is a mathematical constant because it\nwas formed using mathematical objects (the circle, the circumference of the circle, and the diameter).\nMathematical formulas are universal, they have universal validity.",
       "tables": [],
-      "figures": [
-        {
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_3_0.png",
-          "caption": "",
-          "label": "fig_3_0"
-        }
-      ],
+      "figures": [],
       "formula_blocks": [],
       "start_page": 1
     },
@@ -91,15 +72,6 @@
       "heading": "APPLICATION OF FORMULAS",
       "depth": 1,
       "body": "The formulas listed in Table 1 have been and are being applied for calculations in various fields of\nscience. In our example, there is an application of the Law of Gravity (formula 4) to calculate the orbit\nof a miniature satellite. The Law of Gravity was also expressed using Kepler’s Laws, which originated\nin the early 17th century (around 1610). The final formulaic form of the Law of Gravity was\ndeveloped after 200 years. Kepler’s third law describes the relationship between the orbital period of\nthe planets around the Sun and the longitude of the major semi-axis of their elliptical orbits. The\n\nThe Formulas\n3.\n\ngeneralized form of these laws we have applied to the calculation of the orbit of a miniature satellite\naround the Earth in [8]. Specific calculations and applications are contained in the program [7].\n\nFigure 1 The orbit of a miniature satellite around the Earth - main parameters",
-      "tables": [],
-      "figures": [],
-      "formula_blocks": [],
-      "start_page": 1
-    },
-    {
-      "heading": "THE AUTHOR’S FORMULAS",
-      "depth": 1,
-      "body": "The book [3] inspired us to write some of our scientific results using formulas. Of course, the\nmeaning of these results is not comparable to the results described in the book [3]. Our results are less\nsignificant. For a simpler understanding of our formulas, individual chapters contain a brief\ndescription of the problems addressed.\n5.1. Strong linear independence in bottleneck algebra\n\nThe paper [1] deals with the solvability of the system of equations Ax = b in the Bottleneck\nalgebra. By Bottleneck algebra, we mean an algebra in which the basic arithmetic operations of linear\nalgebra (+, ×) are replaced by the operations (⊕, ⊗) = (maximum, minimum). Here we have\naddressed the question: when does a system of equations\n\nA ⊗ x = b\n(2)\nhas a unique solution or in other words, when the matrix A is strongly regular in the Bottleneck\nalgebra. We find that in this algebra, the class of strongly regular matrices consist of trapezoidal\nmatrices. The real square matrix A = (aij) of type n × n is trapezoidal when\n\n(3)\nfor each i = 1,··· ,n. This is the formula that describes the problem. The question of testing condition\n(3), where we can convert the input matrix to trapezoidal form, is a question of algorithms of\ncomplexity O(n2logn). We have also presented such an algorithm in our work. This work is the result\nof the cooperation of three authors.",
       "tables": [
         {
           "headers": [
@@ -123,7 +95,7 @@
             ],
             [
               "4",
-              "\\CELLEQ{F=G{\\frac{m_{1}m_{2}}{r^{2}}}}",
+              "\\CELLEQ{F=G{\\frac{m_{1}m_{2}}{r^{2}}}||IMG:C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\tcell_1_0_3_1.png}",
               "Newton’s Law of Gravity",
               "I. Newton, 1687"
             ],
@@ -141,7 +113,7 @@
             ],
             [
               "7",
-              "\\CELLEQ{\\stackrel{.}{\\bigwedge}\\left(\\langle\\cdot y\\right)~\\longrightarrow~\\int_{-\\infty}^{+\\infty}~\\int^{*}\\!\\left(\\mathcal{D}\\right){\\mathcal{C}}^{-2\\mp\\dot{\\nu}\\cdot\\omega\\mathcal{A}}\\mathcal{U}\\mathcal{U}}",
+              "\\CELLEQ{\\stackrel{.}{\\bigwedge}\\left(\\langle\\cdot y\\right)~\\longrightarrow~\\int_{-\\infty}^{+\\infty}~\\int^{\\not{D}}\\left(\\mathcal{D}\\right)\\mathcal{C}^{-2\\mp\\dot{\\nu}\\dot{\\nu}\\omega\\mathcal{A}}\\mathcal{U}\\mathcal{U}||IMG:C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\tcell_1_0_6_1.png}",
               "Fourier Transform",
               "J. Fourier, 1822"
             ],
@@ -158,34 +130,44 @@
       ],
       "figures": [],
       "formula_blocks": [],
+      "start_page": 1
+    },
+    {
+      "heading": "THE AUTHOR’S FORMULAS",
+      "depth": 1,
+      "body": "The book [3] inspired us to write some of our scientific results using formulas. Of course, the\nmeaning of these results is not comparable to the results described in the book [3]. Our results are less\nsignificant. For a simpler understanding of our formulas, individual chapters contain a brief\ndescription of the problems addressed.\n5.1. Strong linear independence in bottleneck algebra\n\nThe paper [1] deals with the solvability of the system of equations Ax = b in the Bottleneck\nalgebra. By Bottleneck algebra, we mean an algebra in which the basic arithmetic operations of linear\nalgebra (+, ×) are replaced by the operations (⊕, ⊗) = (maximum, minimum). Here we have\naddressed the question: when does a system of equations\n\nA ⊗ x = b\n(2)\nhas a unique solution or in other words, when the matrix A is strongly regular in the Bottleneck\nalgebra. We find that in this algebra, the class of strongly regular matrices consist of trapezoidal\nmatrices. The real square matrix A = (aij) of type n × n is trapezoidal when\n\n(3)\nfor each i = 1,··· ,n. This is the formula that describes the problem. The question of testing condition\n(3), where we can convert the input matrix to trapezoidal form, is a question of algorithms of\ncomplexity O(n2logn). We have also presented such an algorithm in our work. This work is the result\nof the cooperation of three authors.",
+      "tables": [],
+      "figures": [],
+      "formula_blocks": [],
       "start_page": 2
     },
     {
       "heading": "Monge Matrices",
       "depth": 2,
-      "body": "Monge matrices were already mentioned in 1781. The square matrix A = (aij) of type n × n has the\nMonge’s property when\n\naii + ajk  ≤  aij + aki\n(4)",
+      "body": "Monge matrices were already mentioned in 1781. The square matrix A = (aij) of type n × n has the\nMonge’s property when\n\naii + ajk  ≤  aij + aki\n(4)\n\nfor each i = 1,...,n and for every j, k > i. The problem of when it is possible to transform a matrix A\ninto a matrix with the Monge’s property has not been solved yet. The first solution to this problem is\ngiven in [2]. The solution to the problem, when we can transform (↔) an input matrix A into a matrix\nwhich has the Monge property is the existence of permutations σ, π such that\n\n(5)\nfor each i = 1,...,n and for every j, k > i. We can write this attribute as\n\n(6)\n\nThis relationship allows us to apply an iterative algorithm to test the relation ↔ (The relation\nmeans that we can transform the matrix A into a Monge matrix if and only if we know the matrix A22\nand for the element ασ(1)π(1) the following relation applies (5)). For testing this property of matrices we\ncan use an algorithm of complexity O(n4). Therefore, it was not easy to find a testing algorithm or a\nsolution to the problem. Note that even the more complicated polynomial matrix algorithms have a\ncomplexity no greater than O(n3). This work is the result of the cooperation of two authors.",
       "tables": [],
-      "figures": [],
-      "formula_blocks": [
+      "figures": [
         {
-          "latex": "a_{i i}>\\Longleftrightarrow_{k=1}^{i}\\sum_{l=k+1}^{n}\\;a_{k l}",
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_2_0.png",
-          "confidence": 0.7500000000000002,
+          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_2_0.png",
+          "caption": "The orbit of a miniature satellite around the Earth - main parameters",
+          "label": "fig_2_0",
           "page": 2,
-          "label": "eq_2_0",
           "bbox_y": 0.0
         }
       ],
+      "formula_blocks": [
+        {
+          "latex": "",
+          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_2_0.png",
+          "confidence": 0.5,
+          "page": 2,
+          "label": "eq_2_0",
+          "bbox_y": 0.0,
+          "bbox_h": 0.0,
+          "equation_number": ""
+        }
+      ],
       "start_page": 2
-    },
-    {
-      "heading": "Peter Szabó, Miroslava Ferencová",
-      "depth": 1,
-      "body": "for each i = 1,...,n and for every j, k > i. The problem of when it is possible to transform a matrix A\ninto a matrix with the Monge’s property has not been solved yet. The first solution to this problem is\ngiven in [2]. The solution to the problem, when we can transform (↔) an input matrix A into a matrix\nwhich has the Monge property is the existence of permutations σ, π such that\n\n(5)\nfor each i = 1,...,n and for every j, k > i. We can write this attribute as\n\n(6)\n\nThis relationship allows us to apply an iterative algorithm to test the relation ↔ (The relation\nmeans that we can transform the matrix A into a Monge matrix if and only if we know the matrix A22\nand for the element ασ(1)π(1) the following relation applies (5)). For testing this property of matrices we\ncan use an algorithm of complexity O(n4). Therefore, it was not easy to find a testing algorithm or a\nsolution to the problem. Note that even the more complicated polynomial matrix algorithms have a\ncomplexity no greater than O(n3). This work is the result of the cooperation of two authors.",
-      "tables": [],
-      "figures": [],
-      "formula_blocks": [],
-      "start_page": 3
     },
     {
       "heading": "Goldbach’s Conjecture in Max-Algebra",
@@ -200,7 +182,9 @@
           "confidence": 0.7000000000000002,
           "page": 3,
           "label": "eq_3_0",
-          "bbox_y": 0.0
+          "bbox_y": 0.0,
+          "bbox_h": 0.0,
+          "equation_number": ""
         },
         {
           "latex": "A\\quad\\Leftrightarrow\\quad\\left(\\begin{array}{cc}{{A_{11}}}&{{A_{12}}}\\\\ {{A_{21}}}&{{A_{22}}}\\end{array}\\right),A_{11}=(a_{\\sigma(1)\\pi(1)})",
@@ -208,7 +192,9 @@
           "confidence": 0.6,
           "page": 3,
           "label": "eq_3_1",
-          "bbox_y": 0.0
+          "bbox_y": 0.0,
+          "bbox_h": 0.0,
+          "equation_number": ""
         },
         {
           "latex": "{\\frac{t_{p}+t_{q}}{3}}=\\lambda(A)",
@@ -216,7 +202,19 @@
           "confidence": 0.7000000000000002,
           "page": 3,
           "label": "eq_3_2",
-          "bbox_y": 0.0
+          "bbox_y": 0.0,
+          "bbox_h": 0.0,
+          "equation_number": ""
+        },
+        {
+          "latex": "A=\\left(\\begin{array}{ccccc}{{t_{0}}}&{{0}}&{{0}}&{{0}}\\\\ {{t_{1}}}&{{t_{0}}}&{{0}}&{{\\ddots}}&{{\\vdots}}\\\\ {{\\vdots}}&{{\\ddots}}&{{\\ddots}}&{{\\vdots}}\\\\ {{t_{2}}}&{{t_{1}}}&{{\\ddots}}&{{\\ddots}}&{{\\vdots}}\\\\ {{\\vdots}}&{{\\ddots}}&{{t_{1}}}&{{t_{0}}}&{{t_{0}}}\\end{array}\\right)",
+          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_3_3.png",
+          "confidence": 0.6500000000000001,
+          "page": 3,
+          "label": "eq_3_3",
+          "bbox_y": 0.0,
+          "bbox_h": 0.0,
+          "equation_number": ""
         }
       ],
       "start_page": 3
@@ -227,16 +225,7 @@
       "body": "In this paper, we wanted to highlight the importance of mathematical and physical formulas in\nengineering and mathematical sciences. The most important formulas in these fields can be found in\nthe publication [5]. There are also special constants included in the formulas. Constants used in\nastronomy are found in publication [3]. These physical constants, like the number π, are probably\nirrational numbers. That is why the database of physical constants is occasionally updated. The paper\nalso contains some formulas discovered by the authors (3, 6, 7).",
       "tables": [],
       "figures": [],
-      "formula_blocks": [
-        {
-          "latex": "",
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_4_0.png",
-          "confidence": 0.5,
-          "page": 4,
-          "label": "eq_4_0",
-          "bbox_y": 0.0
-        }
-      ],
+      "formula_blocks": [],
       "start_page": 4
     }
   ],

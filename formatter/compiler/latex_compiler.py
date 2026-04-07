@@ -54,6 +54,7 @@ def compile_latex(tex_path: str, output_dir: str, template_name: str) -> str:
     ]
 
     # Run 2 passes (second pass resolves cross-references)
+    log_path = os.path.join(INTERMEDIATE_DIR, "generated.log")
     for pass_num in (1, 2):
         log.info("  pdflatex pass %d/2...", pass_num)
         result = subprocess.run(
@@ -61,31 +62,32 @@ def compile_latex(tex_path: str, output_dir: str, template_name: str) -> str:
             capture_output=True, timeout=120,
         )
         # Decode stdout/stderr with error handling (pdflatex may emit non-UTF-8)
-        result.stdout = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
-        result.stderr = result.stderr.decode("utf-8", errors="replace") if result.stderr else ""
+        stdout = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
+        stderr = result.stderr.decode("utf-8", errors="replace") if result.stderr else ""
 
-        # Save log
-        log_path = os.path.join(INTERMEDIATE_DIR, "generated.log")
-        if result.stdout:
-            with open(log_path, "w", encoding="utf-8") as f:
-                f.write(result.stdout)
+        # Save log — append pass 2 so both passes are preserved
+        if stdout:
+            mode = "w" if pass_num == 1 else "a"
+            with open(log_path, mode, encoding="utf-8") as f:
+                f.write(f"\n{'='*60}\n  pdflatex pass {pass_num}\n{'='*60}\n")
+                f.write(stdout)
 
         if result.returncode != 0:
             # Extract error from output
             error_lines = []
-            for line in (result.stdout or "").split("\n"):
+            for line in stdout.split("\n"):
                 if line.startswith("!") or "Fatal error" in line:
                     error_lines.append(line)
 
             error_msg = "\n".join(error_lines[:5]) if error_lines else ""
 
             # Check if "no output PDF file produced" (fatal)
-            fatal = "no output PDF file produced" in (result.stdout or "")
+            fatal = "no output PDF file produced" in stdout
 
-            if fatal and pass_num == 1:
+            if fatal:
                 log.error("  pdflatex fatal failure (pass %d):\n%s", pass_num, error_msg)
                 raise RuntimeError(
-                    f"pdflatex compilation failed:\n{error_msg}\n"
+                    f"pdflatex compilation failed (pass {pass_num}):\n{error_msg}\n"
                     f"See {log_path} for full output."
                 )
             elif error_lines:

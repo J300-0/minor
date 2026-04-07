@@ -31,6 +31,7 @@ KEYWORD_HEADINGS = {
 METADATA_PATTERNS = [
     re.compile(r"^\d+\s*$"),                          # page numbers
     re.compile(r"^\d+\s+\d+\s*$"),                    # "1 3" — split page numbers
+    re.compile(r"^\d+\s{5,}"),                         # page number + running header ("4    Peter Szabó...")
     re.compile(r"^vol\.\s*\d+", re.I),                # volume numbers
     re.compile(r"^volume\s+[IVXLC\d]+", re.I),       # "Volume XXIV, ..."
     re.compile(r"^doi:\s*", re.I),                     # DOIs starting with DOI
@@ -46,6 +47,7 @@ METADATA_PATTERNS = [
     re.compile(r"Page\s+\d+\s+of\s+\d+", re.I),      # "Page N of N" running headers
     re.compile(r"Machine\s+Learning\s+\(\d{4}\)\s+\d+:\d+", re.I),  # journal running header
     re.compile(r"^\d+\s+Page\s+\d+\s+of\s+\d+", re.I),  # "72 Page 16 of 36 ..."
+    re.compile(r"^Acta\s+Avionica", re.I),              # journal name running header
 ]
 
 # Reference patterns

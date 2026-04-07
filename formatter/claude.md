@@ -1,6 +1,6 @@
 # CLAUDE.md — ai-paper-formatter Project Memory
 > Read this file at the start of every session. Update it when structural changes are made.
-> Last updated: 2026-03-26 — SMask xref compositing, table cell images, corrupted aux cleanup
+> Last updated: 2026-04-07 — Position-aware formula placement, equation numbering, subscript fixes
 
 ---
 
@@ -198,6 +198,7 @@ formatter/
   core/
     config.py                # Paths, constants, template registry
     models.py                # Dataclasses: Document, Author, Section, Table, Figure, Reference
+    shared.py                # Shared utilities: MATH_CHARS, thresholds, count_real_words, latex_relpath
     pipeline.py              # Orchestrator — 6 stages + canon gate
     logger.py                # Rotating + latest log
   extractor/
@@ -336,6 +337,14 @@ formatter/
     artifacts, `\mathcal` spam, rare Greek (`\Xi`), plain letter runs, and garbage words
     ("pout", "REFERENCES", etc.). Rewards: `\frac`, `\int`, `\sum`, `^{}`, `_{}`, `=` sign.
 
+22. **Equation numbers matched by y-proximity.** `_collect_equation_numbers()` finds standalone
+    `(N)` text blocks, `_match_equation_numbers()` pairs them to formulas within 30pt y-distance.
+    Each number used at most once. Stored in `FormulaBlock.equation_number`, rendered as `\tag{N}`.
+
+23. **Formula placement is sequential, not interleaved.** `_build_content_blocks()` places
+    formula blocks after the section's text paragraphs in position order. Do NOT re-introduce
+    "even interval" or other artificial distribution — it scatters formulas next to unrelated text.
+
 ---
 
 ## Dependencies
@@ -442,6 +451,60 @@ KEY TECHNICAL RULES (add rule 4 to the rules section in claude.md):
 ---
 
 ## Changelog
+
+### 2026-04-07 — Position-aware formula placement, subscript fixes
+- **Problem (formulas dumped at end)**: Previous fix placed all formulas after section text. Reverted
+  to position-aware interleaving: each formula's `(page, bbox_y)` computes its fractional position
+  within the section, then it's placed after the corresponding paragraph.
+- **Problem (eigenvalue λ(A) broken)**: `_GREEK_SUBSCRIPT_RE` matched the `e` from "eigenvalue" as a
+  base variable, producing `eigenvalu$e_{\lambda(A)}$`. Fixed with `(?<![a-zA-Z])` lookbehind and
+  updated quick-bail check to verify base letter is standalone.
+- **Problem ($\lambda$(A) split)**: After Greek→LaTeX conversion, `λ(A)` became `$\lambda$(A)` — the
+  argument was left outside math mode. Added Step 3 in `_merge_adjacent_math()` that absorbs trailing
+  `(args)` into the math span: `$\cmd$(args)` → `$\cmd(args)$`.
+
+### 2026-04-06 — Formula numbering preservation + placement fix
+- **Problem (equation numbers lost)**: OCR-extracted formula images (FormulaBlocks) had no equation
+  numbers. The original `(7)`, `(8)` etc. from the input document were not carried through to output.
+- **Problem (formula placement)**: `_build_content_blocks()` in renderer used "even intervals" formula
+  `floor((i+1) * n_para / (n_fb+1))` to scatter formulas among paragraphs — artificial placement
+  that put formulas next to unrelated text.
+- **FormulaBlock model** (`core/models.py`): Added `equation_number: str = ""` field to store the
+  original equation number from the input document (e.g. "7" for equation `(7)`).
+- **Equation number extraction** (`extractor/pdf_extractor.py`):
+  - Added `_collect_equation_numbers(text_dict)`: scans page text blocks for standalone `(N)` patterns,
+    returns list of `(y_center, number_str)` sorted by position.
+  - Added `_match_equation_numbers(formulas, eq_nums)`: matches equation numbers to formula blocks
+    by y-position proximity (max 30pt distance). Each number used at most once (closest wins).
+  - Wired into `_detect_formula_regions()` and `_extract_all_page_images()`.
+  - `_extract_all_page_images()` now accepts optional `text_dict` parameter for equation number matching.
+  - `_detect_formula_regions()` now includes `bbox_y` in returned formula dicts (was missing).
+- **Renderer** (`renderer/jinja_renderer.py`):
+  - `_fb_to_dict()` now passes `equation_number` through to template context.
+  - `_build_content_blocks()` rewritten: formulas placed sequentially after section text in position
+    order, instead of scattered at artificial even intervals. Simple, predictable, correct.
+- **All 6 templates** (ieee, acm, springer, elsevier, apa, arxiv):
+  - Equation blocks now render OCR latex when available (previously only images were rendered).
+  - When `equation_number` is present, equations wrapped in `\begin{equation*}\tag{N}...\end{equation*}`
+    to display the original `(N)` numbering.
+  - Without equation number: images render in `\begin{center}` (unchanged), latex in `equation*`.
+- **Text-based equations** (normalizer): Already had `\tag{N}` from `_convert_numbered_equations()` — no change needed.
+
+### 2026-04-06 — Code review fixes: shared utilities, bug fixes, deduplication
+- **Created `core/shared.py`**: Single source of truth for cross-module constants and utilities.
+  Contains: `MATH_CHARS` (487 chars), `OCR_CONFIDENCE_THRESHOLD`, `TABLE_CELL_OCR_THRESHOLD`,
+  `OCR_RENDERER_THRESHOLD`, `MATH_STOP_WORDS`, `count_real_words()`, `latex_relpath()`.
+- **Operator precedence bug** (cleaner.py:341): `or` vs `and` without parens — fixed.
+- **Caption matching bug** (pdf_extractor.py): `dist = abs(cy - 0)` hardcoded → uses actual `fig_y`.
+- **Figure label collision** (pdf_extractor.py): `len(figures)` after append → pre-computed `fig_idx`.
+- **Display math escaping** (jinja_renderer.py): `$$` treated as two `$` toggles → proper detection.
+- **Compiler log overwrite**: pass 2 overwrote pass 1 → append mode for pass 2.
+- **OCR budget state leak**: mutable global dict → `_OcrBudget` class with `reset()`.
+- **MATH_CHARS divergence**: 3 definitions → consolidated in `shared.py`.
+- **count_real_words duplication**: 5+ copies → single function in `shared.py`.
+- **PIL imports**: 7+ local imports → module-level guarded import.
+- **Path relativization**: 4 instances → `latex_relpath()` in `shared.py`.
+- **FormulaBlock dict/dataclass mix**: isinstance checks → upfront conversion in pipeline.
 
 ### 2026-03-26 — Table rendering, header formulas, author extraction, Key Equations dedup
 - **Problem (table header formulas)**: First table row (e.g. `a2 + b2 = c2`) treated as header
@@ -676,3 +739,5 @@ KEY TECHNICAL RULES (add rule 4 to the rules section in claude.md):
 - Full 5-stage pipeline, 6 templates, end-to-end working
 - Font-aware and text-only parsing modes
 - Created CLAUDE.md
+
+don't write repititve code build tools that will do it , for actions that require same thing over and over again and dont write garbage code
