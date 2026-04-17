@@ -59,27 +59,15 @@
 \VAR{block.content}
 
 %% elif block.type == "equation"
-\smallskip
 %% if block.latex
-%% if block.equation_number
-\begin{equation*}\tag{\VAR{block.equation_number}}
+\begin{equation}
 \VAR{block.latex}
-\end{equation*}
-%% else
-\begin{equation*}
-\VAR{block.latex}
-\end{equation*}
-%% endif
+\end{equation}
 %% elif block.image_path
-%% if block.equation_number
-\noindent\hfill\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{block.image_path}}\hfill(\VAR{block.equation_number})\hspace*{0pt}
-%% else
-\begin{center}
-\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{block.image_path}}
-\end{center}
+\begin{equation}
+\vcenter{\hbox{\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{block.image_path}}}}
+\end{equation}
 %% endif
-%% endif
-\smallskip\noindent
 %% endif
 %% endfor
 
@@ -110,31 +98,6 @@
 
 %% endfor
 \end{thebibliography}
-%% endif
-
-%% if formula_blocks
-\smallskip
-%% for fb in formula_blocks
-%% if fb.latex
-%% if fb.equation_number
-\begin{equation*}\tag{\VAR{fb.equation_number}}
-\VAR{fb.latex}
-\end{equation*}
-%% else
-\begin{equation*}
-\VAR{fb.latex}
-\end{equation*}
-%% endif
-%% elif fb.image_path
-%% if fb.equation_number
-\noindent\hfill\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{fb.image_path}}\hfill(\VAR{fb.equation_number})\hspace*{0pt}
-%% else
-\begin{center}
-\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{fb.image_path}}
-\end{center}
-%% endif
-%% endif
-%% endfor
 %% endif
 
 \end{document}

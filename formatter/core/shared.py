@@ -23,7 +23,7 @@ MATH_CHARS.update("∼⊤⊥⊕⊗∘⟨⟩‖′″∝≡≅≪≫")
 # ── OCR confidence thresholds ───────────────────────────────────────
 OCR_CONFIDENCE_THRESHOLD = 0.60    # standalone formula blocks
 TABLE_CELL_OCR_THRESHOLD = 0.40    # table cells (lower = prefer selectable text)
-OCR_RENDERER_THRESHOLD = 0.80      # renderer-side gate for latex vs image
+OCR_RENDERER_THRESHOLD = 0.60      # renderer-side gate for latex vs image
 
 
 # ── "Real words" detection ──────────────────────────────────────────

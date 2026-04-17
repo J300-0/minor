@@ -21,21 +21,24 @@
 
 \title{THE FORMULAS}
 
-\author{
-  \IEEEauthorblockN{Peter SZABÓ}
-  \IEEEauthorblockA{
-    \textit{Technical University of Košice, Faculty of Aeronautics}\\
-    Department of Aviation Technical Studies, Rampová 7, 040 01 Košice\\
-    Slovak Republic\\
-  }
-  \and
-  \IEEEauthorblockN{Miroslava FERENCOVÁ}
-  \IEEEauthorblockA{
-    \textit{Technical University of Košice, Faculty of Aeronautics}\\
-    Department of Air Transport Management, Rampová 7, 040 01 Košice\\
-    Slovak Republic\\
-    peter.szabo@tuke.sk
-  }
+\author{%
+\IEEEoverridecommandlockouts%
+\begin{minipage}[t]{0.48\textwidth}\centering
+{\normalsize\textbf{Peter SZABÓ}}\\[2pt]
+{\footnotesize Technical University of Košice, Faculty of Aeronautics%
+\\ Department of Aviation Technical Studies, Rampová 7, 040 01 Košice%
+\\ Slovak Republic%
+}
+\end{minipage}%
+\hfill%
+\begin{minipage}[t]{0.48\textwidth}\centering
+{\normalsize\textbf{Miroslava FERENCOVÁ}}\\[2pt]
+{\footnotesize Technical University of Košice, Faculty of Aeronautics%
+\\ Department of Air Transport Management, Rampová 7, 040 01 Košice%
+\\ Slovak Republic%
+\\ peter.szabo@tuke.sk%
+}
+\end{minipage}%
 }
 \maketitle
 
@@ -68,7 +71,10 @@ counts, quantities, sizes and quantify the examined objects. Numbers can be both
 abstract. The concrete numbers are constants, e.g. $\pi$ = 3.1415.... is Ludolph's number - it is the ratio of
 the circumference of an arbitrary circle to its diameter. If we denote the circumference of the circle as
 O and the diameter as r, the constant $\pi$ can be expressed as
- (1)
+
+\begin{equation}
+\pi={\frac{O}{2r}}
+\end{equation}
 Numbers O, r are no longer concrete numbers. They are variables, symbols, abstract numbers for
 which we can place the values of an arbitrary circle. Relations of the type (1) are called formulas. A
 formula is an expression that contains mathematical operations and expresses relations between
@@ -77,11 +83,6 @@ knowledge in the most concise way. Formulas can be mathematical, physical, chemi
 biological. It is to be noted that in each field of science there are special constants. The system of
 constants used in astronomy can be found in the publication [3].
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[max width=\columnwidth, max height=0.4\textheight]{figures/fig_0_0.png}
-\label{fig_0_0}
-\end{figure}
 \section{FORMULAS}
 
 In this chapter, we will list some of the formulas that have had a major impact on the development
@@ -89,10 +90,6 @@ of scientific knowledge and we may encounter them in the study of mathematics, p
 other scientific disciplines. The formulas can be found in publication [5]. This publication contains 17
 of the most important formulas with a description of the historical background of their origin. In this
 article, we list 8 of them.
- E = mc2
-Relativity
-A. Einstein, 1905
-3.1. Mathematical formulas
 
 Mathematical formulas contain mathematical constants, variables, and operations. All formulas
 (except 4 and 8) are mathematical formulas; formulas 4 and 8 are physical. Mathematical formulas
@@ -122,6 +119,12 @@ around the Earth in [8]. Specific calculations and applications are contained in
 
 Figure 1 The orbit of a miniature satellite around the Earth - main parameters
 
+\begin{figure}[!htbp]
+\centering
+\includegraphics[max width=\columnwidth, max height=0.4\textheight]{figures/fig_2_0.png}
+\caption{The orbit of a miniature satellite around the Earth - main parameters}
+\label{fig_2_0}
+\end{figure}
 \begin{table}[!htbp]
 \label{tab_1_1}
 \centering
@@ -156,39 +159,44 @@ algebra. By Bottleneck algebra, we mean an algebra in which the basic arithmetic
 algebra (+, $\times$) are replaced by the operations ($\oplus , \otimes$) = (maximum, minimum). Here we have
 addressed the question: when does a system of equations
 
-\begin{equation*}\tag{2}
+\begin{equation}
   A \otimes x = b
-\end{equation*}
+\end{equation}
 
 has a unique solution or in other words, when the matrix A is strongly regular in the Bottleneck
 algebra. We find that in this algebra, the class of strongly regular matrices consist of trapezoidal
-matrices. The real square matrix A = (aij) of type n $\times$ n is trapezoidal when
- (3)
+matrices. The real square matrix A = ($a_{ij}$) of type n $\times$ n is trapezoidal when
+
 for each i = 1,$\cdot \cdot \cdot$ ,n. This is the formula that describes the problem. The question of testing condition
 (3), where we can convert the input matrix to trapezoidal form, is a question of algorithms of
 complexity O(n2logn). We have also presented such an algorithm in our work. This work is the result
 of the cooperation of three authors.
 
+\begin{equation}
+a_{i i}>\sum_{k=1}^{t}\tilde{\Sigma}_{l=k+1}^{n}\;a_{k l}
+\end{equation}
 \subsection{Monge Matrices}
 
-Monge matrices were already mentioned in 1781. The square matrix A = (aij) of type n $\times$ n has the
+Monge matrices were already mentioned in 1781. The square matrix A = ($a_{ij}$) of type n $\times$ n has the
 Monge's property when
 
-\smallskip
-\begin{center}
-\includegraphics[max width=0.85\columnwidth, max height=4cm]{figures/eq_2_0.png}
-\end{center}
-\smallskip\noindent
-$a_{ii} + a_{jk} \leq$ (4) $a_{ij} + a_{ki}$
+\begin{equation}
+  a_{ii} + a_{jk} \leq a_{ij} + a_{ki}
+\end{equation}
 
 for each i = 1,...,n and for every j, k > i. The problem of when it is possible to transform a matrix A
 into a matrix with the Monge's property has not been solved yet. The first solution to this problem is
 given in [2]. The solution to the problem, when we can transform ($\leftrightarrow$) an input matrix A into a matrix
 which has the Monge property is the existence of permutations $\sigma , \pi$ such that
- (5)
-for each i = 1,...,n and for every j, k > i. We can write this attribute as
- (6)
 
+\begin{equation}
+\vcenter{\hbox{\includegraphics[max width=0.85\columnwidth, max height=4cm]{figures/eq_3_0.png}}}
+\end{equation}
+for each i = 1,...,n and for every j, k > i. We can write this attribute as
+
+\begin{equation}
+\vcenter{\hbox{\includegraphics[max width=0.85\columnwidth, max height=4cm]{figures/eq_3_1.png}}}
+\end{equation}
 This relationship allows us to apply an iterative algorithm to test the relation $\leftrightarrow$ (The relation
 means that we can transform the matrix A into a Monge matrix if and only if we know the matrix A22
 and for the element $\alpha_{\sigma(1)\pi(1)}$ the following relation applies (5)). For testing this property of matrices we
@@ -196,12 +204,6 @@ can use an algorithm of complexity O(n4). Therefore, it was not easy to find a t
 solution to the problem. Note that even the more complicated polynomial matrix algorithms have a
 complexity no greater than O(n3). This work is the result of the cooperation of two authors.
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[max width=\columnwidth, max height=0.4\textheight]{figures/fig_2_0.png}
-\caption{The orbit of a miniature satellite around the Earth - main parameters}
-\label{fig_2_0}
-\end{figure}
 \subsection{Goldbach's Conjecture in Max-Algebra}
 
 In max-algebra, the basic arithmetic operations of linear algebra (+, $\times$) are replaced by the
@@ -211,34 +213,20 @@ integer greater than 2 can be expressed as the sum of two primes. So far, no one
 indecomposable linear algebra problems (e.g. the problem of computing an eigenvalue and an
 eigenvector). In [6] Goldbach's conjecture in max-algebra is pronounced. To the conjecture, we can
 associate the formula
- (7)
+
+\begin{equation}
+{\frac{t_{p}+t_{q}}{3}}=\lambda(A)
+\end{equation}
 Such formulas have a symbolic meaning. The exact mathematical meaning of each object needs to
 be defined; in our case, the matrix A, vector t and the eigenvalue $\lambda(A)$. Detailed definitions, theorems,
 and proofs are found in the work [6]. To illustrate, we state that matrix A is of the form
- (8)
+
+\begin{equation}
+\vcenter{\hbox{\includegraphics[max width=0.85\columnwidth, max height=4cm]{figures/eq_3_3.png}}}
+\end{equation}
 where vector t = (t0,t1,...,$t_{n} -$1)T is defined such that $t_{i}$ = 0 a $t_{j}$ = 1 just when j is prime, for each i, j
 = 0,1,...,n  -  1.
 
-\smallskip
-\begin{center}
-\includegraphics[max width=0.85\columnwidth, max height=4cm]{figures/eq_3_0.png}
-\end{center}
-\smallskip\noindent
-\smallskip
-\begin{center}
-\includegraphics[max width=0.85\columnwidth, max height=4cm]{figures/eq_3_1.png}
-\end{center}
-\smallskip\noindent
-\smallskip
-\begin{center}
-\includegraphics[max width=0.85\columnwidth, max height=4cm]{figures/eq_3_2.png}
-\end{center}
-\smallskip\noindent
-\smallskip
-\begin{center}
-\includegraphics[max width=0.85\columnwidth, max height=4cm]{figures/eq_3_3.png}
-\end{center}
-\smallskip\noindent
 \section{CONCLUSIONS}
 
 In this paper, we wanted to highlight the importance of mathematical and physical formulas in
@@ -248,7 +236,7 @@ astronomy are found in publication [3]. These physical constants, like the numbe
 irrational numbers. That is why the database of physical constants is occasionally updated. The paper
 also contains some formulas discovered by the authors (3, 6, 7).
 
-\begin{thebibliography}{12}
+\begin{thebibliography}{11}
 \bibitem{ref1}
 Peter Butkovič, Katarína Cechlárová, and Peter Szabó. Strong linear independence in bottleneck algebra. Linear Algebra and it's Applications, 94:133--155, 1987.
 
@@ -280,10 +268,7 @@ Peter Szabó and Katarína Gombíková. Keplerian Orbit. MATLAB Central File Exc
 Peter Szabó, Katarína Gombíková, Miroslava Ferencová, and Marek Košuda. Keplerian Orbit and
 
 \bibitem{ref11}
-Satellite skCUBE. In New Trends in Aviation Development (NTAD), pages 174--179. IEEE, 2019. Received 12, 2021, accepted 02, 2022
-
-\bibitem{ref12}
-Article is licensed under a Creative Commons Attribution 4.0 International License
+Satellite skCUBE. In New Trends in Aviation Development (NTAD), pages 174--179. IEEE, 2019.
 
 \end{thebibliography}
 \end{document}

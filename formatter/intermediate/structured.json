@@ -31,33 +31,63 @@
       "tables": [],
       "figures": [],
       "formula_blocks": [],
-      "start_page": 0
+      "start_page": 0,
+      "body_positions": [
+        [
+          0,
+          405.72296142578125
+        ]
+      ]
     },
     {
       "heading": "NUMBERS",
       "depth": 1,
       "body": "Numbers play a very important role in recording procedures. By using numbers, we can express\ncounts, quantities, sizes and quantify the examined objects. Numbers can be both concrete and\nabstract. The concrete numbers are constants, e.g. π = 3.1415.... is Ludolph’s number - it is the ratio of\nthe circumference of an arbitrary circle to its diameter. If we denote the circumference of the circle as\nO and the diameter as r, the constant π can be expressed as\n\n(1)\nNumbers O, r are no longer concrete numbers. They are variables, symbols, abstract numbers for\nwhich we can place the values of an arbitrary circle. Relations of the type (1) are called formulas. A\nformula is an expression that contains mathematical operations and expresses relations between\nvariables (O, r) and constants (π), that describe a given problem. Formulas express scientific\nknowledge in the most concise way. Formulas can be mathematical, physical, chemical, and\nbiological. It is to be noted that in each field of science there are special constants. The system of\nconstants used in astronomy can be found in the publication [3].",
       "tables": [],
-      "figures": [
+      "figures": [],
+      "formula_blocks": [
         {
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_0_0.png",
-          "caption": "",
-          "label": "fig_0_0",
+          "latex": "\\pi={\\frac{O}{2r}}",
+          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_0_0.png",
+          "confidence": 0.6500000000000001,
           "page": 0,
-          "bbox_y": 0.0
+          "label": "eq_0_0",
+          "bbox_y": 620.2799682617188,
+          "bbox_h": 0.0,
+          "bbox_w": 0.0,
+          "equation_number": ""
         }
       ],
-      "formula_blocks": [],
-      "start_page": 0
+      "start_page": 0,
+      "body_positions": [
+        [
+          0,
+          532.2029418945312
+        ],
+        [
+          0,
+          631.802978515625
+        ]
+      ]
     },
     {
       "heading": "FORMULAS",
       "depth": 1,
-      "body": "In this chapter, we will list some of the formulas that have had a major impact on the development\nof scientific knowledge and we may encounter them in the study of mathematics, physics but also in\nother scientific disciplines. The formulas can be found in publication [5]. This publication contains 17\nof the most important formulas with a description of the historical background of their origin. In this\narticle, we list 8 of them.\n\nE = mc2\nRelativity\nA. Einstein, 1905\n3.1. Mathematical formulas\n\nMathematical formulas contain mathematical constants, variables, and operations. All formulas\n(except 4 and 8) are mathematical formulas; formulas 4 and 8 are physical. Mathematical formulas\ncontain only mathematical constants, variables. The number π is a mathematical constant because it\nwas formed using mathematical objects (the circle, the circumference of the circle, and the diameter).\nMathematical formulas are universal, they have universal validity.",
+      "body": "In this chapter, we will list some of the formulas that have had a major impact on the development\nof scientific knowledge and we may encounter them in the study of mathematics, physics but also in\nother scientific disciplines. The formulas can be found in publication [5]. This publication contains 17\nof the most important formulas with a description of the historical background of their origin. In this\narticle, we list 8 of them.\n\nMathematical formulas contain mathematical constants, variables, and operations. All formulas\n(except 4 and 8) are mathematical formulas; formulas 4 and 8 are physical. Mathematical formulas\ncontain only mathematical constants, variables. The number π is a mathematical constant because it\nwas formed using mathematical objects (the circle, the circumference of the circle, and the diameter).\nMathematical formulas are universal, they have universal validity.",
       "tables": [],
       "figures": [],
       "formula_blocks": [],
-      "start_page": 1
+      "start_page": 1,
+      "body_positions": [
+        [
+          1,
+          111.48294830322266
+        ],
+        [
+          1,
+          458.04296875
+        ]
+      ]
     },
     {
       "heading": "Physical formulas",
@@ -66,7 +96,13 @@
       "tables": [],
       "figures": [],
       "formula_blocks": [],
-      "start_page": 1
+      "start_page": 1,
+      "body_positions": [
+        [
+          1,
+          559.2029418945312
+        ]
+      ]
     },
     {
       "heading": "APPLICATION OF FORMULAS",
@@ -107,13 +143,13 @@
             ],
             [
               "6",
-              "\\CELLIMG{C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\tcell_1_0_5_1.png}",
+              "\\CELLEQ{\\Phi(,r)\\stackrel{_{1}}{=}\\stackrel{1}{\\sigma}\\stackrel{1}{\\sqrt{2\\pi}}e^{\\frac{(x-y)^{2}}{2\\sigma^{2}}}||IMG:C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\tcell_1_0_5_1.png}",
               "Normal distribution",
               "C.F. Gauss, 1810"
             ],
             [
               "7",
-              "\\CELLEQ{\\stackrel{.}{\\bigwedge}\\left(\\langle\\cdot y\\right)~\\longrightarrow~\\int_{-\\infty}^{+\\infty}~\\int^{\\not{D}}\\left(\\mathcal{D}\\right)\\mathcal{C}^{-2\\mp\\dot{\\nu}\\dot{\\nu}\\omega\\mathcal{A}}\\mathcal{U}\\mathcal{U}||IMG:C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\tcell_1_0_6_1.png}",
+              "\\CELLIMG{C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\tcell_1_0_6_1.png}",
               "Fourier Transform",
               "J. Fourier, 1822"
             ],
@@ -128,9 +164,35 @@
           "label": "tab_1_1"
         }
       ],
-      "figures": [],
+      "figures": [
+        {
+          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_2_0.png",
+          "caption": "The orbit of a miniature satellite around the Earth - main parameters",
+          "label": "fig_2_0",
+          "page": 2,
+          "bbox_y": 124.07998657226562
+        }
+      ],
       "formula_blocks": [],
-      "start_page": 1
+      "start_page": 1,
+      "body_positions": [
+        [
+          1,
+          660.4829711914062
+        ],
+        [
+          2,
+          71.2676010131836
+        ],
+        [
+          2,
+          98.8829574584961
+        ],
+        [
+          2,
+          262.5475769042969
+        ]
+      ]
     },
     {
       "heading": "THE AUTHOR’S FORMULAS",
@@ -138,41 +200,43 @@
       "body": "The book [3] inspired us to write some of our scientific results using formulas. Of course, the\nmeaning of these results is not comparable to the results described in the book [3]. Our results are less\nsignificant. For a simpler understanding of our formulas, individual chapters contain a brief\ndescription of the problems addressed.\n5.1. Strong linear independence in bottleneck algebra\n\nThe paper [1] deals with the solvability of the system of equations Ax = b in the Bottleneck\nalgebra. By Bottleneck algebra, we mean an algebra in which the basic arithmetic operations of linear\nalgebra (+, ×) are replaced by the operations (⊕, ⊗) = (maximum, minimum). Here we have\naddressed the question: when does a system of equations\n\nA ⊗ x = b\n(2)\nhas a unique solution or in other words, when the matrix A is strongly regular in the Bottleneck\nalgebra. We find that in this algebra, the class of strongly regular matrices consist of trapezoidal\nmatrices. The real square matrix A = (aij) of type n × n is trapezoidal when\n\n(3)\nfor each i = 1,··· ,n. This is the formula that describes the problem. The question of testing condition\n(3), where we can convert the input matrix to trapezoidal form, is a question of algorithms of\ncomplexity O(n2logn). We have also presented such an algorithm in our work. This work is the result\nof the cooperation of three authors.",
       "tables": [],
       "figures": [],
-      "formula_blocks": [],
-      "start_page": 2
+      "formula_blocks": [
+        {
+          "latex": "a_{i i}>\\sum_{k=1}^{t}\\tilde{\\Sigma}_{l=k+1}^{n}\\;a_{k l}",
+          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_2_0.png",
+          "confidence": 0.7500000000000002,
+          "page": 2,
+          "label": "eq_2_0",
+          "bbox_y": 574.800048828125,
+          "bbox_h": 0.0,
+          "bbox_w": 0.0,
+          "equation_number": ""
+        }
+      ],
+      "start_page": 2,
+      "body_positions": [
+        [
+          2,
+          335.4029541015625
+        ],
+        [
+          2,
+          423.9629821777344
+        ],
+        [
+          2,
+          487.3196105957031
+        ],
+        [
+          2,
+          606.9630126953125
+        ]
+      ]
     },
     {
       "heading": "Monge Matrices",
       "depth": 2,
       "body": "Monge matrices were already mentioned in 1781. The square matrix A = (aij) of type n × n has the\nMonge’s property when\n\naii + ajk  ≤  aij + aki\n(4)\n\nfor each i = 1,...,n and for every j, k > i. The problem of when it is possible to transform a matrix A\ninto a matrix with the Monge’s property has not been solved yet. The first solution to this problem is\ngiven in [2]. The solution to the problem, when we can transform (↔) an input matrix A into a matrix\nwhich has the Monge property is the existence of permutations σ, π such that\n\n(5)\nfor each i = 1,...,n and for every j, k > i. We can write this attribute as\n\n(6)\n\nThis relationship allows us to apply an iterative algorithm to test the relation ↔ (The relation\nmeans that we can transform the matrix A into a Monge matrix if and only if we know the matrix A22\nand for the element ασ(1)π(1) the following relation applies (5)). For testing this property of matrices we\ncan use an algorithm of complexity O(n4). Therefore, it was not easy to find a testing algorithm or a\nsolution to the problem. Note that even the more complicated polynomial matrix algorithms have a\ncomplexity no greater than O(n3). This work is the result of the cooperation of two authors.",
-      "tables": [],
-      "figures": [
-        {
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\fig_2_0.png",
-          "caption": "The orbit of a miniature satellite around the Earth - main parameters",
-          "label": "fig_2_0",
-          "page": 2,
-          "bbox_y": 0.0
-        }
-      ],
-      "formula_blocks": [
-        {
-          "latex": "",
-          "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_2_0.png",
-          "confidence": 0.5,
-          "page": 2,
-          "label": "eq_2_0",
-          "bbox_y": 0.0,
-          "bbox_h": 0.0,
-          "equation_number": ""
-        }
-      ],
-      "start_page": 2
-    },
-    {
-      "heading": "Goldbach’s Conjecture in Max-Algebra",
-      "depth": 2,
-      "body": "In max-algebra, the basic arithmetic operations of linear algebra (+, ×) are replaced by the\noperations (⊕, ⊗) = (maximum, +). The well-known Goldbach conjecture states that every even\ninteger greater than 2 can be expressed as the sum of two primes. So far, no one has proved this nearly\n300-year-old conjecture. In max algebra, we can successfully solve some polynomially\nindecomposable linear algebra problems (e.g. the problem of computing an eigenvalue and an\neigenvector). In [6] Goldbach’s conjecture in max-algebra is pronounced. To the conjecture, we can\nassociate the formula\n\n(7)\nSuch formulas have a symbolic meaning. The exact mathematical meaning of each object needs to\nbe defined; in our case, the matrix A, vector t and the eigenvalue λ(A). Detailed definitions, theorems,\nand proofs are found in the work [6]. To illustrate, we state that matrix A is of the form\n\n(8)\nwhere vector t = (t0,t1,...,tn−1)T is defined such that ti = 0 a tj = 1 just when j is prime, for each i, j\n= 0,1,...,n − 1.\n\nThe Formulas\n5.",
       "tables": [],
       "figures": [],
       "formula_blocks": [
@@ -182,42 +246,100 @@
           "confidence": 0.7000000000000002,
           "page": 3,
           "label": "eq_3_0",
-          "bbox_y": 0.0,
+          "bbox_y": 161.75999450683594,
           "bbox_h": 0.0,
+          "bbox_w": 0.0,
           "equation_number": ""
         },
         {
-          "latex": "A\\quad\\Leftrightarrow\\quad\\left(\\begin{array}{cc}{{A_{11}}}&{{A_{12}}}\\\\ {{A_{21}}}&{{A_{22}}}\\end{array}\\right),A_{11}=(a_{\\sigma(1)\\pi(1)})",
+          "latex": "",
           "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_3_1.png",
-          "confidence": 0.6,
+          "confidence": 0.5,
           "page": 3,
           "label": "eq_3_1",
-          "bbox_y": 0.0,
+          "bbox_y": 234.71998596191406,
           "bbox_h": 0.0,
+          "bbox_w": 0.0,
           "equation_number": ""
-        },
+        }
+      ],
+      "start_page": 2,
+      "body_positions": [
+        [
+          2,
+          720.8429565429688
+        ],
+        [
+          2,
+          746.1629638671875
+        ],
+        [
+          3,
+          98.8829574584961
+        ],
+        [
+          3,
+          184.56297302246094
+        ],
+        [
+          3,
+          270.84295654296875
+        ],
+        [
+          3,
+          295.3075866699219
+        ]
+      ]
+    },
+    {
+      "heading": "Goldbach’s Conjecture in Max-Algebra",
+      "depth": 2,
+      "body": "In max-algebra, the basic arithmetic operations of linear algebra (+, ×) are replaced by the\noperations (⊕, ⊗) = (maximum, +). The well-known Goldbach conjecture states that every even\ninteger greater than 2 can be expressed as the sum of two primes. So far, no one has proved this nearly\n300-year-old conjecture. In max algebra, we can successfully solve some polynomially\nindecomposable linear algebra problems (e.g. the problem of computing an eigenvalue and an\neigenvector). In [6] Goldbach’s conjecture in max-algebra is pronounced. To the conjecture, we can\nassociate the formula\n\n(7)\nSuch formulas have a symbolic meaning. The exact mathematical meaning of each object needs to\nbe defined; in our case, the matrix A, vector t and the eigenvalue λ(A). Detailed definitions, theorems,\nand proofs are found in the work [6]. To illustrate, we state that matrix A is of the form\n\n(8)\nwhere vector t = (t0,t1,...,tn−1)T is defined such that ti = 0 a tj = 1 just when j is prime, for each i, j\n= 0,1,...,n − 1.\n\nThe Formulas\n5.",
+      "tables": [],
+      "figures": [],
+      "formula_blocks": [
         {
           "latex": "{\\frac{t_{p}+t_{q}}{3}}=\\lambda(A)",
           "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_3_2.png",
           "confidence": 0.7000000000000002,
           "page": 3,
           "label": "eq_3_2",
-          "bbox_y": 0.0,
+          "bbox_y": 510.96002197265625,
           "bbox_h": 0.0,
+          "bbox_w": 0.0,
           "equation_number": ""
         },
         {
-          "latex": "A=\\left(\\begin{array}{ccccc}{{t_{0}}}&{{0}}&{{0}}&{{0}}\\\\ {{t_{1}}}&{{t_{0}}}&{{0}}&{{\\ddots}}&{{\\vdots}}\\\\ {{\\vdots}}&{{\\ddots}}&{{\\ddots}}&{{\\vdots}}\\\\ {{t_{2}}}&{{t_{1}}}&{{\\ddots}}&{{\\ddots}}&{{\\vdots}}\\\\ {{\\vdots}}&{{\\ddots}}&{{t_{1}}}&{{t_{0}}}&{{t_{0}}}\\end{array}\\right)",
+          "latex": "A=\\left(\\begin{array}{ccccc}{{t_{0}}}&{{0}}&{{0}}&{{\\cdots}}&{{0}}\\\\ {{t_{1}}}&{{t_{0}}}&{{0}}&{{\\ddots}}&{{0}}\\\\ {{t_{2}}}&{{t_{1}}}&{{t_{0}}}&{{\\ddots}}&{{\\ddots}}\\\\ {{\\vdots}}&{{\\ddots}}&{{\\ddots}}&{{\\ddots}}&{{0}}\\\\ {{t_{n-1}}}&{{\\ddots}}&{{t_{1}}}&{{t_{0}}}&{{t_{0}}}\\end{array}\\right)",
           "image_path": "C:\\Users\\janme\\Desktop\\minor\\formatter\\intermediate\\figures\\eq_3_3.png",
           "confidence": 0.6500000000000001,
           "page": 3,
           "label": "eq_3_3",
-          "bbox_y": 0.0,
+          "bbox_y": 613.9199829101562,
           "bbox_h": 0.0,
+          "bbox_w": 0.0,
           "equation_number": ""
         }
       ],
-      "start_page": 3
+      "start_page": 3,
+      "body_positions": [
+        [
+          3,
+          409.9229736328125
+        ],
+        [
+          3,
+          538.4429321289062
+        ],
+        [
+          3,
+          709.4429321289062
+        ],
+        [
+          4,
+          71.2676010131836
+        ]
+      ]
     },
     {
       "heading": "CONCLUSIONS",
@@ -226,7 +348,13 @@
       "tables": [],
       "figures": [],
       "formula_blocks": [],
-      "start_page": 4
+      "start_page": 4,
+      "body_positions": [
+        [
+          4,
+          124.20296478271484
+        ]
+      ]
     }
   ],
   "references": [
@@ -281,13 +409,8 @@
       "author_year": ""
     },
     {
-      "text": "Satellite skCUBE. In New Trends in Aviation Development (NTAD), pages 174–179. IEEE, 2019. Received 12, 2021, accepted 02, 2022",
+      "text": "Satellite skCUBE. In New Trends in Aviation Development (NTAD), pages 174–179. IEEE, 2019.",
       "index": 11,
-      "author_year": ""
-    },
-    {
-      "text": "Article is licensed under a Creative Commons Attribution 4.0 International License",
-      "index": 12,
       "author_year": ""
     }
   ],

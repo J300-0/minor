@@ -50,7 +50,7 @@ def main():
     parser.add_argument(
         "--ocr-budget",
         type=float,
-        default=900.0,
+        default=90.0,
         metavar="SECONDS",
         help="Max seconds to spend on formula OCR (default: 90). Use 0 for --no-ocr.",
     )

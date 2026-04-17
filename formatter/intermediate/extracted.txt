@@ -53,12 +53,6 @@ of scientific knowledge and we may encounter them in the study of mathematics, p
 other scientific disciplines. The formulas can be found in publication [5]. This publication contains 17 
 of the most important formulas with a description of the historical background of their origin. In this 
 article, we list 8 of them.
-8 
-E = mc2 
-Relativity 
-A. Einstein, 1905 
- 
-3.1. Mathematical formulas
 Mathematical formulas contain mathematical constants, variables, and operations. All formulas 
 (except 4 and 8) are mathematical formulas; formulas 4 and 8 are physical. Mathematical formulas 
 contain only mathematical constants, variables. The number π is a mathematical constant because it 

@@ -102,6 +102,12 @@ def compile_latex(tex_path: str, output_dir: str, template_name: str) -> str:
 
     if os.path.isfile(src_pdf):
         os.makedirs(output_dir, exist_ok=True)
+        # Remove destination first — stale files with wrong permissions block copy
+        if os.path.exists(dst_pdf):
+            try:
+                os.remove(dst_pdf)
+            except OSError:
+                pass
         shutil.copy2(src_pdf, dst_pdf)
         log.info("  Output: %s", dst_pdf)
         return dst_pdf

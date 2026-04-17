@@ -188,6 +188,32 @@ def _merge_orphan_symbol_lines(text: str) -> str:
                         else:
                             is_orphan = True
 
+        # Short display equations like "A ⊗ x = b" look like orphans (short,
+        # math chars) but they're complete equations, not fragments. Don't merge
+        # or drop them. A display equation has: an equals/comparison operator,
+        # and at least 2 variable-like tokens (single letters or short letter groups).
+        if is_orphan and re.search(r"[=≤≥<>≈∼]", stripped):
+            tokens = stripped.replace("(", " ").replace(")", " ").split()
+            var_count = sum(1 for t in tokens if t.isalpha() and len(t) <= 3)
+            if var_count >= 2:
+                is_orphan = False
+
+        # Standalone equation numbers like "(7)" or "(12)" sitting on their own
+        # line are NOT orphaned math symbols — they're equation labels.
+        # KEEP them so _convert_numbered_equations() can combine them with
+        # the preceding equation body line (e.g., "A ⊗ x = b\n(2)").
+        # _convert_numbered_equations handles stripping orphan numbers that
+        # don't have a preceding equation body.
+        if is_orphan and re.match(r"^\(\d{1,3}\)$", stripped):
+            is_orphan = False
+
+        # If the preceding accumulated line is blank (paragraph boundary),
+        # don't merge the orphan upward — that would destroy the paragraph
+        # break. Drop the orphan instead.
+        if is_orphan and result and result[-1].strip() == "":
+            i += 1
+            continue
+
         if is_orphan and result:
             prev = result[-1]
             prev_stripped = prev.rstrip()
@@ -332,11 +358,28 @@ def _is_math_garbage(line: str, mode: str = "block") -> bool:
     which cannot be meaningfully rendered and should be replaced by OCR images.
     """
     if not line:
-        return mode == "fragment"  # empty lines are fragments, not blocks
+        return False  # empty lines are NOT garbage in either mode
 
     max_len = 150 if mode == "block" else 60
     if len(line) > max_len:
         return False
+
+    # ── Valid simple equation guard (both modes) ─────────────
+    # Lines like "A ⊗ x = b", "x + y = z" are valid equations, not garbage.
+    # Protect: line has = (or ≤≥≈), with letter tokens on both sides.
+    if re.search(r'[=≤≥≈]', line):
+        eq_pos = None
+        for _c in '=≤≥≈':
+            if _c in line:
+                eq_pos = line.index(_c)
+                break
+        if eq_pos is not None:
+            lhs = line[:eq_pos].strip()
+            rhs = line[eq_pos + 1:].strip()
+            lhs_has_var = bool(re.search(r'[a-zA-Z]', lhs))
+            rhs_has_var = bool(re.search(r'[a-zA-Z]', rhs))
+            if lhs_has_var and rhs_has_var and len(line) < 60:
+                return False  # valid equation — not garbage
 
     # ── Definite indicators (block mode) ──────────────────────
     if mode == "block":
@@ -363,7 +406,7 @@ def _is_math_garbage(line: str, mode: str = "block") -> bool:
     # ── Character composition analysis (both modes) ───────────
     chars = line.replace(" ", "")
     if not chars:
-        return mode == "fragment"
+        return False
 
     math_count = sum(1 for c in chars if c in SHARED_MATH_CHARS)
     letter_count = sum(1 for c in chars if c.isalpha() and c.isascii())
@@ -638,9 +681,14 @@ def normalize(doc: Document) -> Document:
     doc.abstract = _merge_orphan_symbol_lines(doc.abstract)
     doc.abstract = _clean_with_math(doc.abstract)
 
+    # Build author name string for running header detection
+    author_names = ", ".join(a.name for a in doc.authors if a.name) if doc.authors else ""
+
     for section in doc.sections:
         section.heading = _clean(section.heading)
         section.body = _remove_running_headers(section.body, doc.title)
+        if author_names:
+            section.body = _remove_running_headers(section.body, author_names)
         section.body = _remove_charperline_garbage(section.body)
         section.body = _remove_repeated_table_captions(section.body, table_captions)
         section.body = _merge_orphan_symbol_lines(section.body)
@@ -827,7 +875,7 @@ def _convert_numbered_equations(text: str) -> str:
     lines = text.split("\n")
     result = []
 
-    for line in lines:
+    for idx, line in enumerate(lines):
         stripped = line.strip()
         if not stripped:
             result.append(line)
@@ -840,6 +888,51 @@ def _convert_numbered_equations(text: str) -> str:
 
         body = m.group(1).strip()
         eq_num = m.group(2)
+
+        # Standalone equation number with no body — "(2)" alone on a line.
+        # Look BACK: if the previous non-blank line has math content,
+        # combine it with this equation number. This handles the common
+        # pattern where the equation body is on line N and the number (N)
+        # is alone on line N+1.
+        if not body:
+            # Search backwards through result for the most recent non-blank line
+            prev_body = None
+            prev_idx = None
+            for ri in range(len(result) - 1, -1, -1):
+                if result[ri].strip():
+                    prev_body = result[ri].strip()
+                    prev_idx = ri
+                    break
+
+            if prev_body is not None:
+                # Check if the previous line looks like equation content.
+                # Must be SHORT, have math content, and have very few real words.
+                # Prose sentences like "the constant π can be expressed as"
+                # must NOT match even though they contain math symbols.
+                prev_math = sum(1 for ch in prev_body if ch in _math_chars)
+                prev_has_eq = ("=" in prev_body or "≤" in prev_body or "≥" in prev_body
+                               or "∼" in prev_body or "⊗" in prev_body or "⊕" in prev_body)
+                prev_words = prev_body.split()
+                prev_real = count_real_words(prev_words)
+                prev_is_short = len(prev_body) < 60  # equations are short, prose is long
+                prev_no_prose = len(prev_real) <= 1   # at most 1 "real" English word
+
+                # Also reject if line ends with prose patterns (prepositions, articles)
+                prev_ends_prose = bool(re.search(
+                    r"\b(as|when|that|where|the|a|an|is|are|of|in|on|for|to|by|with)\s*$",
+                    prev_body, re.IGNORECASE))
+
+                if (prev_is_short and (prev_math >= 1 or prev_has_eq)
+                        and prev_no_prose and not prev_ends_prose):
+                    # Combine: use prev_body as the equation body
+                    body = prev_body
+                    # Remove the previous line from result (we'll re-emit as equation)
+                    result[prev_idx] = ""
+                else:
+                    # Previous line is prose — just strip the orphan number
+                    continue
+            else:
+                continue
 
         # Check if the body has math content
         math_count = sum(1 for ch in body if ch in _math_chars)
@@ -936,8 +1029,25 @@ def _convert_numbered_equations(text: str) -> str:
             trail_text = trail_m.group(0).strip().rstrip(",").strip()
             math_body = math_body[:trail_m.start()].strip()
 
-        # Strip $...$ wrappers from math_body — we're going into equation* (math mode)
-        # The extractor may have wrapped subscripts as $t_{i}$ which would break inside equation*
+        # Apply implicit subscript patterns INSIDE the equation body.
+        # We know this is math context, so we can be aggressive.
+        # aii → a_{ii}, ajk → a_{jk}, A22 → A_{22}, ti → t_i, etc.
+        # Multi-letter subscripts first (aii, ajk, aij, aki)
+        math_body = re.sub(
+            r"(?<![a-zA-Z\\{_])([a-zA-Z])([ijklmnpqrs]{2,3})(?![a-zA-Z{}])",
+            lambda m: m.group(0) if m.group(0).lower() in _IMPLICIT_SUB_EXCLUDE
+                      else f"{m.group(1)}_{{{m.group(2)}}}",
+            math_body
+        )
+        # Letter + digits subscript: A22 → A_{22}
+        math_body = re.sub(
+            r"(?<![a-zA-Z\\{_])([A-Za-z])(\d{1,3})(?![a-zA-Z0-9{}])",
+            r"\1_{\2}",
+            math_body
+        )
+
+        # Strip $...$ wrappers from math_body — we're going into equation (math mode)
+        # The extractor may have wrapped subscripts as $t_{i}$ which would break inside equation
         math_body = re.sub(r"\$([^$]+)\$", r"\1", math_body)
 
         # Build the output as a proper display equation with original numbering
@@ -945,17 +1055,17 @@ def _convert_numbered_equations(text: str) -> str:
         if label:
             result.append("")
             result.append(label)
-            result.append(f"\\begin{{equation*}}\\tag{{{eq_num}}}")
+            result.append(f"\\begin{{equation}}")
             result.append(f"  {math_body}")
-            result.append("\\end{equation*}")
+            result.append("\\end{equation}")
             if suffix.strip():
                 result.append(suffix.strip())
             result.append("")
         else:
             result.append("")
-            result.append(f"\\begin{{equation*}}\\tag{{{eq_num}}}")
+            result.append(f"\\begin{{equation}}")
             result.append(f"  {math_body}")
-            result.append("\\end{equation*}")
+            result.append("\\end{equation}")
             if suffix.strip():
                 result.append(suffix.strip())
             result.append("")
@@ -1302,11 +1412,15 @@ def _fix_implicit_subscripts(text: str) -> str:
         # Check for equation context: must have math operators or existing $...$ math
         has_math_context = bool(_MATH_CONTEXT_CHARS & set(stripped))
         has_dollar_math = "$" in stripped
-        has_eq_sign_with_vars = bool(re.search(r'[a-z]\s*[+\-=<>]\s*[a-z]', stripped))
+        has_eq_sign_with_vars = bool(re.search(r'[a-zA-Z]\s*[+\-=<>]\s*[a-zA-Z]', stripped))
         has_assignment = bool(re.search(r'=\s*\d', stripped))
+        # Also detect LaTeX math commands as context (math chars already converted)
+        has_latex_math = bool(re.search(
+            r'\\(?:times|otimes|oplus|leq|geq|neq|approx|sim|in|subset|cdot|frac|sqrt|sum|prod|int)',
+            stripped))
 
         # Need at least one strong math indicator AND some operator
-        if not (has_math_context or has_assignment
+        if not (has_math_context or has_assignment or has_latex_math
                 or (has_dollar_math and has_eq_sign_with_vars)):
             result.append(line)
             continue

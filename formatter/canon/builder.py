@@ -135,7 +135,7 @@ class _CanonicalBuilder:
 
         # Fallback 1: look for "Abstract" section in section list
         for s in self.doc.sections:
-            if s.heading.lower() == "abstract" and s.body:
+            if s.heading and s.heading.lower() == "abstract" and s.body:
                 self._log("abstract: repaired from sections list")
                 return FieldResult(value=s.body.strip(), confidence=0.7,
                                    source="repaired:section")
@@ -182,10 +182,10 @@ class _CanonicalBuilder:
         # Drop junk sections (empty body, or heading is metadata)
         good = []
         for s in sections:
-            if not s.body.strip():
+            if not s.body or not s.body.strip():
                 self._log(f"sections: dropped empty section '{s.heading}'")
                 continue
-            if self._is_metadata_heading(s.heading):
+            if s.heading and self._is_metadata_heading(s.heading):
                 self._log(f"sections: dropped metadata section '{s.heading}'")
                 continue
             good.append(s)
@@ -198,6 +198,8 @@ class _CanonicalBuilder:
 
     def _is_metadata_heading(self, heading: str) -> bool:
         """Check if a heading is actually metadata."""
+        if not heading:
+            return False
         lower = heading.lower().strip()
         metadata_words = ["doi:", "issn", "copyright", "authorized", "proceedings of"]
         return any(w in lower for w in metadata_words)

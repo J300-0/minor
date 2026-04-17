@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12 Portable) (preloaded format=pdflatex 2026.3.16)  7 APR 2026 17:03
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12 Portable) (preloaded format=pdflatex 2026.3.16)  17 APR 2026 20:46
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -610,84 +610,72 @@ Package hyperref Info: Link coloring OFF on input line 20.
 \@outlinefile=\write3
 \openout3 = `generated.out'.
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 68.
+
+** ATTENTION: Overriding command lockouts (line 44).
+** ATTENTION: Overriding command lockouts (line 44).
+** ATTENTION: Overriding command lockouts (line 44).
+LaTeX Font Info:    Trying to load font information for U+msa on input line 71.
 
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
 .fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 68.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 71.
 
 
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
 .fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-<figures/fig_0_0.png, id=43, 1573.88pt x 597.23125pt>
-File: figures/fig_0_0.png Graphic file (type png)
-<use figures/fig_0_0.png>
-Package pdftex.def Info: figures/fig_0_0.png  used on input line 82.
-(pdftex.def)             Requested size: 1573.87617pt x 597.22978pt.
-
-Underfull \hbox (badness 1383) in paragraph at lines 97--102
+Underfull \hbox (badness 1383) in paragraph at lines 94--99
 []\T1/ptm/m/n/10 Mathematical for-mu-las con-tain math-e-mat-i-cal con-stants,
  []
 
+<figures/fig_2_0.png, id=43, 330.48468pt x 234.8775pt>
+File: figures/fig_2_0.png Graphic file (type png)
+<use figures/fig_2_0.png>
+Package pdftex.def Info: figures/fig_2_0.png  used on input line 124.
+(pdftex.def)             Requested size: 330.48387pt x 234.87692pt.
+<figures/tcell_1_0_2_1.png, id=44, 153.9351pt x 49.50494pt>
+File: figures/tcell_1_0_2_1.png Graphic file (type png)
+<use figures/tcell_1_0_2_1.png>
+Package pdftex.def Info: figures/tcell_1_0_2_1.png  used on input line 139.
+(pdftex.def)             Requested size: 153.93471pt x 49.5048pt.
+<figures/tcell_1_0_5_1.png, id=45, 153.9351pt x 25.2945pt>
+File: figures/tcell_1_0_5_1.png Graphic file (type png)
+<use figures/tcell_1_0_5_1.png>
+Package pdftex.def Info: figures/tcell_1_0_5_1.png  used on input line 142.
+(pdftex.def)             Requested size: 153.93471pt x 25.29442pt.
+<figures/tcell_1_0_6_1.png, id=46, 153.9351pt x 24.21045pt>
+File: figures/tcell_1_0_6_1.png Graphic file (type png)
+<use figures/tcell_1_0_6_1.png>
+Package pdftex.def Info: figures/tcell_1_0_6_1.png  used on input line 143.
+(pdftex.def)             Requested size: 153.93471pt x 24.21037pt.
 [1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdftex.
 map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/bas
 e/8r.enc}
 
 
- <./figures/fig_0_0.png (PNG copy)>]
-<figures/tcell_1_0_2_1.png, id=54, 153.9351pt x 49.50494pt>
-File: figures/tcell_1_0_2_1.png Graphic file (type png)
-<use figures/tcell_1_0_2_1.png>
-Package pdftex.def Info: figures/tcell_1_0_2_1.png  used on input line 136.
-(pdftex.def)             Requested size: 153.93471pt x 49.5048pt.
-<figures/tcell_1_0_5_1.png, id=55, 153.9351pt x 25.2945pt>
-File: figures/tcell_1_0_5_1.png Graphic file (type png)
-<use figures/tcell_1_0_5_1.png>
-Package pdftex.def Info: figures/tcell_1_0_5_1.png  used on input line 139.
-(pdftex.def)             Requested size: 153.93471pt x 25.29442pt.
-<figures/tcell_1_0_6_1.png, id=56, 153.9351pt x 24.21045pt>
-File: figures/tcell_1_0_6_1.png Graphic file (type png)
-<use figures/tcell_1_0_6_1.png>
-Package pdftex.def Info: figures/tcell_1_0_6_1.png  used on input line 140.
-(pdftex.def)             Requested size: 153.93471pt x 24.21037pt.
-<figures/eq_2_0.png, id=57, 86.724pt x 30.71475pt>
-File: figures/eq_2_0.png Graphic file (type png)
-<use figures/eq_2_0.png>
-Package pdftex.def Info: figures/eq_2_0.png  used on input line 179.
-(pdftex.def)             Requested size: 86.72377pt x 30.71466pt.
-<figures/fig_2_0.png, id=58, 1055.945pt x 746.79pt>
-File: figures/fig_2_0.png Graphic file (type png)
-<use figures/fig_2_0.png>
-Package pdftex.def Info: figures/fig_2_0.png  used on input line 201.
-(pdftex.def)             Requested size: 1055.94243pt x 746.78816pt.
- [2 <./figures/tcell_1_0_2_1.png (PNG copy)> <./figures/tcell_1_0_5_1.png (PNG 
-copy)> <./figures/tcell_1_0_6_1.png (PNG copy)> <./figures/eq_2_0.png (PNG copy
-)> <./figures/fig_2_0.png (PNG copy)>]
-<figures/eq_3_0.png, id=73, 162.24615pt x 24.21045pt>
+]
+<figures/eq_3_0.png, id=59, 225.12105pt x 32.88284pt>
 File: figures/eq_3_0.png Graphic file (type png)
 <use figures/eq_3_0.png>
-Package pdftex.def Info: figures/eq_3_0.png  used on input line 224.
-(pdftex.def)             Requested size: 162.24574pt x 24.21037pt.
-<figures/eq_3_1.png, id=74, 169.47314pt x 33.2442pt>
+Package pdftex.def Info: figures/eq_3_0.png  used on input line 193.
+(pdftex.def)             Requested size: 225.12048pt x 32.88275pt.
+<figures/eq_3_1.png, id=60, 234.8775pt x 46.2528pt>
 File: figures/eq_3_1.png Graphic file (type png)
 <use figures/eq_3_1.png>
-Package pdftex.def Info: figures/eq_3_1.png  used on input line 229.
-(pdftex.def)             Requested size: 169.47273pt x 33.24411pt.
-<figures/eq_3_2.png, id=75, 66.84975pt x 26.7399pt>
-File: figures/eq_3_2.png Graphic file (type png)
-<use figures/eq_3_2.png>
-Package pdftex.def Info: figures/eq_3_2.png  used on input line 234.
-(pdftex.def)             Requested size: 66.84956pt x 26.73982pt.
-<figures/eq_3_3.png, id=76, 138.7584pt x 75.8835pt>
+Package pdftex.def Info: figures/eq_3_1.png  used on input line 198.
+(pdftex.def)             Requested size: 234.87692pt x 46.25269pt.
+ [2 <./figures/fig_2_0.png (PNG copy)> <./figures/tcell_1_0_2_1.png (PNG copy)>
+ <./figures/tcell_1_0_5_1.png (PNG copy)> <./figures/tcell_1_0_6_1.png (PNG cop
+y)> <./figures/eq_3_0.png (PNG copy)> <./figures/eq_3_1.png (PNG copy)>]
+<figures/eq_3_3.png, id=80, 192.9609pt x 105.87555pt>
 File: figures/eq_3_3.png Graphic file (type png)
 <use figures/eq_3_3.png>
-Package pdftex.def Info: figures/eq_3_3.png  used on input line 239.
-(pdftex.def)             Requested size: 138.75806pt x 75.8833pt.
+Package pdftex.def Info: figures/eq_3_3.png  used on input line 225.
+(pdftex.def)             Requested size: 192.96042pt x 105.87527pt.
 
 
 ** Conference Paper **
@@ -700,45 +688,47 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[3 <./figures/eq_3_0.png (PNG copy)> <./figures/eq_3_1.png (PNG copy)> <./figur
-es/eq_3_2.png (PNG copy)> <./figures/eq_3_3.png (PNG copy)>] (generated.aux)
+[3
+
+ <./figures/eq_3_3.png (PNG copy)>] (generated.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
 Package rerunfilecheck Info: File `generated.out' has not changed.
-(rerunfilecheck)             Checksum: 90517AFDFB6CA99145633E6E31CA438B;1296.
+(rerunfilecheck)             Checksum: 197A83650A3EBE7C298133550EEF21FF;1296.
  ) 
 Here is how much of TeX's memory you used:
- 12832 strings out of 467871
- 204061 string characters out of 5413518
- 629260 words of memory out of 5000000
- 41500 multiletter control sequences out of 15000+600000
- 733726 words of font info for 149 fonts, out of 8000000 for 9000
+ 12815 strings out of 467871
+ 203583 string characters out of 5413518
+ 636200 words of memory out of 5000000
+ 41477 multiletter control sequences out of 15000+600000
+ 733755 words of font info for 149 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,15n,79p,297b,502s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/am
-sfonts/cm/cmmi10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
-nts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Users/janme/scoop/apps/latex/current
-/texmfs/install/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/janme/scoop/
-apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/
-Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts
-/cm/cmr6.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type
-1/public/amsfonts/cm/cmr7.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/i
-nstall/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/janme/scoop/apps/latex
-/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/jan
-me/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy8
-.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/ti
-mes/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/ty
-pe1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/insta
-ll/fonts/type1/urw/times/utmr8a.pfb><C:/Users/janme/scoop/apps/latex/current/te
-xmfs/install/fonts/type1/urw/times/utmri8a.pfb>
+sfonts/cm/cmex10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fo
+nts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/janme/scoop/apps/latex/curren
+t/texmfs/install/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Users/janme/scoop
+/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:
+/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfont
+s/cm/cmr10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/ty
+pe1/public/amsfonts/cm/cmr6.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs
+/install/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Users/janme/scoop/apps/lat
+ex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/jan
+me/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy1
+0.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/publi
+c/amsfonts/cm/cmsy8.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install
+/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janme/scoop/apps/latex/current/texm
+fs/install/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/c
+urrent/texmfs/install/fonts/type1/urw/times/utmr8a.pfb><C:/Users/janme/scoop/ap
+ps/latex/current/texmfs/install/fonts/type1/urw/times/utmri8a.pfb>
 Output written on C:\Users\janme\Desktop\minor\formatter\intermediate\generated
-.pdf (3 pages, 827504 bytes).
+.pdf (3 pages, 390265 bytes).
 PDF statistics:
- 155 PDF objects out of 1000 (max. 8388607)
- 28 named destinations out of 1000 (max. 500000)
- 131 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 164 PDF objects out of 1000 (max. 8388607)
+ 34 named destinations out of 1000 (max. 500000)
+ 116 words of extra memory for PDF output out of 10000 (max. 10000000)
 
 
 ============================================================
@@ -896,18 +886,22 @@ upp-pdf.mkii
 epstopdf-base.sty
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/00miktex\epst
 opdf-sys.cfg)) (generated.out) (generated.out)
+** ATTENTION: Overriding command lockouts (line 44).
+** ATTENTION: Overriding command lockouts (line 44).
+** ATTENTION: Overriding command lockouts (line 44).
+
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsa
 .fd)
 (C:\Users\janme\scoop\apps\latex\current\texmfs\install\tex/latex/amsfonts\umsb
 .fd)
-Underfull \hbox (badness 1383) in paragraph at lines 97--102
+Underfull \hbox (badness 1383) in paragraph at lines 94--99
 []\T1/ptm/m/n/10 Mathematical for-mu-las con-tain math-e-mat-i-cal con-stants,
 [1{C:/Users/janme/scoop/apps/latex/current/texmfs/data/fonts/map/pdftex/pdftex.
 map}{C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/enc/dvips/bas
-e/8r.enc} <./figures/fig_0_0.png (PNG copy)>] [2 <./figures/tcell_1_0_2_1.png (
+e/8r.enc}] [2 <./figures/fig_2_0.png (PNG copy)> <./figures/tcell_1_0_2_1.png (
 PNG copy)> <./figures/tcell_1_0_5_1.png (PNG copy)> <./figures/tcell_1_0_6_1.pn
-g (PNG copy)> <./figures/eq_2_0.png (PNG copy)> <./figures/fig_2_0.png (PNG cop
-y)>]
+g (PNG copy)> <./figures/eq_3_0.png (PNG copy)> <./figures/eq_3_1.png (PNG copy
+)>]
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -919,26 +913,26 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[3 <./figures/eq_3_0.png (PNG copy)> <./figures/eq_3_1.png (PNG copy)> <./figur
-es/eq_3_2.png (PNG copy)> <./figures/eq_3_3.png (PNG copy)>] (generated.aux) )
+[3 <./figures/eq_3_3.png (PNG copy)>] (generated.aux) )
 (see the transcript file for additional information)<C:/Users/janme/scoop/apps/
-latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/User
+latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/User
 s/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/
-cmmi7.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/p
-ublic/amsfonts/cm/cmmi8.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/ins
-tall/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/janme/scoop/apps/latex/
-current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/janme/
-scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr7.pfb
-><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/ams
-fonts/cm/cmr8.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts
-/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/apps/latex/current/t
-exmfs/install/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/janme/scoop/ap
-ps/latex/current/texmfs/install/fonts/type1/urw/times/utmb8a.pfb><C:/Users/janm
-e/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmbi8a.pfb><C:
-/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmr
-8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/
-times/utmri8a.pfb>
+cmmi10.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/
+public/amsfonts/cm/cmmi7.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/in
+stall/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/janme/scoop/apps/latex
+/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/janm
+e/scoop/apps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmr6.p
+fb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/public/a
+msfonts/cm/cmr7.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fon
+ts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/janme/scoop/apps/latex/current/t
+exmfs/install/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/janme/scoop/a
+pps/latex/current/texmfs/install/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/U
+sers/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/times/utmb8a
+.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/type1/urw/ti
+mes/utmbi8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/install/fonts/t
+ype1/urw/times/utmr8a.pfb><C:/Users/janme/scoop/apps/latex/current/texmfs/insta
+ll/fonts/type1/urw/times/utmri8a.pfb>
 Output written on C:\Users\janme\Desktop\minor\formatter\intermediate\generated
-.pdf (3 pages, 827504 bytes).
+.pdf (3 pages, 390265 bytes).
 Transcript written on C:\Users\janme\Desktop\minor\formatter\intermediate\gener
 ated.log.

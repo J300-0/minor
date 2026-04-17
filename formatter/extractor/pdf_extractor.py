@@ -48,8 +48,8 @@ MIN_MATH_RATIO = 0.08     # math chars must be >= 8% of block text
 MAX_BLOCK_CHARS = 300     # skip long body paragraphs
 MIN_CROP_W = 60           # minimum rendered crop width (pixels)
 MIN_CROP_H = 20           # minimum rendered crop height (pixels)
-MAX_PER_PAGE = 3          # cap per page (was 8 — 8 × 12s = 96s per page alone)
-MAX_TOTAL = 10            # cap total   (was 40 — 40 × 12s = 480s = 8 min)
+MAX_PER_PAGE = 6          # cap per page (raised from 3 — papers can have 4+ formulas per page)
+MAX_TOTAL = 20            # cap total   (raised from 10 — papers with 8+ formulas need headroom)
 
 # Global OCR time budget — stops formula-region OCR after this many seconds.
 # Formulas that didn't get OCR'd fall back to image-only rendering (still appear
@@ -164,67 +164,93 @@ def _extract_with_fitz(path: str) -> dict:
 
     total_pages = len(pdf)
 
+    # ── Pre-pass: find recurring xrefs (logos/running headers) ──
+    # Any image xref appearing on 2+ pages is almost certainly a journal
+    # logo, masthead, or running header — never an equation. Skip them.
+    xref_page_count = {}
+    for _pn in range(total_pages):
+        try:
+            for _img in pdf[_pn].get_images(full=True):
+                _xref = _img[0]
+                if _xref > 0:
+                    xref_page_count[_xref] = xref_page_count.get(_xref, 0) + 1
+        except Exception:
+            continue
+    recurring_xrefs = {x for x, n in xref_page_count.items() if n >= 2}
+    if recurring_xrefs:
+        log.info("  Skipping %d recurring image xref(s) (logos/headers): %s",
+                 len(recurring_xrefs), sorted(recurring_xrefs))
+
     for page_num in range(total_pages):
         page = pdf[page_num]
         text_dict = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)
         page_text_parts = []
         page_table_bboxes = table_bboxes_by_page.get(page_num, [])
 
+        # ── Extract ALL images FIRST so we know formula y-positions ──
+        # (reordered: images before text blocks, so we can split text
+        # blocks whose line-y-range crosses an equation image)
+        page_figs, page_eqs = _extract_all_page_images(
+            pdf, page, page_num, fig_dir, total_pages,
+            table_bboxes=page_table_bboxes,
+            text_dict=text_dict,
+            skip_xrefs=recurring_xrefs,
+        )
+        all_figures.extend(page_figs)
+        all_formulas.extend(page_eqs)
+
+        # Y-positions of equations on this page — used to split text blocks
+        # whose lines straddle an inline equation image. Without this, PyMuPDF
+        # groups text above+below an equation into a single block → merged
+        # paragraphs → formulas dumped at section end.
+        page_eq_ys = sorted(
+            (eq.get("bbox_y", 0), eq.get("bbox_y", 0) + eq.get("bbox_h", 0))
+            for eq in page_eqs
+            if eq.get("bbox_y", 0) > 0
+        )
+
         # ── Extract text blocks (skip image blocks and table overlaps) ──
         for block in text_dict.get("blocks", []):
             btype = block.get("type", 0)
             if btype != 0:
-                continue  # skip image blocks — handled by get_images() below
+                continue  # skip image blocks — handled by get_images() above
 
             block_bbox = block.get("bbox", [0, 0, 0, 0])
 
-            # Skip text blocks that overlap with a table region
-            if _bbox_overlaps_any(block_bbox, page_table_bboxes):
+            # Skip text blocks that overlap with a table region.
+            # Use two checks: area-based overlap (for narrow blocks) and
+            # y-range containment (for wide blocks where area ratio is diluted).
+            if _bbox_overlaps_any(block_bbox, page_table_bboxes, threshold=0.3):
                 log.debug("  Skipping text block overlapping table on p%d: %.0f,%.0f,%.0f,%.0f",
                           page_num, *block_bbox)
                 continue
+            if page_table_bboxes and len(block_bbox) == 4:
+                _, by0, _, by1 = block_bbox
+                y_center = (by0 + by1) / 2
+                in_table = any(ty0 <= y_center <= ty1
+                               for _, ty0, _, ty1 in page_table_bboxes)
+                if in_table:
+                    log.debug("  Skipping text block inside table y-range on p%d", page_num)
+                    continue
 
-            block_text = ""
-            block_fonts = []
-            block_sizes = []
+            # Split block into sub-blocks at equation y-boundaries so that
+            # paragraphs around an inline formula are separated correctly.
+            sub_blocks = _split_block_by_formulas(block, page_eq_ys)
 
-            for line in block.get("lines", []):
-                line_text = ""
-                for span in line.get("spans", []):
-                    line_text += span.get("text", "")
-                    block_fonts.append(span.get("font", ""))
-                    block_sizes.append(span.get("size", 0))
-                block_text += line_text + "\n"
-
-            block_text = block_text.strip()
-            if not block_text:
-                continue
-
-            font = max(set(block_fonts), key=block_fonts.count) if block_fonts else ""
-            size = max(set(block_sizes), key=block_sizes.count) if block_sizes else 0
-
-            all_blocks.append({
-                "text": block_text,
-                "font": font,
-                "size": round(size, 1),
-                "page": page_num,
-                "bbox": block_bbox,
-            })
-            page_text_parts.append(block_text)
+            for sub in sub_blocks:
+                block_text = sub["text"].strip()
+                if not block_text:
+                    continue
+                all_blocks.append({
+                    "text": block_text,
+                    "font": sub["font"],
+                    "size": round(sub["size"], 1),
+                    "page": page_num,
+                    "bbox": sub["bbox"],
+                })
+                page_text_parts.append(block_text)
 
         all_text.append("\n".join(page_text_parts))
-
-        # ── Extract ALL images via get_images() ──────────────────
-        # Classifies each as equation or figure, tries OCR, falls back to image
-        # Pass table bboxes so equation images inside tables are skipped
-        # (they're already handled by _render_cell_image in table extraction)
-        page_figs, page_eqs = _extract_all_page_images(
-            pdf, page, page_num, fig_dir, total_pages,
-            table_bboxes=page_table_bboxes,
-            text_dict=text_dict
-        )
-        all_figures.extend(page_figs)
-        all_formulas.extend(page_eqs)
 
         # ── Formula detection on text blocks (math-char analysis) ─
         # This catches formulas rendered as text with Unicode math symbols
@@ -243,11 +269,23 @@ def _extract_with_fitz(path: str) -> dict:
     # This loads the model once instead of per-equation (10x faster)
     all_formulas = _batch_ocr_equations(all_formulas)
 
+    # ── Clear printed equation numbers from extraction ───────────
+    # Printed-number matching is unreliable (false positives on logos/figures
+    # classified as equations, wrong y-proximity matches). The pipeline now
+    # assigns sequential numbers in reading order AFTER section distribution.
+    for _f in all_formulas:
+        _f["equation_number"] = ""
+
     # Tables via pdfplumber
     all_tables = _extract_tables_pdfplumber(path)
 
     # OCR table cell images → convert \CELLIMG{} to \CELLEQ{latex} for selectability
     all_tables = _ocr_table_cells(all_tables)
+
+    # Validate all saved PNGs — remove corrupt images that would crash pdflatex
+    all_formulas = _validate_formula_images(all_formulas)
+    all_figures = _validate_figure_images(all_figures)
+    all_tables = _validate_table_cell_images(all_tables)
 
     # Detect figure captions from nearby text blocks
     _detect_figure_captions(all_figures, all_blocks)
@@ -428,10 +466,49 @@ FIG_MIN_WIDTH = 150      # figures are wide
 FIG_MIN_AREA = 15000     # figures have significant area
 
 
-def _classify_image(w: float, h: float, page_num: int, total_pages: int) -> str:
+def _find_figure_caption_near(text_dict: dict, bbox: list, max_dist: float = 80.0) -> bool:
+    """
+    Return True if a 'Figure N' / 'Fig. N' caption text block exists within
+    `max_dist` points above or below the given image bbox. Captions force
+    classification to 'figure' — prevents figures (like satellite diagrams)
+    from being misclassified as equations.
+    """
+    if not bbox or len(bbox) != 4 or not text_dict:
+        return False
+    import re as _re
+    _cap_re = _re.compile(r"^\s*(figure|fig\.?)\s*\d", _re.IGNORECASE)
+    img_y_top, img_y_bot = bbox[1], bbox[3]
+    for block in text_dict.get("blocks", []):
+        if block.get("type", 0) != 0:
+            continue
+        btxt = ""
+        for line in block.get("lines", []):
+            for span in line.get("spans", []):
+                btxt += span.get("text", "")
+            btxt += " "
+        btxt = btxt.strip()
+        if not _cap_re.match(btxt):
+            continue
+        bb = block.get("bbox", [0, 0, 0, 0])
+        if len(bb) != 4:
+            continue
+        # Caption is within max_dist vertically (above or below the image)
+        dist_above = abs(bb[3] - img_y_top)
+        dist_below = abs(bb[1] - img_y_bot)
+        if min(dist_above, dist_below) <= max_dist:
+            return True
+    return False
+
+
+def _classify_image(w: float, h: float, page_num: int, total_pages: int,
+                    bbox_y: float = -1.0) -> str:
     """
     Classify an image as 'equation', 'figure', or 'skip'.
     Uses size, aspect ratio, and page position heuristics.
+
+    bbox_y: y-coordinate of the image's top edge on the page (PDF points from
+            top). Used to detect mastheads/running headers on page 0.
+            Pass -1 (default) when position is unknown.
     """
     # Too small — icon, bullet, decorative
     if w < MIN_IMG_SIZE or h < MIN_IMG_SIZE:
@@ -442,12 +519,14 @@ def _classify_image(w: float, h: float, page_num: int, total_pages: int) -> str:
     if area < 500:
         return "skip"
 
-    # First page: skip journal logos / mastheads — they can be quite large
-    # (e.g. Acta Avionica globe logo ~150pt tall, journal headers, etc.)
-    if page_num == 0:
-        ratio = w / max(h, 1)
-        # Small-to-medium logos and mastheads on first page
-        if area < 50000 and h < 200:
+    # First page: skip journal mastheads in the TOP 120pt of the page.
+    # Acta Avionica, IEEE, Springer, etc. all put their logo/nameplate there.
+    # A real equation that high on page 0 would be unusual — the title/abstract
+    # always sit above the first numbered equation.
+    if page_num == 0 and 0 <= bbox_y < 120:
+        # Mastheads are typically modest-sized; be conservative so we don't
+        # accidentally drop a large page-0 figure that happens to sit high.
+        if area < 20000:
             return "skip"
 
     # Last page small images are usually logos (CC, publisher, etc.) — skip
@@ -459,24 +538,32 @@ def _classify_image(w: float, h: float, page_num: int, total_pages: int) -> str:
         if ratio > 1.8 and h < 80:  # wide and short — banner/badge/license
             return "skip"
 
-    # Tall but narrow → matrix equations (check BEFORE figure classification)
-    # Matrices can be 100-200pt tall but are typically narrower than figures
-    if w < 300 and h < 250:
-        return "equation"
-
-    # Large images with significant height → figure
-    if h >= FIG_MIN_HEIGHT and w >= FIG_MIN_WIDTH and area >= FIG_MIN_AREA:
-        # But matrices can be large too — check aspect ratio
-        ratio = w / max(h, 1)
-        if ratio < 3.0:  # not extremely wide → likely a figure
-            return "figure"
-
-    # Medium to small images → equation
+    # Short equations (single-line): height < 120pt, any width
+    # Display equations can span the full column width (400+ pt)
     if h < EQ_MAX_HEIGHT:
         return "equation"
 
-    # Default: treat as figure
-    return "figure"
+    # Matrix equations: taller than single-line but still equations.
+    # Matrices can be 120-300pt tall. Key distinction from figures:
+    # - Matrices are rarely wider than 450pt (column width)
+    # - Matrices have moderate aspect ratio (not extremely wide or square)
+    # - Figures tend to be larger overall (area > 50000) and taller
+    if h < 300:
+        # Under 300pt tall — could be a large matrix or a small figure.
+        # Use aspect ratio: matrices are typically wider than tall (ratio > 0.8)
+        # but not extremely so. Figures tend to be more square or taller.
+        ratio = w / max(h, 1)
+        if w < 450:
+            return "equation"  # narrow enough to be a matrix
+        if ratio > 2.0:
+            return "equation"  # wide and short — equation, not figure
+
+    # Large images with significant height → figure
+    if h >= FIG_MIN_HEIGHT and w >= FIG_MIN_WIDTH and area >= FIG_MIN_AREA:
+        return "figure"
+
+    # Default: treat as equation (prefer equation over figure for ambiguous cases)
+    return "equation"
 
 
 # ── Alpha compositing helper (fixes SMask black backgrounds) ──────
@@ -663,7 +750,8 @@ def _save_figure_dict(img_bytes: bytes, page_num: int, fig_idx: int,
 def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
                               total_pages: int,
                               table_bboxes: list = None,
-                              text_dict: dict = None) -> tuple:
+                              text_dict: dict = None,
+                              skip_xrefs: set = None) -> tuple:
     """
     Extract ALL images from a page.
     Uses get_images(full=True) for image bytes, and text dict blocks for
@@ -678,11 +766,11 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
     figures = []
     formulas = []
 
-    # Phase 1: Build xref → rendered bbox mapping from text dict.
+    # Phase 1a: Build xref → rendered bbox mapping from text dict.
     # text dict type=1 blocks have bbox in PDF points (the RENDERED size).
     # pdf.extract_image() returns PIXEL dimensions (much larger) — don't use for classification.
     text_dict = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)
-    xref_to_rendered = {}   # xref → (w_pts, h_pts, bbox_y)
+    xref_to_rendered = {}   # xref → (w_pts, h_pts, bbox_y, bbox)
     inline_blocks = []      # type=1 blocks without xref (inline images)
 
     for block in text_dict.get("blocks", []):
@@ -696,6 +784,21 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
             xref_to_rendered[xref] = (w_pts, h_pts, bbox[1], bbox)
         else:
             inline_blocks.append((block, w_pts, h_pts, bbox[1]))
+
+    # Phase 1b: Build xref → placement bbox from get_image_info().
+    # This catches images NOT in the text dict (XObjects placed via Form operators).
+    # Without this, many embedded equation images get bbox_y=0.0, breaking placement.
+    xref_to_placement = {}
+    try:
+        for info in page.get_image_info(xrefs=True):
+            ix = info.get("xref", 0)
+            ib = info.get("bbox")
+            if ix > 0 and ib and ix not in xref_to_rendered:
+                w_p = ib[2] - ib[0]
+                h_p = ib[3] - ib[1]
+                xref_to_placement[ix] = (w_p, h_p, ib[1], ib)
+    except Exception:
+        pass  # get_image_info may not be available in older PyMuPDF
 
     # Phase 2: Process images via get_images() (has xrefs for byte extraction)
     seen_xrefs = set()
@@ -712,6 +815,11 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
         if xref in seen_xrefs:
             continue
         seen_xrefs.add(xref)
+
+        # Skip recurring xrefs (logos, running headers — appear on 2+ pages)
+        if skip_xrefs and xref in skip_xrefs:
+            log.debug("  Skip recurring xref=%d p%d (logo/header)", xref, page_num)
+            continue
 
         try:
             img_data = pdf.extract_image(xref)
@@ -732,15 +840,30 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
             # Use RENDERED dimensions (PDF points) for classification, not pixels
             if xref in xref_to_rendered:
                 w, h, bbox_y, img_bbox = xref_to_rendered[xref]
+            elif xref in xref_to_placement:
+                # Found placement bbox via get_image_info() — accurate position
+                w, h, bbox_y, img_bbox = xref_to_placement[xref]
             else:
-                # Fallback: estimate from pixel dims (assume ~150 DPI)
+                # Last resort: estimate from pixel dims (assume ~150 DPI)
                 pw = img_data.get("width", 0)
                 ph = img_data.get("height", 0)
                 w = pw * 72.0 / 150.0   # convert pixels → approx PDF points
                 h = ph * 72.0 / 150.0
                 bbox_y = 0.0
+                img_bbox = None
 
-            classification = _classify_image(w, h, page_num, total_pages)
+            classification = _classify_image(w, h, page_num, total_pages,
+                                             bbox_y=bbox_y)
+
+            # Caption override: if a "Figure N" / "Fig. N" text block sits
+            # within ~80pt above/below the image, force classification to
+            # 'figure'. This catches scientific diagrams that would otherwise
+            # be misclassified as equations by size heuristics alone.
+            if classification == "equation" and img_bbox:
+                if _find_figure_caption_near(text_dict, img_bbox):
+                    log.debug("  Reclassify p%d xref=%d: equation→figure (caption)",
+                              page_num, xref)
+                    classification = "figure"
 
             if classification == "skip":
                 log.debug("  Skip image p%d xref=%d (%.0fx%.0f pt)", page_num, xref, w, h)
@@ -749,14 +872,15 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
             elif classification == "equation":
                 # Skip equations that are inside table regions — they're
                 # already handled by _render_cell_image() as \CELLIMG markers
-                if xref in xref_to_rendered:
-                    _, _, _, eq_bbox = xref_to_rendered[xref]
+                known_bbox = (xref_to_rendered.get(xref) or xref_to_placement.get(xref))
+                if known_bbox:
+                    _, _, _, eq_bbox = known_bbox
                     if _bbox_overlaps_any(eq_bbox, table_bboxes):
                         log.debug("  Skip table equation p%d xref=%d (inside table)",
                                   page_num, xref)
                         continue
                 elif table_bboxes:
-                    # Image has no rendered bbox (embedded as XObject in table).
+                    # Image has no rendered bbox at all (not in text dict or placement).
                     # If this page HAS tables, skip small equation-sized images —
                     # they're almost certainly table cell equations handled by CELLIMG.
                     log.debug("  Skip equation p%d xref=%d (no bbox, page has tables)",
@@ -768,10 +892,11 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
                 # avoiding the "black spots" bug from raw extract_image() bytes.
                 eq_bytes = None
                 eq_ext = "png"
-                if xref in xref_to_rendered:
+                if known_bbox:
                     try:
+                        _, _, _, clip_bbox = known_bbox
                         mat = fitz.Matrix(200 / 72, 200 / 72)  # 200 DPI
-                        pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(img_bbox),
+                        pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(clip_bbox),
                                               alpha=False)  # white background
                         eq_bytes = pix.tobytes("png")
                     except Exception as e:
@@ -796,10 +921,12 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
                 # black boxes from SMask, JBIG2, CMYK, exotic formats.
                 fig_bytes = None
                 fig_ext = "png"
-                if xref in xref_to_rendered:
+                fig_known_bbox = (xref_to_rendered.get(xref) or xref_to_placement.get(xref))
+                if fig_known_bbox:
                     try:
+                        _, _, _, fig_clip = fig_known_bbox
                         mat = fitz.Matrix(150 / 72, 150 / 72)  # 150 DPI for figures
-                        pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(img_bbox),
+                        pix = page.get_pixmap(matrix=mat, clip=fitz.Rect(fig_clip),
                                               alpha=False)  # white background
                         fig_bytes = pix.tobytes("png")
                     except Exception as e:
@@ -825,7 +952,8 @@ def _extract_all_page_images(pdf, page, page_num: int, fig_dir: str,
         if not bbox or w < MIN_IMG_SIZE or h < MIN_IMG_SIZE:
             continue
 
-        classification = _classify_image(w, h, page_num, total_pages)
+        classification = _classify_image(w, h, page_num, total_pages,
+                                         bbox_y=bbox_y)
         if classification == "skip":
             continue
 
@@ -935,6 +1063,158 @@ def _collect_equation_numbers(text_dict: dict) -> list:
                 eq_nums.append((y_center, m.group(1)))
     eq_nums.sort(key=lambda x: x[0])
     return eq_nums
+
+
+def _split_block_by_formulas(block: dict, eq_y_spans: list) -> list:
+    """
+    Split a fitz text block into sub-blocks wherever an equation sits, OR
+    wherever two consecutive lines have an abnormally large vertical gap
+    (unfilled space is almost always an image — equation or figure — that
+    fitz didn't merge into the block).
+
+    Without this, PyMuPDF groups lines above + below an inline equation
+    into one block, which the parser then treats as a single paragraph.
+    Result: formulas have nowhere to be inserted except at section end.
+    """
+    lines = block.get("lines", [])
+    if not lines:
+        return []
+
+    def _line_y(line):
+        bb = line.get("bbox", [0, 0, 0, 0])
+        if len(bb) != 4:
+            return 0.0, 0.0
+        return bb[1], bb[3]  # (top, bottom)
+
+    # Compute median line height to detect abnormal gaps
+    heights = []
+    for line in lines:
+        y0, y1 = _line_y(line)
+        if y1 > y0:
+            heights.append(y1 - y0)
+    median_h = sorted(heights)[len(heights) // 2] if heights else 12.0
+    # A "large gap" is > 1.6x the median line height — tight enough to miss
+    # normal paragraph leading but catch a skipped image/equation
+    gap_threshold = max(median_h * 1.6, 14.0)
+
+    def _crosses_formula(prev_bottom: float, curr_top: float) -> bool:
+        """True if any equation span lies between two consecutive lines."""
+        if prev_bottom >= curr_top:
+            return False
+        for eq_y0, eq_y1 in eq_y_spans:
+            # formula bbox_y==0 degenerate spans are skipped upstream
+            if prev_bottom <= eq_y0 and eq_y1 <= curr_top:
+                return True
+            # Also split if the formula simply overlaps the gap region
+            if eq_y0 < curr_top and eq_y1 > prev_bottom and eq_y1 > eq_y0:
+                return True
+        return False
+
+    # Group lines into runs; split on formula crossings OR large line gaps
+    runs = [[]]
+    prev_bottom = None
+    for line in lines:
+        ly_top, ly_bot = _line_y(line)
+        if prev_bottom is not None:
+            gap = ly_top - prev_bottom
+            split_here = (
+                _crosses_formula(prev_bottom, ly_top)
+                or gap > gap_threshold
+            )
+            if split_here:
+                runs.append([])
+        runs[-1].append(line)
+        prev_bottom = ly_bot
+
+    if len(runs) == 1:
+        # No split needed — flatten back to single block
+        return [_run_to_subblock(lines, block.get("bbox", [0, 0, 0, 0]))]
+
+    # Build a sub-block per run, computing its own bbox
+    sub_blocks = []
+    for run in runs:
+        if not run:
+            continue
+        sub_blocks.append(_run_to_subblock(run, None))
+    return sub_blocks
+
+
+def _run_to_subblock(run_lines: list, fallback_bbox) -> dict:
+    """Build a sub-block dict from a list of fitz line dicts."""
+    text_parts = []
+    fonts = []
+    sizes = []
+    xs0, ys0, xs1, ys1 = [], [], [], []
+    for line in run_lines:
+        line_text = ""
+        for span in line.get("spans", []):
+            line_text += span.get("text", "")
+            fonts.append(span.get("font", ""))
+            sizes.append(span.get("size", 0))
+        text_parts.append(line_text)
+        lbb = line.get("bbox", [0, 0, 0, 0])
+        if len(lbb) == 4:
+            xs0.append(lbb[0]); ys0.append(lbb[1])
+            xs1.append(lbb[2]); ys1.append(lbb[3])
+
+    if xs0:
+        bbox = [min(xs0), min(ys0), max(xs1), max(ys1)]
+    else:
+        bbox = fallback_bbox or [0, 0, 0, 0]
+
+    font = max(set(fonts), key=fonts.count) if fonts else ""
+    size = max(set(sizes), key=sizes.count) if sizes else 0
+    return {
+        "text": "\n".join(text_parts),
+        "bbox": bbox,
+        "font": font,
+        "size": size,
+    }
+
+
+def _auto_number_formulas(formulas: list) -> None:
+    """
+    Assign sequential equation numbers to any formula missing one.
+    Only runs when:
+      - The document already has at least one matched equation number, OR
+      - There are 2+ formulas (likely a formula-heavy paper)
+    Numbers start from max existing number + 1 (or 1 if none).
+    Order: by (page, bbox_y) reading order.
+    """
+    if not formulas:
+        return
+
+    matched = [f for f in formulas if f.get("equation_number")]
+    if not matched and len(formulas) < 2:
+        return  # document doesn't use equation numbering
+
+    # Find next number to assign (max existing + 1, or 1)
+    used_nums = set()
+    max_num = 0
+    for f in matched:
+        try:
+            n = int(str(f["equation_number"]).split(".")[0])
+            used_nums.add(str(f["equation_number"]))
+            if n > max_num:
+                max_num = n
+        except (ValueError, TypeError):
+            continue
+
+    next_num = max_num + 1 if max_num > 0 else 1
+
+    # Sort unmatched formulas by reading order
+    unmatched = [f for f in formulas if not f.get("equation_number")]
+    unmatched.sort(key=lambda f: (f.get("page", 0), f.get("bbox_y", 0)))
+
+    for f in unmatched:
+        while str(next_num) in used_nums:
+            next_num += 1
+        f["equation_number"] = str(next_num)
+        used_nums.add(str(next_num))
+        next_num += 1
+
+    log.info("  Auto-numbered %d formulas (range starting at %d)",
+             len(unmatched), max_num + 1 if max_num > 0 else 1)
 
 
 def _match_equation_numbers(formulas: list, eq_nums: list, max_y_dist: float = 50.0):
@@ -1144,7 +1424,7 @@ def _detect_formula_regions(page, page_num: int, text_dict: dict,
 
 
 def _ocr_formula_region(page, bbox) -> str:
-    """Render a page region at 200 DPI and OCR with pix2tex → nougat fallback."""
+    """Render a page region at 200 DPI and OCR with both pix2tex + nougat, pick best."""
     # ── OCR time-budget gate ───────────────────────────────────────
     if not _ocr_budget.is_available():
         if _ocr_budget.exhausted:
@@ -1165,14 +1445,12 @@ def _ocr_formula_region(page, bbox) -> str:
         f.close()  # Close handle BEFORE writing to avoid Windows Permission Denied
         pix.save(tmp_path)
 
-        latex = _run_ocr_worker("pix2tex", tmp_path)
-        if not latex:
-            latex = _run_ocr_worker("nougat", tmp_path)
+        # Run both engines, pick winner
+        best_latex, best_conf = _dual_ocr_single(tmp_path)
 
-        if latex:
-            latex = _sanitize_ocr_latex(latex)
-
-        return latex or ""
+        if best_latex and best_conf >= OCR_CONFIDENCE_THRESHOLD:
+            return best_latex
+        return ""
 
     except Exception as e:
         log.debug("  OCR region failed: %s", e)
@@ -1193,61 +1471,74 @@ def _ocr_formula_region(page, bbox) -> str:
 
 def _batch_ocr_equations(formulas: list) -> list:
     """
-    Run pix2tex on ALL collected equation images in a single subprocess.
-    Loads the model once → processes all images → returns updated formulas.
-    Falls back to single-image nougat/tesseract workers if batch fails.
+    Run BOTH pix2tex and nougat on equation images, pick the best result per formula.
+
+    Strategy:
+      1. Batch pix2tex on all images needing OCR
+      2. Batch nougat on all images needing OCR
+      3. For each formula, compare both results via _pick_best_ocr(), keep the winner
+      4. If both batch workers fail, fall back to single-image dual OCR
+
+    This ensures neither engine's strengths are wasted — pix2tex excels at clean
+    LaTeX formatting, nougat excels at structural/contextual understanding.
     """
-    # Collect formulas that need OCR (have image_path, no latex yet)
     need_ocr = [(i, f) for i, f in enumerate(formulas)
                 if f.get("image_path") and not f.get("latex")]
 
     if not need_ocr:
         return formulas
 
-    log.info("  Batch OCR: %d equation images to process", len(need_ocr))
+    log.info("  Dual-engine batch OCR: %d equation images to process", len(need_ocr))
 
     image_paths = [f["image_path"] for _, f in need_ocr]
 
-    # Try batch pix2tex first
-    batch_results = _run_batch_ocr_worker("pix2tex", image_paths)
+    # Run both batch workers — they're independent, both load model once
+    pix2tex_results = _run_batch_ocr_worker("pix2tex", image_paths)
+    nougat_results = _run_batch_ocr_worker("nougat", image_paths)
 
-    if batch_results:
-        # Apply results back to formula dicts
-        for (idx, formula), result in zip(need_ocr, batch_results):
-            latex = result.get("latex", "")
-            if latex:
-                latex = _sanitize_ocr_latex(latex)
-            if latex:
-                confidence = _score_ocr_quality(latex)
-                if confidence >= OCR_CONFIDENCE_THRESHOLD:
-                    formulas[idx]["latex"] = latex
-                    formulas[idx]["confidence"] = confidence
-                    log.debug("  Batch OCR p%d: conf=%.2f latex=%s",
-                              formula.get("page", 0), confidence, latex[:60])
-                else:
-                    # Low confidence — keep image_path fallback, don't use OCR
-                    log.debug("  Batch OCR REJECTED p%d: conf=%.2f latex=%s",
-                              formula.get("page", 0), confidence, latex[:40])
+    both_batch_ok = pix2tex_results is not None or nougat_results is not None
+
+    if both_batch_ok:
+        # Normalize: if one batch failed entirely, use empty placeholders
+        if pix2tex_results is None:
+            pix2tex_results = [{"path": p, "latex": ""} for p in image_paths]
+        if nougat_results is None:
+            nougat_results = [{"path": p, "latex": ""} for p in image_paths]
+
+        for (idx, formula), p_res, n_res in zip(need_ocr, pix2tex_results, nougat_results):
+            latex_p = p_res.get("latex", "")
+            latex_n = n_res.get("latex", "")
+
+            best_latex, best_conf = _pick_best_ocr(latex_p, latex_n)
+
+            if best_latex and best_conf >= OCR_CONFIDENCE_THRESHOLD:
+                formulas[idx]["latex"] = best_latex
+                formulas[idx]["confidence"] = best_conf
+                # Log which engine won (compare sanitized versions)
+                san_p = _sanitize_ocr_latex(latex_p) if latex_p else ""
+                winner = "pix2tex" if (san_p and best_latex == san_p) else "nougat"
+                log.info("  Dual OCR p%d: winner=%s conf=%.2f latex=%s",
+                         formula.get("page", 0), winner, best_conf, best_latex[:60])
+            else:
+                san_p = _sanitize_ocr_latex(latex_p) if latex_p else ""
+                san_n = _sanitize_ocr_latex(latex_n) if latex_n else ""
+                conf_p = _score_ocr_quality(san_p) if san_p else 0.0
+                conf_n = _score_ocr_quality(san_n) if san_n else 0.0
+                log.debug("  Dual OCR REJECTED p%d: pix2tex=%.2f nougat=%.2f",
+                          formula.get("page", 0), conf_p, conf_n)
     else:
-        # Batch failed — fall back to single-image workers
-        log.info("  Batch OCR unavailable, falling back to single-image workers")
+        # Both batch workers unavailable — fall back to single-image dual OCR
+        log.info("  Both batch workers unavailable, falling back to single-image dual OCR")
         for idx, formula in need_ocr:
-            fpath = formula["image_path"]
-            latex = _run_ocr_worker("pix2tex", fpath)
-            if not latex:
-                latex = _run_ocr_worker("nougat", fpath)
-            if latex:
-                latex = _sanitize_ocr_latex(latex)
-            if latex:
-                confidence = _score_ocr_quality(latex)
-                if confidence >= OCR_CONFIDENCE_THRESHOLD:
-                    formulas[idx]["latex"] = latex
-                    formulas[idx]["confidence"] = confidence
+            best_latex, best_conf = _dual_ocr_single(formula["image_path"])
+            if best_latex and best_conf >= OCR_CONFIDENCE_THRESHOLD:
+                formulas[idx]["latex"] = best_latex
+                formulas[idx]["confidence"] = best_conf
 
     # Log summary
     ocr_success = sum(1 for f in formulas if f.get("latex"))
     img_only = sum(1 for f in formulas if f.get("image_path") and not f.get("latex"))
-    log.info("  Batch OCR done: %d with LaTeX, %d image-only fallback", ocr_success, img_only)
+    log.info("  Dual OCR done: %d with LaTeX, %d image-only fallback", ocr_success, img_only)
 
     return formulas
 
@@ -1285,78 +1576,58 @@ def _ocr_table_cells(tables: list) -> list:
     if not collected:
         return tables
 
-    log.info("  Table cell OCR: %d cell images to process", len(collected))
+    log.info("  Table cell dual OCR: %d cell images to process", len(collected))
 
     # Table cell OCR threshold is LOWER than standalone formulas (0.40 vs 0.60)
     # because a slightly imperfect selectable formula is better than an image.
-    # The user wants to copy/edit formulas — images are a last resort.
     # (TABLE_CELL_OCR_THRESHOLD is imported from core.shared)
 
-    # Phase 2: batch OCR all collected images via pix2tex
+    # Phase 2: batch OCR via BOTH engines, then compare per cell
     image_paths = [c[4] for c in collected]
-    batch_results = _run_batch_ocr_worker("pix2tex", image_paths)
+    pix2tex_results = _run_batch_ocr_worker("pix2tex", image_paths)
+    nougat_results = _run_batch_ocr_worker("nougat", image_paths)
 
-    if not batch_results:
-        # Batch failed entirely — try single-image pix2tex
-        batch_results = []
-        for path in image_paths:
-            latex = _run_ocr_worker("pix2tex", path)
-            batch_results.append({"path": path, "latex": latex or ""})
-
-    # Phase 3: apply OCR results; track which cells still need help
+    both_batch_ok = pix2tex_results is not None or nougat_results is not None
     ocr_success = 0
-    still_need_ocr = []  # indices into collected that failed pix2tex
 
-    for idx, ((ti, kind, ri, ci, img_path), result) in enumerate(
-            zip(collected, batch_results)):
-        latex = result.get("latex", "")
-        if latex:
-            latex = _sanitize_ocr_latex(latex)
-        if latex:
-            conf = _score_ocr_quality(latex)
-            if conf >= TABLE_CELL_OCR_THRESHOLD:
-                # Embed image path as fallback: \CELLEQ{latex||IMG:path}
-                marker = f"\\CELLEQ{{{latex}||IMG:{img_path}}}"
+    if both_batch_ok:
+        if pix2tex_results is None:
+            pix2tex_results = [{"path": p, "latex": ""} for p in image_paths]
+        if nougat_results is None:
+            nougat_results = [{"path": p, "latex": ""} for p in image_paths]
+
+        for (ti, kind, ri, ci, img_path), p_res, n_res in zip(
+                collected, pix2tex_results, nougat_results):
+            latex_p = p_res.get("latex", "")
+            latex_n = n_res.get("latex", "")
+
+            best_latex, best_conf = _pick_best_ocr(latex_p, latex_n)
+
+            if best_latex and best_conf >= TABLE_CELL_OCR_THRESHOLD:
+                marker = f"\\CELLEQ{{{best_latex}||IMG:{img_path}}}"
                 if kind == "header":
                     tables[ti]["headers"][ci] = marker
                 else:
                     tables[ti]["rows"][ri][ci] = marker
                 ocr_success += 1
-                log.debug("  Table cell OCR t%d r%d c%d: conf=%.2f latex=%s",
-                          ti, ri, ci, conf, latex[:50])
+                log.debug("  Table cell dual OCR t%d r%d c%d: conf=%.2f latex=%s",
+                          ti, ri, ci, best_conf, best_latex[:50])
             else:
-                log.debug("  Table cell pix2tex REJECTED t%d r%d c%d: conf=%.2f",
-                          ti, ri, ci, conf)
-                still_need_ocr.append(idx)
-        else:
-            still_need_ocr.append(idx)
-
-    # Phase 4: nougat fallback for cells where pix2tex failed
-    if still_need_ocr:
-        log.info("  Table cell OCR: %d cells failed pix2tex, trying nougat",
-                 len(still_need_ocr))
-        for idx in still_need_ocr:
-            ti, kind, ri, ci, img_path = collected[idx]
-            latex = _run_ocr_worker("nougat", img_path)
-            if latex:
-                latex = _sanitize_ocr_latex(latex)
-            if latex:
-                conf = _score_ocr_quality(latex)
-                if conf >= TABLE_CELL_OCR_THRESHOLD:
-                    # Embed image path as fallback: \CELLEQ{latex||IMG:path}
-                    marker = f"\\CELLEQ{{{latex}||IMG:{img_path}}}"
-                    if kind == "header":
-                        tables[ti]["headers"][ci] = marker
-                    else:
-                        tables[ti]["rows"][ri][ci] = marker
-                    ocr_success += 1
-                    log.debug("  Table cell nougat t%d r%d c%d: conf=%.2f latex=%s",
-                              ti, ri, ci, conf, latex[:50])
+                log.debug("  Table cell dual OCR REJECTED t%d r%d c%d", ti, ri, ci)
+    else:
+        # Both batch workers unavailable — single-image dual OCR
+        log.info("  Table cell batch OCR unavailable, falling back to single-image dual OCR")
+        for ti, kind, ri, ci, img_path in collected:
+            best_latex, best_conf = _dual_ocr_single(img_path)
+            if best_latex and best_conf >= TABLE_CELL_OCR_THRESHOLD:
+                marker = f"\\CELLEQ{{{best_latex}||IMG:{img_path}}}"
+                if kind == "header":
+                    tables[ti]["headers"][ci] = marker
                 else:
-                    log.debug("  Table cell nougat REJECTED t%d r%d c%d: conf=%.2f",
-                              ti, ri, ci, conf)
+                    tables[ti]["rows"][ri][ci] = marker
+                ocr_success += 1
 
-    log.info("  Table cell OCR done: %d/%d converted to LaTeX (threshold=%.2f)",
+    log.info("  Table cell dual OCR done: %d/%d converted to LaTeX (threshold=%.2f)",
              ocr_success, len(collected), TABLE_CELL_OCR_THRESHOLD)
     return tables
 
@@ -1441,13 +1712,23 @@ def _get_python_exe() -> str:
         return sys.executable  # already in venv — use current Python
 
     # Look for venv relative to project root (formatter/venv/)
+    # Platform-aware: check Linux/Mac paths first on Unix, Windows first on Windows
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    for candidate in [
-        os.path.join(project_root, "venv", "Scripts", "python.exe"),  # Windows
-        os.path.join(project_root, "venv", "bin", "python"),           # Linux/Mac
-        os.path.join(project_root, ".venv", "Scripts", "python.exe"),
-        os.path.join(project_root, ".venv", "bin", "python"),
-    ]:
+    is_windows = sys.platform.startswith("win")
+    if is_windows:
+        candidates = [
+            os.path.join(project_root, "venv", "Scripts", "python.exe"),
+            os.path.join(project_root, ".venv", "Scripts", "python.exe"),
+            os.path.join(project_root, "venv", "bin", "python"),
+            os.path.join(project_root, ".venv", "bin", "python"),
+        ]
+    else:
+        candidates = [
+            os.path.join(project_root, "venv", "bin", "python"),
+            os.path.join(project_root, ".venv", "bin", "python"),
+            # Skip Windows .exe on non-Windows — causes Exec format error
+        ]
+    for candidate in candidates:
         if os.path.isfile(candidate):
             log.debug("  OCR worker will use venv Python: %s", candidate)
             return candidate
@@ -1481,7 +1762,10 @@ def _check_ocr_available(engine: str) -> bool:
             _OCR_AVAIL[engine] = False
             return False
 
-        result = subprocess.run(check_cmd, capture_output=True, timeout=10)
+        # nougat's import chain (torch+transformers+nougat) is heavy on cold start;
+        # 10s is not enough and causes a false-negative that disables dual-engine OCR.
+        probe_timeout = 60 if engine == "nougat" else 15
+        result = subprocess.run(check_cmd, capture_output=True, timeout=probe_timeout)
         available = result.returncode == 0 and "ok" in result.stdout.decode("utf-8", errors="replace")
         _OCR_AVAIL[engine] = available
         if available:
@@ -1490,8 +1774,11 @@ def _check_ocr_available(engine: str) -> bool:
             stderr = result.stderr.decode("utf-8", errors="replace").strip()
             log.info("  OCR engine '%s' not available: %s", engine, stderr[:120])
     except subprocess.TimeoutExpired:
-        log.info("  OCR engine '%s' availability check timed out", engine)
-        _OCR_AVAIL[engine] = False
+        # Don't cache a negative from the probe alone — the batch worker itself
+        # is the authoritative check. Assume-available so dual-engine can try.
+        log.info("  OCR engine '%s' import probe timed out (>%ds) — will still try batch worker",
+                 engine, probe_timeout)
+        _OCR_AVAIL[engine] = True
     except Exception as e:
         log.info("  OCR engine '%s' availability check failed: %s", engine, e)
         _OCR_AVAIL[engine] = False
@@ -1792,6 +2079,249 @@ def _score_ocr_quality(latex: str) -> float:
     return max(0.0, min(1.0, score))
 
 
+# ── Dual-engine OCR comparison ──────────────────────────────────
+
+def _pick_best_ocr(latex_a: str, latex_b: str) -> tuple:
+    """
+    Compare two OCR results (from pix2tex and nougat), return the best one.
+    Both inputs should already be sanitized via _sanitize_ocr_latex().
+
+    Returns (best_latex: str, best_confidence: float).
+    If both are empty/invalid, returns ("", 0.0).
+    """
+    # Sanitize + score both
+    results = []
+    for latex in (latex_a, latex_b):
+        if not latex:
+            results.append(("", 0.0))
+            continue
+        clean = _sanitize_ocr_latex(latex)
+        if not clean:
+            results.append(("", 0.0))
+            continue
+        conf = _score_ocr_quality(clean)
+        results.append((clean, conf))
+
+    (la, ca), (lb, cb) = results
+
+    # Both empty
+    if not la and not lb:
+        return ("", 0.0)
+    # One empty
+    if not la:
+        return (lb, cb)
+    if not lb:
+        return (la, ca)
+    # Both have results — pick the higher confidence
+    if ca >= cb:
+        return (la, ca)
+    return (lb, cb)
+
+
+def _dual_ocr_single(image_path: str) -> tuple:
+    """
+    Run both pix2tex and nougat on a single image, return the best result.
+    Returns (latex: str, confidence: float).
+    """
+    latex_p = _run_ocr_worker("pix2tex", image_path)
+    latex_n = _run_ocr_worker("nougat", image_path)
+    return _pick_best_ocr(latex_p, latex_n)
+
+
+def _capture_unmatched_equation_regions(pdf, all_blocks, all_formulas,
+                                        fig_dir, total_pages):
+    """
+    Find equation numbers (N) that weren't matched to any formula block.
+    For each, render the page region around the equation number as an image.
+
+    This handles equations that are a mix of text + vector graphics (e.g. fractions)
+    where the embedded image is too small to classify as an equation.
+    """
+    import io
+
+    # Collect which equation numbers are already matched
+    matched_nums = {f.get("equation_number", "") for f in all_formulas
+                    if f.get("equation_number")}
+
+    # Also check if any matched formulas have very small images that need
+    # region capture (e.g. π = O/2r where only the fraction is an image)
+    SMALL_IMAGE_AREA = 2000
+    small_matched = set()
+    for f in all_formulas:
+        eq_num = f.get("equation_number", "")
+        bh = f.get("bbox_h", 0)
+        bw = f.get("bbox_w", 0) or bh  # fallback to height as proxy
+        if eq_num and bh > 0 and bh * bw < SMALL_IMAGE_AREA:
+            small_matched.add(eq_num)
+
+    # Collect STANDALONE equation numbers — "(N)" that appear as the ONLY
+    # content on their line AND whose parent block has no other equation text.
+    # If the block contains "A ⊗ x = b\n(2)", the normalizer handles it as text.
+    # Only capture regions when (N) is truly isolated (equation is image-based).
+    # Also capture regions for equation numbers matched to very small images.
+    _MATH_INDICATOR = re.compile(r'[=<>≤≥≈∼⊗⊕±×÷∈∉]')
+    eq_num_positions = []  # (page, y_center, num_str)
+    for blk in all_blocks:
+        text = blk.get("text", "").strip()
+        bbox = blk.get("bbox", [0, 0, 0, 0])
+        page_num = blk.get("page", 0)
+        lines = text.split("\n")
+        for line in lines:
+            line_s = line.strip()
+            if EQ_NUM_RE.match(line_s):
+                m = _EQ_NUM_EXTRACT_RE.search(line_s)
+                if m:
+                    num = m.group(1)
+                    # Check if other lines in this block have math content
+                    # If so, the normalizer will handle this as a text equation
+                    other_lines = [l.strip() for l in lines if l.strip() != line_s]
+                    has_math_sibling = any(_MATH_INDICATOR.search(l) for l in other_lines)
+                    if has_math_sibling:
+                        continue  # normalizer handles this
+                    if num not in matched_nums or num in small_matched:
+                        y_center = (bbox[1] + bbox[3]) / 2
+                        eq_num_positions.append((page_num, y_center, num))
+
+    if not eq_num_positions:
+        return all_formulas
+
+    log.debug("  %d unmatched equation numbers — rendering page regions",
+              len(eq_num_positions))
+
+    pages = pdf.pages
+    for page_num, y_center, num in eq_num_positions:
+        if page_num >= len(pages):
+            continue
+        page = pages[page_num]
+        page_w = page.width or 612
+        page_h = page.height or 792
+
+        # Crop a region: horizontal center of page, vertically around eq number
+        # The equation text is typically above the (N) number
+        margin_x = 70  # left margin
+        crop_y0 = max(0, y_center - 50)
+        crop_y1 = min(page_h, y_center + 15)
+        crop_x0 = margin_x
+        crop_x1 = page_w - margin_x  # exclude the (N) itself on right margin
+
+        try:
+            cropped = page.crop((crop_x0, crop_y0, crop_x1, crop_y1))
+            pil_img = cropped.to_image(resolution=200)
+            buf = io.BytesIO()
+            pil_img.save(buf, format="PNG")
+            img_bytes = buf.getvalue()
+
+            fname = f"eq_{page_num}_region_{num}.png"
+            fpath = os.path.join(fig_dir, fname)
+            with open(fpath, "wb") as f:
+                f.write(img_bytes)
+
+            new_fb = {
+                "latex": "",
+                "image_path": fpath,
+                "confidence": 0.5,
+                "page": page_num,
+                "label": f"eq_{page_num}_r{num}",
+                "bbox_y": crop_y0,
+                "bbox_h": crop_y1 - crop_y0,
+                "equation_number": num,
+            }
+            # If replacing a small matched image, remove the old one
+            replaced = False
+            if num in small_matched:
+                for i, f in enumerate(all_formulas):
+                    if f.get("equation_number") == num:
+                        all_formulas[i] = new_fb
+                        replaced = True
+                        break
+            if not replaced:
+                all_formulas.append(new_fb)
+            log.debug("  Captured equation region for (%s) p%d y=%.0f → %s",
+                      num, page_num, y_center, fname)
+        except Exception as e:
+            log.debug("  Failed to capture equation region (%s) p%d: %s",
+                      num, page_num, e)
+
+    return all_formulas
+
+
+# ══════════════════════════════════════════════════════════════════
+#  Image validation — remove corrupt PNGs that would crash pdflatex
+# ══════════════════════════════════════════════════════════════════
+
+def _is_valid_png(fpath: str) -> bool:
+    """Verify a PNG can be fully decoded. Catches truncated/corrupt files."""
+    if not fpath or not os.path.isfile(fpath):
+        return False
+    try:
+        from PIL import Image
+        with Image.open(fpath) as img:
+            img.load()  # force full decode
+        return True
+    except Exception:
+        return False
+
+
+def _validate_formula_images(formulas: list) -> list:
+    """Remove formula blocks whose image_path points to a corrupt PNG."""
+    valid = []
+    for fb in formulas:
+        img = fb.get("image_path", "")
+        if img and not _is_valid_png(img):
+            log.warning("  Dropping formula with corrupt image: %s",
+                        os.path.basename(img))
+            continue
+        valid.append(fb)
+    return valid
+
+
+def _validate_figure_images(figures: list) -> list:
+    """Remove figures whose image_path points to a corrupt PNG."""
+    valid = []
+    for fig in figures:
+        img = fig.get("image_path", "") if isinstance(fig, dict) else getattr(fig, "image_path", "")
+        if img and not _is_valid_png(img):
+            log.warning("  Dropping figure with corrupt image: %s",
+                        os.path.basename(img))
+            continue
+        valid.append(fig)
+    return valid
+
+
+_CELLIMG_INLINE = re.compile(r"\\CELLIMG\{([^}]+)\}")
+
+
+def _validate_table_cell_images(tables: list) -> list:
+    """
+    Scan all table cells for \\CELLIMG{path} markers. If the referenced PNG
+    is corrupt or missing, replace the marker with an empty string so
+    pdflatex won't crash.
+    """
+    for tbl in tables:
+        for key in ("headers", "rows"):
+            rows = tbl.get(key)
+            if not rows:
+                continue
+            # headers is a flat list, rows is a list of lists
+            if key == "headers":
+                iterable = [rows]
+            else:
+                iterable = rows
+            for row in iterable:
+                for i, cell in enumerate(row):
+                    if not cell or "\\CELLIMG{" not in cell:
+                        continue
+                    def _replace(m):
+                        p = m.group(1)
+                        if _is_valid_png(p):
+                            return m.group(0)
+                        log.warning("  Dropping corrupt table cell image: %s",
+                                    os.path.basename(p))
+                        return ""
+                    row[i] = _CELLIMG_INLINE.sub(_replace, cell)
+    return tables
+
+
 # ══════════════════════════════════════════════════════════════════
 #  pdfplumber path — FALLBACK (text + tables only, no images/formulas)
 # ══════════════════════════════════════════════════════════════════
@@ -1816,7 +2346,41 @@ def _extract_with_pdfplumber(path: str) -> dict:
         for page_num, page in enumerate(pdf.pages):
 
             # Build blocks from character-level y-position clustering
+            # Get table bboxes FIRST so we can filter text blocks and images
+            # that fall inside table regions (prevents table content from
+            # leaking into body text as prose duplicates).
+            page_table_bboxes = []
+            try:
+                tables = page.find_tables()
+                if tables:
+                    for t in tables:
+                        page_table_bboxes.append(t.bbox)
+            except Exception:
+                pass
+
             page_blocks, page_text = _build_blocks_from_chars(page, page_num)
+
+            # Filter blocks whose vertical center falls inside a table region.
+            # Blocks from _build_blocks_from_chars use full page width, so area
+            # overlap isn't reliable — check y-range containment instead.
+            if page_table_bboxes and page_blocks:
+                filtered = []
+                for b in page_blocks:
+                    bb = b.get("bbox") or [0, 0, 0, 0]
+                    if len(bb) != 4:
+                        filtered.append(b)
+                        continue
+                    _, by0, _, by1 = bb
+                    y_center = (by0 + by1) / 2
+                    in_table = False
+                    for tx0, ty0, tx1, ty1 in page_table_bboxes:
+                        if ty0 <= y_center <= ty1:
+                            in_table = True
+                            break
+                    if in_table:
+                        continue  # inside a table — skip
+                    filtered.append(b)
+                page_blocks = filtered
 
             if not page_blocks:
                 fallback_text = page.extract_text() or ""
@@ -1830,19 +2394,6 @@ def _extract_with_pdfplumber(path: str) -> dict:
                 all_text.append(page_text)
                 all_blocks.extend(page_blocks)
 
-            # ── Extract images via pdfplumber ────────────────────────
-            # Uses page.crop(bbox).to_image() which renders the region
-            # correctly with white background (no SMask/alpha issues)
-            # Get table bboxes for this page to skip table-internal images
-            page_table_bboxes = []
-            try:
-                tables = page.find_tables()
-                if tables:
-                    for t in tables:
-                        page_table_bboxes.append(t.bbox)
-            except Exception:
-                pass
-
             try:
                 page_images = page.images or []
                 eq_counter = 0
@@ -1855,9 +2406,19 @@ def _extract_with_pdfplumber(path: str) -> dict:
                     w = x1 - x0
                     h = y1 - y0
 
-                    classification = _classify_image(w, h, page_num, total_pages)
+                    classification = _classify_image(w, h, page_num, total_pages,
+                                                     bbox_y=y0)
                     if classification == "skip":
                         continue
+
+                    # Position-aware logo skip: on page 0, skip small images in
+                    # the top 20% of the page (journal logos, mastheads)
+                    page_h = page.height or 792
+                    if page_num == 0 and y0 < page_h * 0.2:
+                        area = w * h
+                        if area < 50000 and h < 200:
+                            log.debug("  pdfplumber: skipping page-0 header image at y=%.0f (%.0fx%.0f)", y0, w, h)
+                            continue
 
                     # Skip equation images inside tables (already handled by CELLIMG)
                     if classification == "equation" and page_table_bboxes:
@@ -1897,6 +2458,7 @@ def _extract_with_pdfplumber(path: str) -> dict:
                                 "label": f"eq_{page_num}_{eq_counter}",
                                 "bbox_y": y0,
                                 "bbox_h": h,
+                                "bbox_w": w,
                             })
                             eq_counter += 1
                             log.debug("  pdfplumber equation p%d: %s (%.0fx%.0f)",
@@ -1913,28 +2475,71 @@ def _extract_with_pdfplumber(path: str) -> dict:
             except Exception as e:
                 log.debug("  pdfplumber image extraction error p%d: %s", page_num, e)
 
-            # Tables
+            # Tables — use find_tables() for cell-level bboxes so we can
+            # detect equation images inside cells and emit \CELLIMG{} markers.
             try:
-                for td in (page.extract_tables() or []):
-                    if td and len(td) >= 2:
-                        all_tables.append({
-                            "headers": [str(c) if c else "" for c in td[0]],
-                            "rows":    [[str(c) if c else "" for c in row] for row in td[1:]],
-                            "caption": "",
-                            "label":   f"tab_{page_num}_{len(all_tables)+1}",
-                        })
+                found_tables = page.find_tables() or []
+                page_images = page.images or []
+                for table_idx, table in enumerate(found_tables):
+                    td = table.extract()
+                    if not td or len(td) < 2:
+                        continue
+
+                    cells = table.cells  # (x0, top, x1, bottom) tuples
+                    num_rows = len(td)
+                    num_cols = max(len(row) for row in td) if td else 0
+                    cell_bboxes = _build_cell_bbox_grid(cells, num_rows, num_cols)
+
+                    processed_rows = []
+                    for row_idx, row in enumerate(td):
+                        processed_row = []
+                        for col_idx, cell_text in enumerate(row):
+                            cell_str = str(cell_text) if cell_text else ""
+                            # Check every cell for an overlapping image — cell
+                            # text from pdfplumber is unreliable when the cell
+                            # contains an equation graphic.
+                            if cell_bboxes:
+                                bbox = cell_bboxes.get((row_idx, col_idx))
+                                if bbox:
+                                    img_path = _render_cell_image(
+                                        page, bbox, page_images,
+                                        page_num, table_idx, row_idx, col_idx,
+                                        fig_dir,
+                                    )
+                                    if img_path and _is_valid_png(img_path):
+                                        cell_str = f"\\CELLIMG{{{img_path}}}"
+                            processed_row.append(cell_str)
+                        processed_rows.append(processed_row)
+
+                    all_tables.append({
+                        "headers": processed_rows[0],
+                        "rows": processed_rows[1:],
+                        "caption": "",
+                        "label":   f"tab_{page_num}_{len(all_tables)+1}",
+                    })
             except Exception as e:
                 log.debug("  pdfplumber table error p%d: %s", page_num, e)
 
-    # ── Match equation numbers to formulas (from text blocks) ─────
-    # Scan all_blocks for standalone "(N)" patterns and match to nearby formulas
-    _match_eq_nums_from_text_blocks(all_blocks, all_formulas)
+        # ── Match equation numbers to formulas (from text blocks) ─────
+        # Scan all_blocks for standalone "(N)" patterns and match to nearby formulas
+        _match_eq_nums_from_text_blocks(all_blocks, all_formulas)
+
+        # ── Capture equation regions for unmatched equation numbers ────
+        # If an equation number (N) exists but no formula block matched it, the equation
+        # is likely a mix of text + vector graphics (e.g. π = O/2r with a fraction image).
+        # Render the region around the equation number as a cropped image.
+        all_formulas = _capture_unmatched_equation_regions(
+            pdf, all_blocks, all_formulas, fig_dir, total_pages)
 
     # ── Batch OCR on all collected equation images ────────────────
     all_formulas = _batch_ocr_equations(all_formulas)
 
     # OCR table cell images → convert \CELLIMG{} to \CELLEQ{latex} for selectability
     all_tables = _ocr_table_cells(all_tables)
+
+    # ── Validate all saved PNGs — remove corrupt images ──────────
+    all_formulas = _validate_formula_images(all_formulas)
+    all_figures = _validate_figure_images(all_figures)
 
     full_text = "\n\n".join(all_text)
     log.info("  Extracted %d chars, %d blocks, %d tables, %d figures, %d formulas (pdfplumber)",
@@ -2244,8 +2849,8 @@ def _extract_tables_pdfplumber(path: str) -> list:
                                             page_num, table_idx, row_idx, col_idx,
                                             fig_dir
                                         )
-                                        if img_path:
-                                            # Image found — use it instead of garbled text
+                                        if img_path and _is_valid_png(img_path):
+                                            # Image found & valid — use it instead of garbled text
                                             cell_str = f"\\CELLIMG{{{img_path}}}"
                                             log.debug("  Table cell image p%d t%d r%d c%d: %s",
                                                       page_num, table_idx, row_idx, col_idx,

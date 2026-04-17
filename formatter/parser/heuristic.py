@@ -48,6 +48,9 @@ METADATA_PATTERNS = [
     re.compile(r"Machine\s+Learning\s+\(\d{4}\)\s+\d+:\d+", re.I),  # journal running header
     re.compile(r"^\d+\s+Page\s+\d+\s+of\s+\d+", re.I),  # "72 Page 16 of 36 ..."
     re.compile(r"^Acta\s+Avionica", re.I),              # journal name running header
+    re.compile(r"Creative\s+Commons\s+Attribution", re.I),  # CC license statement
+    re.compile(r"^Article\s+is\s+licensed\s+under", re.I),  # license statement
+    re.compile(r"^Received\s+\d+.*accepted\s+\d+", re.I),  # "Received 12, 2021, accepted 02, 2022"
 ]
 
 # Reference patterns
@@ -377,9 +380,21 @@ def _extract_sections_from_blocks(blocks: list, body_size: float) -> tuple:
     current_heading = ""
     current_depth = 1
     current_body = []
+    current_positions = []   # (page, y) per body paragraph
     current_page = -1
     in_refs = False
     past_abstract = False
+
+    def _save_current_section():
+        """Helper: append current section to the list."""
+        if current_heading and current_body:
+            sections.append(Section(
+                heading=current_heading,
+                depth=current_depth,
+                body="\n\n".join(current_body),
+                start_page=current_page,
+                body_positions=list(current_positions),
+            ))
 
     for b in blocks:
         text = b["text"].strip()
@@ -398,6 +413,11 @@ def _extract_sections_from_blocks(blocks: list, body_size: float) -> tuple:
 
         lower = text.lower()
 
+        # Block position: (page, y_top)
+        b_page = b.get("page", -1)
+        b_bbox = b.get("bbox", [0, 0, 0, 0])
+        b_y = b_bbox[1] if b_bbox else 0.0
+
         # Skip until we're past abstract/keywords
         if not past_abstract:
             if lower.startswith("abstract"):
@@ -413,17 +433,11 @@ def _extract_sections_from_blocks(blocks: list, body_size: float) -> tuple:
 
         # Check for References section
         if re.match(r"^(references|bibliography)\s*$", lower):
-            # Save current section
-            if current_heading and current_body:
-                sections.append(Section(
-                    heading=current_heading,
-                    depth=current_depth,
-                    body="\n\n".join(current_body),
-                    start_page=current_page,
-                ))
+            _save_current_section()
             in_refs = True
             current_heading = ""
             current_body = []
+            current_positions = []
             continue
 
         # Check for "References" at end of a paragraph
@@ -432,16 +446,12 @@ def _extract_sections_from_blocks(blocks: list, body_size: float) -> tuple:
             before = text[:ref_match.start()].strip()
             if before and current_body is not None:
                 current_body.append(before)
-            if current_heading and current_body:
-                sections.append(Section(
-                    heading=current_heading,
-                    depth=current_depth,
-                    body="\n\n".join(current_body),
-                    start_page=current_page,
-                ))
+                current_positions.append((b_page, b_y))
+            _save_current_section()
             in_refs = True
             current_heading = ""
             current_body = []
+            current_positions = []
             continue
 
         if in_refs:
@@ -459,28 +469,18 @@ def _extract_sections_from_blocks(blocks: list, body_size: float) -> tuple:
         heading_info = _detect_heading(text, b.get("size", 0), body_size)
         if heading_info:
             # Save previous section
-            if current_heading and current_body:
-                sections.append(Section(
-                    heading=current_heading,
-                    depth=current_depth,
-                    body="\n\n".join(current_body),
-                    start_page=current_page,
-                ))
+            _save_current_section()
             current_heading = heading_info["text"]
             current_depth = heading_info["depth"]
             current_page = b.get("page", -1)
             current_body = []
+            current_positions = []
         else:
             current_body.append(text)
+            current_positions.append((b_page, b_y))
 
     # Save last section
-    if current_heading and current_body:
-        sections.append(Section(
-            heading=current_heading,
-            depth=current_depth,
-            body="\n\n".join(current_body),
-            start_page=current_page,
-        ))
+    _save_current_section()
 
     return sections, references
 
@@ -534,7 +534,7 @@ def _detect_heading(text: str, font_size: float, body_size: float) -> Optional[d
     # Font-size based: significantly larger than body
     if font_size > body_size * 1.15 and len(stripped) < 60:
         # Likely a heading — check it's not just a short body line
-        if stripped[0].isupper() and not stripped.endswith(","):
+        if stripped and stripped[0].isupper() and not stripped.endswith(","):
             return {"text": stripped, "depth": 1}
 
     return None
@@ -821,6 +821,13 @@ def _is_junk_reference(text: str) -> bool:
     if re.match(r"^\d+(\s+\d+)?$", text_stripped):
         return True
     # Publisher notes
+    # License / CC / received-accepted statements
+    if re.search(r"creative\s+commons", lower):
+        return True
+    if re.search(r"article\s+is\s+licensed\s+under", lower):
+        return True
+    if re.search(r"received\s+\d+.*accepted\s+\d+", lower):
+        return True
     junk_starts = [
         "publisher's note", "springer nature", "exclusive rights",
         "manu script version", "author self-archiving",

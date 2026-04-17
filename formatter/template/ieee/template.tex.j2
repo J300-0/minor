@@ -22,29 +22,30 @@
 \title{\VAR{title | e}}
 
 %% if authors
-\author{
+%% set col_width = (0.96 / (authors | length)) | round(4)
+\author{%
+\IEEEoverridecommandlockouts%
 %% for author in authors
-  \IEEEauthorblockN{\VAR{author.name | e}}
-  \IEEEauthorblockA{
-%% if author.department
-    \textit{\VAR{author.department | e}}\\
-%% endif
+\begin{minipage}[t]{\VAR{col_width}\textwidth}\centering
+{\normalsize\textbf{\VAR{author.name | e}}}\\[2pt]
+{\footnotesize \VAR{author.department | e}%
 %% if author.organization
-    \VAR{author.organization | e}\\
+\\ \VAR{author.organization | e}%
 %% endif
 %% if author.city and author.country
-    \VAR{author.city | e}, \VAR{author.country | e}\\
+\\ \VAR{author.city | e}, \VAR{author.country | e}%
 %% elif author.city
-    \VAR{author.city | e}\\
+\\ \VAR{author.city | e}%
 %% elif author.country
-    \VAR{author.country | e}\\
+\\ \VAR{author.country | e}%
 %% endif
 %% if author.email
-    \VAR{author.email | e}
+\\ \VAR{author.email | e}%
 %% endif
-  }
+}
+\end{minipage}%
 %% if not loop.last
-  \and
+\hfill%
 %% endif
 %% endfor
 }
@@ -76,27 +77,15 @@
 \VAR{block.content}
 
 %% elif block.type == "equation"
-\smallskip
 %% if block.latex
-%% if block.equation_number
-\begin{equation*}\tag{\VAR{block.equation_number}}
+\begin{equation}
 \VAR{block.latex}
-\end{equation*}
-%% else
-\begin{equation*}
-\VAR{block.latex}
-\end{equation*}
-%% endif
+\end{equation}
 %% elif block.image_path
-%% if block.equation_number
-\noindent\hfill\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{block.image_path}}\hfill(\VAR{block.equation_number})\hspace*{0pt}
-%% else
-\begin{center}
-\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{block.image_path}}
-\end{center}
+\begin{equation}
+\vcenter{\hbox{\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{block.image_path}}}}
+\end{equation}
 %% endif
-%% endif
-\smallskip\noindent
 %% endif
 %% endfor
 
@@ -120,31 +109,6 @@
 %% endfor
 
 %% endfor
-
-%% if formula_blocks
-\smallskip
-%% for fb in formula_blocks
-%% if fb.latex
-%% if fb.equation_number
-\begin{equation*}\tag{\VAR{fb.equation_number}}
-\VAR{fb.latex}
-\end{equation*}
-%% else
-\begin{equation*}
-\VAR{fb.latex}
-\end{equation*}
-%% endif
-%% elif fb.image_path
-%% if fb.equation_number
-\noindent\hfill\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{fb.image_path}}\hfill(\VAR{fb.equation_number})\hspace*{0pt}
-%% else
-\begin{center}
-\includegraphics[max width=0.85\columnwidth, max height=4cm]{\VAR{fb.image_path}}
-\end{center}
-%% endif
-%% endif
-%% endfor
-%% endif
 
 %% if references
 \begin{thebibliography}{\VAR{references | length}}

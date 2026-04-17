@@ -19,6 +19,19 @@ from core.shared import latex_relpath, OCR_RENDERER_THRESHOLD
 log = logging.getLogger("paper_formatter")
 
 
+def _is_valid_png(abs_path: str) -> bool:
+    """Check that a PNG file can be read without error by PIL and pdflatex."""
+    if not abs_path or not os.path.isfile(abs_path):
+        return False
+    try:
+        from PIL import Image
+        with Image.open(abs_path) as img:
+            img.load()  # force full decode — catches truncated PNGs
+        return True
+    except Exception:
+        return False
+
+
 def render(doc: Document, template_name: str) -> str:
     """
     Render a Document into a .tex file using the specified template.
@@ -109,9 +122,9 @@ def _build_content_blocks(section) -> list:
     """
     Interleave text paragraphs and formula blocks by position.
 
-    Uses each formula's (page, bbox_y) to compute where it falls relative
-    to the section's text. Formulas are inserted after the paragraph closest
-    to their estimated position, preserving reading order.
+    Uses body_positions (populated by the parser) to place each formula
+    after the paragraph that immediately precedes it in the source PDF.
+    Falls back to sequential append when positions are unavailable.
 
     Returns list of dicts:
       {"type": "text", "content": "escaped paragraph text"}
@@ -140,28 +153,16 @@ def _build_content_blocks(section) -> list:
     if not paragraphs:
         return [_fb_to_content_block(fb) for fb in sorted_fbs]
 
-    n_para = len(paragraphs)
+    # Get paragraph positions from parser (one (page, y) per paragraph)
+    positions = getattr(section, "body_positions", []) or []
 
-    # Compute target paragraph index for each formula using its page position.
-    # section.start_page tells us where this section begins. Combined with
-    # each formula's (page, bbox_y), we estimate its fractional position.
-    start_page = section.start_page if section.start_page >= 0 else sorted_fbs[0].page
-    end_page = max(fb.page for fb in sorted_fbs)
-    page_span = max(end_page - start_page + 1, 1)
-
-    # Build mapping: paragraph_index -> [formula_blocks to place after it]
-    fb_after_para = {}
-    for fb in sorted_fbs:
-        # Fractional position within the section (0.0 = start, 1.0 = end)
-        page_frac = (fb.page - start_page) / page_span
-        # Add y-position contribution (normalized, assume ~800pt page height)
-        y_frac = min(fb.bbox_y / 800.0, 1.0) / page_span
-        position = min(page_frac + y_frac, 1.0)
-
-        # Map to paragraph index
-        target = int(position * n_para)
-        target = max(0, min(target, n_para - 1))
-        fb_after_para.setdefault(target, []).append(fb)
+    # Use position-aware placement when we have paragraph positions
+    if positions and len(positions) == len(paragraphs):
+        fb_after_para = _match_formulas_to_paragraphs(sorted_fbs, positions)
+    else:
+        # Fallback: no position data — place formulas sequentially at end
+        # of the section (better than wrong interleaving)
+        fb_after_para = {len(paragraphs) - 1: sorted_fbs}
 
     # Build interleaved blocks
     blocks = []
@@ -173,6 +174,41 @@ def _build_content_blocks(section) -> list:
     return blocks
 
 
+def _match_formulas_to_paragraphs(sorted_fbs: list, positions: list) -> dict:
+    """
+    Match each formula to the paragraph it should appear after.
+
+    Each formula has (page, bbox_y). Each paragraph has (page, y) from
+    the parser. A formula is placed after the last paragraph whose
+    position is <= the formula's position (reading order).
+
+    Args:
+        sorted_fbs: FormulaBlocks sorted by (page, bbox_y)
+        positions: list of (page, y) tuples, one per paragraph
+
+    Returns:
+        dict mapping paragraph_index -> [formula_blocks to insert after it]
+    """
+    n_para = len(positions)
+    fb_after_para = {}
+
+    for fb in sorted_fbs:
+        fb_pos = (fb.page, fb.bbox_y)
+
+        # Find the last paragraph that comes before this formula
+        best_idx = 0
+        for i, (p_page, p_y) in enumerate(positions):
+            if (p_page, p_y) <= fb_pos:
+                best_idx = i
+            else:
+                # Paragraphs after the formula — stop searching
+                break
+
+        fb_after_para.setdefault(best_idx, []).append(fb)
+
+    return fb_after_para
+
+
 def _split_para_blocks(blocks: list, para: str):
     """
     Split a paragraph that may contain \\begin{equation*}...\\end{equation*} into
@@ -181,8 +217,14 @@ def _split_para_blocks(blocks: list, para: str):
     The normalizer's _convert_numbered_equations inserts these equation environments
     into body text. They must NOT be latex-escaped — they're already valid LaTeX.
     """
-    eq_start = r"\begin{equation*}"
-    eq_end = r"\end{equation*}"
+    # Accept both numbered ("equation") and starred ("equation*") environments
+    # so auto-numbered equations produced by the normalizer also pass through
+    # as raw_latex (unescaped).
+    eq_start = r"\begin{equation}"
+    eq_end = r"\end{equation}"
+    if eq_start not in para:
+        eq_start = r"\begin{equation*}"
+        eq_end = r"\end{equation*}"
 
     if eq_start not in para:
         # No equations — escape normally
@@ -193,7 +235,7 @@ def _split_para_blocks(blocks: list, para: str):
     remaining = para
     while eq_start in remaining:
         idx_start = remaining.index(eq_start)
-        idx_end = remaining.find(eq_end)
+        idx_end = remaining.find(eq_end, idx_start + len(eq_start))
         if idx_end < 0:
             break
 
@@ -224,13 +266,20 @@ def _fb_to_content_block(fb) -> dict:
 
 def _figure_to_dict(f):
     """Convert Figure to dict with LaTeX-safe relative path."""
-    img_path = f.image_path if isinstance(f, str) else (
-        f.get("image_path", "") if isinstance(f, dict) else f.image_path
+    raw_path = (
+        f.get("image_path", "") if isinstance(f, dict)
+        else getattr(f, "image_path", str(f) if isinstance(f, str) else "")
     )
-    img_path = latex_relpath(img_path, INTERMEDIATE_DIR)
+    # Validate image — corrupt PNGs crash pdflatex
+    if raw_path:
+        abs_path = raw_path if os.path.isabs(raw_path) else os.path.join(INTERMEDIATE_DIR, raw_path)
+        if not _is_valid_png(abs_path):
+            log.warning("  Skipping corrupt figure image: %s", os.path.basename(raw_path))
+            raw_path = ""
+    img_path = latex_relpath(raw_path, INTERMEDIATE_DIR)
 
-    caption = f.get("caption", "") if isinstance(f, dict) else f.caption
-    label = f.get("label", "") if isinstance(f, dict) else f.label
+    caption = f.get("caption", "") if isinstance(f, dict) else getattr(f, "caption", "")
+    label = f.get("label", "") if isinstance(f, dict) else getattr(f, "label", "")
     # Strip residual "Fig. N." / "Figure N:" prefix — LaTeX \caption adds its own
     if caption:
         caption = re.sub(
@@ -244,7 +293,14 @@ def _ref_to_dict(r):
 
 def _fb_to_dict(fb):
     """Convert FormulaBlock to dict with LaTeX-safe relative image path."""
-    img_path = latex_relpath(fb.image_path or "", INTERMEDIATE_DIR)
+    raw_img = fb.image_path or ""
+    # Validate image before including — corrupt PNGs crash pdflatex
+    if raw_img:
+        abs_img = raw_img if os.path.isabs(raw_img) else os.path.join(INTERMEDIATE_DIR, raw_img)
+        if not _is_valid_png(abs_img):
+            log.warning("  Skipping corrupt image: %s", os.path.basename(raw_img))
+            raw_img = ""
+    img_path = latex_relpath(raw_img, INTERMEDIATE_DIR)
 
     latex = fb.latex or ""
 
@@ -605,7 +661,12 @@ def _escape_table_cell(text: str) -> str:
     # Use \raisebox for vertical centering + constrained height for consistent row sizing
     m = _CELLIMG_RE.match(stripped)
     if m:
-        img_path = latex_relpath(m.group(1), INTERMEDIATE_DIR)
+        raw_cell_img = m.group(1)
+        abs_cell_img = raw_cell_img if os.path.isabs(raw_cell_img) else os.path.join(INTERMEDIATE_DIR, raw_cell_img)
+        if not _is_valid_png(abs_cell_img):
+            log.warning("  Skipping corrupt table cell image: %s", os.path.basename(raw_cell_img))
+            return ""  # empty cell is better than crashing pdflatex
+        img_path = latex_relpath(raw_cell_img, INTERMEDIATE_DIR)
         return (f"\\raisebox{{-0.3\\height}}{{"
                 f"\\includegraphics[max height=0.9cm]{{{img_path}}}}}")
 

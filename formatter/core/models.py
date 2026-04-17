@@ -43,6 +43,7 @@ class FormulaBlock:
     label: str = ""
     bbox_y: float = 0.0        # y-position on page for placement ordering
     bbox_h: float = 0.0        # height of equation image for y-matching tolerance
+    bbox_w: float = 0.0        # width of equation image
     equation_number: str = ""  # original equation number from input doc, e.g. "7"
 
 
@@ -62,6 +63,10 @@ class Section:
     figures: List[Figure] = field(default_factory=list)
     formula_blocks: List['FormulaBlock'] = field(default_factory=list)
     start_page: int = -1     # page where this section's heading appears (-1 = unknown)
+    body_positions: list = field(default_factory=list)
+    # List of (page, y) tuples — one per paragraph in body (split on \n\n).
+    # Populated by the parser from block positions so the renderer can
+    # interleave formula blocks at their correct source locations.
 
 
 @dataclass

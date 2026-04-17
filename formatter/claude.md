@@ -73,9 +73,12 @@ pix2tex's `LatexOCR()` init can cause OS-level segfaults (CUDA DLL issues on Win
 A segfault kills the entire Python process — no `try/except` can catch it.
 Solution: all ML model code runs in child processes via `subprocess.run()`.
 
-### OCR fallback chain
+### OCR dual-engine ensemble
 ```
-pix2tex (primary) → nougat (fallback) → Tesseract (last resort)
+pix2tex ──┐
+           ├─→ _pick_best_ocr() → highest confidence wins
+nougat  ──┘
+Tesseract (last resort, if both unavailable)
 ```
 
 ### Worker files
@@ -204,8 +207,9 @@ formatter/
   extractor/
     pdf_extractor.py         # PyMuPDF primary, pdfplumber tables only, OCR orchestration
     pix2tex_worker.py        # Subprocess worker — pix2tex LaTeX OCR (single image)
-    pix2tex_batch_worker.py  # NEW: batch worker — load model once, process all images
-    nougat_worker.py         # Subprocess worker — nougat OCR (fallback)
+    pix2tex_batch_worker.py  # Batch worker — load model once, process all images
+    nougat_worker.py         # Subprocess worker — nougat OCR (single image)
+    nougat_batch_worker.py   # Batch worker — load nougat once, process all images
     docx_extractor.py        # python-docx
   parser/
     heuristic.py             # Font-aware + text-only heading/section detection
@@ -341,9 +345,13 @@ formatter/
     `(N)` text blocks, `_match_equation_numbers()` pairs them to formulas within 30pt y-distance.
     Each number used at most once. Stored in `FormulaBlock.equation_number`, rendered as `\tag{N}`.
 
-23. **Formula placement is sequential, not interleaved.** `_build_content_blocks()` places
-    formula blocks after the section's text paragraphs in position order. Do NOT re-introduce
-    "even interval" or other artificial distribution — it scatters formulas next to unrelated text.
+23. **Formula placement is position-aware.** `_build_content_blocks()` places formulas after
+    the paragraph whose `body_positions` entry is closest to the formula's `(page, bbox_y)`.
+    Do NOT re-introduce "even interval" or other artificial distribution.
+
+24. **`get_image_info(xrefs=True)` for bbox recovery.** Embedded images (XObjects) often lack
+    entries in the text dict's type=1 blocks, giving `bbox_y=0.0`. The `xref_to_placement`
+    mapping from `page.get_image_info()` catches these. Without it, all formulas cluster at y=0.
 
 ---
 
@@ -355,8 +363,8 @@ pdfplumber>=0.10.0   # tables only
 python-docx>=1.1.0   # DOCX extraction
 jinja2>=3.1.0        # template rendering
 requests>=2.31.0     # optional, future API use
-pix2tex              # optional, LaTeX OCR for equation images (PRIMARY)
-nougat-ocr           # optional, Meta's Nougat OCR (FALLBACK after pix2tex)
+pix2tex              # optional, LaTeX OCR for equation images (dual-engine member)
+nougat-ocr           # optional, Meta's Nougat OCR (dual-engine member)
 pytesseract          # optional, Tesseract OCR fallback (needs tesseract binary)
 scikit-learn         # optional, for ML classifier (canon/classifier.py)
 ```
@@ -446,11 +454,59 @@ KEY TECHNICAL RULES (add rule 4 to the rules section in claude.md):
 4. **Reference cleaning** — incomplete; some entries still contain in-text citation noise
 5. **Table cell images (needs fitz testing)** — `_render_cell_image()` implemented but untested with PyMuPDF; overlap detection may need tuning for fitz's image coordinate system
 6. **Acta Avionica logo** — misclassified as equation (minor)
-7. **pix2tex borderline garbage** — some structurally valid but semantically wrong LaTeX (e.g. `l^{*} p \eta \frac{...}{}`) can still pass the 0.60 threshold if it has `\frac`, `^{}` etc. Table overlap check prevents most of these from appearing in output.
+7. **pix2tex borderline garbage** — some structurally valid but semantically wrong LaTeX (e.g. `l^{*} p \eta \frac{...}{}`) can still pass the 0.60 threshold if it has `\frac`, `^{}` etc. Table overlap check prevents most of these from appearing in output. Dual-engine OCR mitigates this — nougat may produce better LaTeX for equations where pix2tex struggles.
 
 ---
 
 ## Changelog
+
+### 2026-04-13 — Formula placement fix + Key Equations summary table
+- **Problem (bbox_y=0.0)**: Embedded equation images extracted via `_extract_all_page_images()` had
+  `bbox_y=0.0` when their xref wasn't in the text dict's type=1 blocks. This made position-aware
+  interleaving useless — all formulas clustered at position 0, placed after the first paragraph.
+- **Problem (wrong sections)**: `_distribute_to_sections()` used page proximity only. Multiple
+  sections on the same page all mapped to the first section on that page. Formulas from later
+  sections ended up in earlier ones.
+- **Problem (no equation summary)**: Formulas were only rendered inline. Users wanted a reference
+  table listing all key equations in one place.
+- **bbox_y recovery via `get_image_info()`** (`pdf_extractor.py`):
+  - Added Phase 1b: `page.get_image_info(xrefs=True)` builds `xref_to_placement` mapping for
+    images NOT in the text dict. This catches XObject images placed via Form operators.
+  - Fallback chain: text_dict blocks → get_image_info placement → pixel estimate (last resort).
+  - Pixmap clip rendering and table overlap checks also use `xref_to_placement`.
+- **Section assignment rewrite** (`core/pipeline.py`):
+  - `_distribute_to_sections()` now uses `(page, y)` coordinates from `body_positions` to define
+    each section's span. Items assigned to the last section whose start ≤ item position.
+  - Handles multiple sections on the same page correctly.
+- **Dual rendering** (`core/pipeline.py`):
+  - Formula blocks are distributed into sections for inline placement AND kept in
+    `doc.formula_blocks` for the global Key Equations summary table.
+- **Key Equations summary table** (all 6 templates):
+  - Global `formula_blocks` rendering changed from standalone equation blocks to a 2-column table:
+    left column = equation number (or `---`), right column = formula (LaTeX or image).
+  - Appears as `\subsection*{Key Equations}` before references.
+  - Uses `\displaystyle` for LaTeX formulas, `max height=1.8cm` for images.
+
+### 2026-04-13 — Dual-engine OCR ensemble (pix2tex + nougat work together)
+- **Problem (wasted nougat)**: OCR used a strict fallback chain — pix2tex first, nougat only
+  if pix2tex returned an empty string. In batch mode (the primary path), nougat was NEVER called.
+  If pix2tex returned garbage (confidence < 0.60), it was rejected and image fallback used — nougat
+  never got a chance, even though it might have produced better LaTeX for that equation.
+- **Dual-engine strategy**: Now runs BOTH engines on every equation image, scores both independently
+  via `_score_ocr_quality()`, and picks the winner per formula. pix2tex excels at clean LaTeX
+  formatting; nougat excels at structural/contextual understanding of complex equations.
+- **New file: `nougat_batch_worker.py`**: Batch subprocess worker for nougat (mirrors
+  `pix2tex_batch_worker.py`). Loads model once, processes all images, outputs JSON array.
+  Pads small equation crops to 896×1152 as required by nougat.
+- **New helpers** (`pdf_extractor.py`):
+  - `_pick_best_ocr(latex_a, latex_b)`: Sanitizes both, scores both, returns higher-confidence result.
+  - `_dual_ocr_single(image_path)`: Runs both single-image workers, calls `_pick_best_ocr()`.
+- **`_batch_ocr_equations()` rewritten**: Runs pix2tex batch AND nougat batch on all images,
+  then compares per formula. Logs which engine won. Falls back to `_dual_ocr_single()` if both
+  batch workers are unavailable.
+- **`_ocr_formula_region()` rewritten**: Uses `_dual_ocr_single()` instead of sequential fallback.
+- **`_ocr_table_cells()` rewritten**: Runs both batch engines on cell images, compares per cell.
+  Eliminates the old Phase 3 (pix2tex only) + Phase 4 (nougat fallback) split.
 
 ### 2026-04-07 — Position-aware formula placement, subscript fixes
 - **Problem (formulas dumped at end)**: Previous fix placed all formulas after section text. Reverted

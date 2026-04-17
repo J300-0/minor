@@ -71,34 +71,59 @@ def run(input_file: str, template: str = "ieee", output_dir: str = None) -> str:
         ]
         good_fbs = []
         for fb in formula_blocks:
-            # Accept if: has good OCR (conf >= threshold), or has image fallback (no latex)
+            # Accept if: has good OCR (conf >= threshold), or has image fallback
             if fb.latex and fb.confidence >= OCR_CONFIDENCE_THRESHOLD:
                 good_fbs.append(fb)
-            elif fb.image_path and not fb.latex:
-                # Image-only fallback — keep it (rendered as \includegraphics)
+            elif fb.image_path:
+                # Image fallback — either no latex, or low-confidence OCR.
+                # Discard bad OCR and render as \includegraphics instead of
+                # dropping the formula entirely.
+                if fb.latex:
+                    log.debug("  Formula block conf=%.2f < %.2f — falling back to image: %s",
+                              fb.confidence, OCR_CONFIDENCE_THRESHOLD, fb.image_path)
+                    fb.latex = ""  # discard bad OCR
+                    fb.confidence = 0.5
                 good_fbs.append(fb)
         kept = len(good_fbs)
         total = len(formula_blocks)
         log.info("  Formula blocks: %d kept / %d total (conf >= %.2f or image-only)", kept, total, OCR_CONFIDENCE_THRESHOLD)
 
-        # Distribute formula blocks into sections by page proximity
+        # Distribute formula blocks into sections by (page, y) proximity
         _distribute_to_sections(doc, good_fbs, "formula_blocks")
 
         # Force unplaced formulas into the last body section
-        # (avoids a disconnected "Key Equations" section at the end)
         placed = set()
         for s in doc.sections:
             for fb in s.formula_blocks:
                 placed.add(id(fb))
         unplaced = [fb for fb in good_fbs if id(fb) not in placed]
         if unplaced:
-            body_sections = [s for s in doc.sections if s.body.strip()]
-            target = body_sections[-1] if body_sections else doc.sections[-1]
-            for fb in unplaced:
-                target.formula_blocks.append(fb)
+            body_sections = [s for s in doc.sections if s.body and s.body.strip()]
+            target = (
+                body_sections[-1] if body_sections
+                else doc.sections[-1] if doc.sections
+                else None
+            )
+            if target is not None:
+                for fb in unplaced:
+                    target.formula_blocks.append(fb)
             log.info("  %d formula blocks placed in sections, %d forced into last section",
                      kept - len(unplaced), len(unplaced))
-        doc.formula_blocks = []  # nothing left for global rendering
+
+        # Equation numbering is handled by LaTeX itself via \begin{equation}
+        # (auto-numbered). We no longer assign equation_number here — the
+        # template renders each formula block as \begin{equation}...\end{equation}
+        # and LaTeX's equation counter guarantees sequential, collision-free
+        # numbers across both normalizer-produced equations and image-based
+        # formula blocks.
+        for s in doc.sections:
+            for fb in s.formula_blocks:
+                fb.equation_number = ""
+
+        # Do NOT keep a global doc.formula_blocks list — that would trigger
+        # the "Key Equations" summary table in templates, duplicating every
+        # formula (once inline + once in the table). Inline placement only.
+        doc.formula_blocks = []
 
     # Attach extracted figures to sections (distribute by page proximity)
     raw_figures = raw.get("figures", [])
@@ -133,6 +158,9 @@ def run(input_file: str, template: str = "ieee", output_dir: str = None) -> str:
     log.info("Stage 4/6: Normalize")
     from normalizer.cleaner import normalize
     doc = normalize(doc)
+
+    # Resync body_positions after normalization (paragraph count may have changed)
+    _resync_body_positions(doc)
     _flush_log(log)
 
     # ── Stage 5: Render ───────────────────────────────────────
@@ -154,7 +182,12 @@ def run(input_file: str, template: str = "ieee", output_dir: str = None) -> str:
 def _distribute_to_sections(doc: Document, items: list, target_attr: str,
                              page_fn=None, sort_key=None):
     """
-    Distribute items (formulas, figures, etc.) into sections by page proximity.
+    Distribute items (formulas, figures, etc.) into sections by (page, y) proximity.
+
+    Uses both page number AND y-position to handle multiple sections on the same
+    page. Each section's span is defined by its first body_position through to the
+    next section's first body_position. Items are placed in the section whose span
+    contains the item's (page, y) coordinate.
 
     Args:
         doc: Document with sections
@@ -166,72 +199,97 @@ def _distribute_to_sections(doc: Document, items: list, target_attr: str,
     if not items or not doc.sections:
         return
 
-    # Default page accessor
+    # Default accessors
     if page_fn is None:
         def page_fn(item):
             return item.page if hasattr(item, 'page') else item.get("page", -1)
 
-    # Default sort key
+    def _item_y(item):
+        return item.bbox_y if hasattr(item, 'bbox_y') else item.get("bbox_y", 0)
+
     if sort_key is None:
         def sort_key(item):
-            page = page_fn(item)
-            y = item.bbox_y if hasattr(item, 'bbox_y') else item.get("bbox_y", 0)
-            return (page, y)
-
-    # Build page ranges for sections
-    sections_with_pages = []
-    for s in doc.sections:
-        if s.start_page >= 0 and s.body.strip():
-            sections_with_pages.append((s, s.start_page))
+            return (page_fn(item), _item_y(item))
 
     body_sections = [s for s in doc.sections if s.body.strip()]
     if not body_sections:
         return
 
-    # Check if we have page info
-    has_page_info = sections_with_pages and any(page_fn(item) >= 0 for item in items)
-
+    has_page_info = any(page_fn(item) >= 0 for item in items)
     if not has_page_info:
-        # No page info — fall back to even distribution
         for i, item in enumerate(items):
             idx = i % len(body_sections)
             getattr(body_sections[idx], target_attr).append(item)
         return
+
+    # Build section spans: list of (section, start_page, start_y)
+    # Use the first body_position as the section's start coordinate.
+    # This handles multiple sections on the same page correctly.
+    section_spans = []
+    for s in body_sections:
+        positions = getattr(s, "body_positions", []) or []
+        if positions and len(positions) > 0:
+            start_page, start_y = positions[0]
+        elif s.start_page >= 0:
+            start_page, start_y = s.start_page, 0.0
+        else:
+            start_page, start_y = 0, 0.0
+        section_spans.append((s, start_page, start_y))
 
     # Sort items by position
     sorted_items = sorted(items, key=sort_key)
 
     for item in sorted_items:
         item_page = page_fn(item)
+        item_y = _item_y(item)
 
         if item_page < 0:
-            # No page info — put in first section
             getattr(body_sections[0], target_attr).append(item)
             continue
 
-        best_section = None
-        best_distance = float("inf")
-
-        for i, (section, page) in enumerate(sections_with_pages):
-            if i + 1 < len(sections_with_pages):
-                next_page = sections_with_pages[i + 1][1]
-            else:
-                next_page = float("inf")
-
-            # Item is within this section's page range
-            if page <= item_page < next_page:
+        # Find the last section whose start is <= item's position
+        best_section = body_sections[0]  # default to first
+        for i, (section, sp, sy) in enumerate(section_spans):
+            if (sp, sy) <= (item_page, item_y):
                 best_section = section
-                break
+            elif sp > item_page:
+                break  # past this item's page — stop
 
-            dist = abs(item_page - page)
-            if dist < best_distance:
-                best_distance = dist
-                best_section = section
+        getattr(best_section, target_attr).append(item)
 
-        if best_section:
-            getattr(best_section, target_attr).append(item)
+
+def _resync_body_positions(doc: Document):
+    """
+    After normalization, paragraph count in section.body may have changed
+    (garbage removal, header stripping, etc.).  Resync body_positions to
+    match the current paragraph count so the renderer can still use them.
+
+    Strategy:
+    - If counts match → no-op.
+    - If positions are longer → trim to paragraph count (paragraphs were removed).
+    - If positions are shorter or empty → clear positions (renderer uses fallback).
+    """
+    import re
+    for section in doc.sections:
+        positions = getattr(section, "body_positions", None)
+        if not positions:
+            continue
+
+        body = section.body or ""
+        paras = [p for p in re.split(r"\n\n+", body.strip()) if p.strip()] if body.strip() else []
+        n_para = len(paras)
+        n_pos = len(positions)
+
+        if n_para == n_pos:
+            continue  # in sync
+        elif n_para < n_pos:
+            # Paragraphs were removed — keep first n_para positions
+            # (positions are in reading order, removed paragraphs are
+            #  typically at the start or end — headers, garbage)
+            section.body_positions = positions[:n_para]
         else:
-            getattr(body_sections[-1], target_attr).append(item)
+            # More paragraphs than positions (splitting happened) — can't resync
+            section.body_positions = []
 
 
 def _flush_log(logger):

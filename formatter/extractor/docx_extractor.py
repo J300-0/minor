@@ -43,7 +43,7 @@ def extract_docx(path: str) -> dict:
             "page": 0,
             "bbox": [0, 0, 0, 0],
             "is_heading": is_heading,
-            "heading_level": int(para.style.name[-1]) if is_heading and para.style.name[-1].isdigit() else 0,
+            "heading_level": int(para.style.name[-1]) if is_heading and para.style and para.style.name and para.style.name[-1].isdigit() else 0,
         })
 
     # Extract tables

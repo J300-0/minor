@@ -40,7 +40,7 @@ class CanonicalDocument:
 
         # Must have at least one section with body text
         sections = self.sections.value or []
-        if not any(s.body.strip() for s in sections if hasattr(s, "body")):
+        if not any(s.body and s.body.strip() for s in sections if hasattr(s, "body")):
             return False
 
         return True

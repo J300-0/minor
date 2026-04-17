@@ -1,10 +1,160 @@
 # primer.md — Quick Reference
-> Last updated: 2026-03-26 — SMask xref compositing, table cell images, corrupted aux cleanup
+> Last updated: 2026-04-16 — IEEE author side-by-side layout fix
+
+## Current Task (2026-04-16 v2) — LaTeX auto-numbering + paragraph-break preservation
+**Problem A (duplicate numbers)**: Two formulas both labeled `(2)(2)`. The
+normalizer's `_convert_numbered_equations` produced `\begin{equation*}\tag{N}`
+using the original printed number, while the pipeline independently assigned
+sequential numbers 1..N to image-based FormulaBlocks via `\tag{N}` in the
+template. Two parallel numbering pools → collisions.
+
+**Problem B (stacked formulas, missing paragraph breaks)**: In the Goldbach
+section, formulas (5) and (6) rendered back-to-back at the section's end and
+three separate paragraphs merged into one. Root cause was in
+`_merge_orphan_symbol_lines` (normalizer): standalone `(7)` / `(8)` equation
+number lines were classified as orphan math symbols and merged into the
+previous line, but when the previous line was blank (the `\n\n` paragraph
+break) the merge collapsed it — destroying the paragraph boundary. The
+renderer then saw a single paragraph and placed both formulas after it.
+
+**Fix**:
+1. `normalizer/cleaner.py::_merge_orphan_symbol_lines`:
+   - Standalone `(N)` equation-number lines are now dropped (not merged).
+   - Any orphan whose preceding accumulated line is blank is also dropped
+     instead of being merged upward, preserving `\n\n` paragraph breaks.
+2. `normalizer/cleaner.py::_convert_numbered_equations`: switched output from
+   `\begin{equation*}\tag{N}` to `\begin{equation}` (auto-numbered).
+3. `renderer/jinja_renderer.py::_split_para_blocks`: now accepts both
+   `equation` and `equation*` environments as raw LaTeX pass-through.
+4. `template/ieee/template.tex.j2`: formula-block rendering switched from
+   `equation*`+`\tag{N}` / `\hfill(N)` to `\begin{equation}...\end{equation}`
+   for LaTeX text equations and image formulas (image wrapped in
+   `\vcenter{\hbox{\includegraphics{...}}}` to sit inside math mode).
+5. `core/pipeline.py`: removed sequential `fb.equation_number` assignment —
+   LaTeX's equation counter now owns numbering, guaranteeing sequential,
+   collision-free numbers across both normalizer-produced equations and
+   image-based formula blocks.
+
+Result on Formulas.pdf: equations now render (1)…(6) in document order with
+no duplicates, and formulas interleave correctly with their surrounding
+paragraphs in the Goldbach section.
+
+## Previous task (2026-04-16) — IEEE authors always side-by-side
+**Problem**: `\IEEEauthorblockN` + `\and` in the IEEE template auto-wrapped
+authors to stacked rows whenever their combined affiliation width exceeded
+`\textwidth`. Formulas.pdf (Košice affiliations) triggered this — two authors
+rendered one-above-the-other instead of in two columns like the source PDF.
+
+**Fix** (`template/ieee/template.tex.j2`):
+- Replaced `\IEEEauthorblockN`/`\IEEEauthorblockA` + `\and` with a row of
+  `\begin{minipage}[t]{col_width\textwidth}…\end{minipage}` blocks separated
+  by `\hfill`.
+- `col_width = 0.96 / (authors|length)` (Jinja `set` with round filter), so
+  the layout scales for 1–N authors.
+- Each minipage holds `\textbf{name}` + footnotesize affiliation lines with
+  `\\` line breaks. `\\` is safe inside a minipage (unlike a tabular where
+  it ends the row).
+- Result: authors always sit side-by-side in equal columns regardless of
+  affiliation length.
+
+## Previous task (2026-04-14 v5) — Logo on page 0 + block-split fallback
+**Problem carry-over**: Acta Avionica masthead was STILL classified as an
+equation (stealing number (1)). It only appears on page 0, so the recurring-
+xref skip didn't catch it. Goldbach section was still one merged paragraph
+because equation bbox_y was zero for embedded XObject images, so the per-
+formula y-span splitter couldn't fire.
+
+**Fix**:
+1. `_classify_image` now takes `bbox_y`. Any image on page 0 with
+   `bbox_y < 120` and area < 20000 is skipped as a masthead. All three call
+   sites (rendered-xref branch, inline-image branch, pdfplumber branch) pass
+   the image's y-top through.
+2. `_split_block_by_formulas` adds a **line-gap fallback**: computes median
+   line height for the block and splits whenever the gap between two
+   consecutive lines exceeds 1.6× median (or 14pt floor). This catches image-
+   induced paragraph breaks even when the image's bbox_y is missing from
+   upstream data. Formula-span crossing still triggers splits too.
+3. Formula overlap with a line gap is also a split signal (more permissive
+   than the strict "completely between centers" rule).
+
+## Previous task (2026-04-14 v4) — Image misclassification fix
+**Problem**: Acta Avionica journal logo (header) and the satellite-orbit Figure 1
+were being classified as equations and assigned equation numbers (1), (3).
+Real equations then started at (7) instead of (1).
+
+**Fix** in `pdf_extractor.py`:
+1. **Recurring-xref logo skip**: pre-pass counts each image xref across all
+   pages. Any xref appearing on 2+ pages is a journal logo / running header →
+   `skip_xrefs` set passed into `_extract_all_page_images()`, which drops them
+   before classification.
+2. **Caption-based figure override**: new `_find_figure_caption_near(text_dict,
+   bbox)` scans text blocks for "Figure N" / "Fig. N" within 80pt of the image
+   bbox. When a match is found, classification flips from 'equation' to 'figure'.
+3. `_classify_image` signature unchanged — the override wraps it in
+   `_extract_all_page_images` so the core size heuristic stays pure.
+
+## Previous task (2026-04-14 v3) — Paragraph-formula interleaving fix
+**Problem**: Goldbach section in output showed three paragraphs merged into one,
+formulas (7) and (8) dumped at the end of the section instead of between their
+introducing and concluding sentences. Root cause: PyMuPDF groups lines above and
+below an inline equation image into a single text block. Parser then sees one
+paragraph → renderer has nowhere to place the formula except at section end.
+
+**Fix**: In `pdf_extractor._extract_with_fitz()`:
+- Reordered per-page loop: `_extract_all_page_images` runs BEFORE text-block
+  loop so formula y-positions are known first.
+- New `_split_block_by_formulas(block, eq_y_spans)`: for each fitz text block,
+  splits its `lines` into runs separated by any equation y-span that lies
+  between two consecutive line centers. Each run becomes its own sub-block
+  with a bbox computed from the run's line bboxes.
+- New `_run_to_subblock(run_lines, fallback_bbox)`: helper that converts a
+  run of fitz line dicts back into the `{text, bbox, font, size}` shape the
+  rest of the pipeline expects.
+
+Result: paragraphs above and below an inline formula are now separated by
+`\n\n` in `section.body`, with distinct `body_positions` entries. The
+renderer's `_match_formulas_to_paragraphs` then places each formula after
+the correct paragraph.
+
+## Previous task (2026-04-14 v2)
+User complaint: first formula rendered as (8), formulas duplicated in Key Equations,
+author blocks wrapping to stacked rows.
+
+**Fix:**
+1. **Printed-number matching disabled for this doc**: extractor clears any matched
+   equation_number (was assigning wrong numbers to logos/figures misclassified as
+   equations). `_match_equation_numbers` max_y_dist reverted to 50pt.
+2. **Sequential numbering in pipeline**: `pipeline.py` assigns 1..N in (page, y)
+   reading order AFTER distribution to sections. First formula = (1), always.
+3. **Key Equations duplicate dropped**: `doc.formula_blocks = []` — templates see
+   no global list so the summary table is skipped. Inline placement only.
+4. **IEEE author template tightened**: removed stray trailing `\\` and `\textit{}`
+   that made blocks taller than column width → they wrap to rows. Now more compact.
+
+## Previous task (2026-04-14 v1, superseded above)
+Fix formulas showing as images instead of numbered LaTeX + make pix2tex and nougat
+actually run together. Three bugs:
+
+1. **Nougat never invoked** — availability probe had 10s timeout; nougat import
+   is heavier than that. Fix: `pdf_extractor._check_ocr_available()` now uses 60s
+   for nougat, and on timeout assumes-available so the batch worker itself decides.
+2. **Every OCR result dropped at render time** — `OCR_RENDERER_THRESHOLD=0.80` in
+   `core/shared.py` was higher than the scorer tops out at (~0.75). Lowered to 0.60.
+   `_is_simple_correct_latex()` still gates structural quality.
+3. **Equation numbers missing** — `_match_equation_numbers()` y-distance widened
+   50→80pt. New `_auto_number_formulas()` pass assigns sequential numbers to any
+   formula whose printed "(N)" couldn't be matched, so Key Equations never shows `---`.
+
+Dual-engine winner is now logged at INFO (was DEBUG) — `grep "Dual OCR" logs/pipeline_latest.log`
+to verify both engines ran.
+
+
 
 ## Current Status
 - **Project rebuilt from scratch** — clean modular architecture
 - All 6 templates working: ieee, acm, springer, elsevier, apa, arxiv
 - PDF + DOCX inputs supported
+- **Position-aware formula placement**: Paragraphs carry `(page, y)` positions from parser → renderer places formulas after the correct paragraph
 - **Equation image extraction**: get_images() primary, OCR-or-save fallback
 - **Black spot fix**: SMask xref compositing via `_composite_with_smask()` + `alpha=False`
 - **Table cell images**: `_render_cell_image()` detects equation images in table cells → `\CELLIMG{}` markers
@@ -13,7 +163,43 @@
 - **Corrupted aux cleanup**: Null-byte detection in .aux files before pdflatex
 - Canon validation gate prevents broken docs from reaching LaTeX
 
-## Recent Changes (2026-03-26)
+## Recent Changes (2026-04-07) — Position-aware formula placement
+
+### Root cause
+Formulas were placed at wrong positions because paragraph position data was lost.
+The parser concatenated blocks into `section.body` as plain text — the `(page, y)`
+of each paragraph was discarded. The renderer then guessed placement using a hacky
+fractional formula with a **hardcoded 800pt page height** assumption, producing
+wrong results for any non-standard page size or multi-page section.
+
+### Fix: `body_positions` — paragraph position tracking
+- **`core/models.py`**: Added `body_positions: list` field to `Section` —
+  list of `(page, y)` tuples, one per paragraph in `body` (split on `\n\n`).
+- **`parser/heuristic.py`**: `_extract_sections_from_blocks()` now records
+  `(page, y_top)` from each block's bbox when appending to `current_body`.
+  Uses a helper `_save_current_section()` to avoid repetition across 4 save points.
+- **`renderer/jinja_renderer.py`**: `_build_content_blocks()` rewritten:
+  - When `body_positions` available and count matches paragraphs: uses
+    `_match_formulas_to_paragraphs()` — direct `(page, y)` comparison to find
+    the last paragraph before each formula.
+  - When positions unavailable or count mismatch: falls back to appending all
+    formulas after the last paragraph (safe default, no wrong interleaving).
+- **`core/pipeline.py`**: Added `_resync_body_positions()` after Stage 4 (Normalize).
+  The normalizer can remove paragraphs (garbage cleanup); this trims/clears
+  `body_positions` to stay in sync.
+
+### How it works
+```
+Parser:  block(page=2, y=100) → body_positions[(2,100)]  → "Para A"
+         block(page=2, y=400) → body_positions[(2,400)]  → "Para B"
+
+Formula: FormulaBlock(page=2, bbox_y=250)
+
+Renderer: 250 > 100 (para A) but 250 < 400 (para B)
+          → place formula AFTER para A
+```
+
+## Previous Changes (2026-03-26)
 
 ### SMask XRef Compositing — Deep Black Spot Fix (`extractor/pdf_extractor.py`)
 - **Root cause**: `fitz.extract_image(xref)` returns raw RGB; the alpha mask is in a SEPARATE xref (`smask_xref` at index 1 of `get_images(full=True)` tuple). Without compositing, transparent areas render as black.
@@ -104,8 +290,10 @@ FormulaBlock:
 
 Placement:
   1. FormulaBlocks distributed to nearest Section by page proximity
-  2. Section.formula_blocks rendered inline (after figures, before next section)
-  3. Any unplaced formulas → "Key Equations" section at end of document
+  2. Renderer interleaves formulas with paragraphs using body_positions
+     (each formula placed after the paragraph that precedes it in the source PDF)
+  3. Fallback: if body_positions unavailable, formulas go after last paragraph
+  4. Any unplaced formulas → forced into last body section
 
 Template renders (per formula_block):
   if fb.latex    → \begin{equation}...\end{equation}
@@ -166,6 +354,8 @@ python main.py input/paper.docx --template springer
 - [x] FormulaBlock.image_path field + template rendering
 - [x] Embed formula blocks at source location (by page proximity to sections)
 - [x] Figure caption detection from nearby text blocks
+
+- [x] Position-aware formula placement: body_positions tracking through parser → renderer
 
 ## Tasks Pending
 - [ ] Test batch pix2tex on Windows with full dependencies
